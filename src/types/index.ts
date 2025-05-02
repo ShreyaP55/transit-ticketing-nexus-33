@@ -44,3 +44,22 @@ export interface IPass {
   purchaseDate: string;
   expiryDate: string;
 }
+
+export interface IPassUsage {
+  _id: string;
+  userId: string;
+  passId: IPass;
+  location: string;
+  scannedAt: string;
+}
+
+export interface IPayment {
+  _id: string;
+  userId: string;
+  type: 'pass' | 'ticket';
+  routeId: string;
+  fare: number;
+  stripeSessionId: string;
+  status: 'pending' | 'completed' | 'failed';
+  createdAt: string;
+}

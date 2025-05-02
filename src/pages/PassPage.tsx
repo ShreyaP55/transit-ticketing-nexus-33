@@ -1,21 +1,44 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Calendar, CreditCard, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Calendar, CreditCard, AlertCircle, ClockIcon, MapPin, Check, CheckCircle, History } from "lucide-react";
 import { routesAPI, passesAPI, paymentAPI } from "@/services/api";
 import MainLayout from "@/components/layout/MainLayout";
 import { PassCard } from "@/components/passes/PassCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { useUser } from "@/context/UserContext";
+import { PassUsageList } from "@/components/passes/PassUsageList";
 
 const PassPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const status = searchParams.get("status");
+  const sessionId = searchParams.get("session_id");
+  const queryClient = useQueryClient();
+  
+  const { userId } = useUser();
   const [selectedRouteId, setSelectedRouteId] = useState("");
+  const [activeTab, setActiveTab] = useState("current");
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // Check for successful payment
+  useEffect(() => {
+    if (status === "success" && sessionId) {
+      toast.success("Payment successful! Processing your pass...");
+      confirmPayment(sessionId);
+    } else if (status === "cancel") {
+      toast.error("Payment was canceled.");
+    }
+  }, [status, sessionId]);
+
   // Fetch routes
   const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
     queryKey: ["routes"],
@@ -26,7 +49,8 @@ const PassPage = () => {
   const {
     data: activePass,
     isLoading: isLoadingPass,
-    error: passError
+    error: passError,
+    refetch: refetchPass
   } = useQuery({
     queryKey: ["activePass"],
     queryFn: passesAPI.getActivePass,
@@ -36,8 +60,37 @@ const PassPage = () => {
       return failureCount < 3;
     }
   });
+
+  // Fetch pass usage history
+  const {
+    data: usageHistory = [],
+    isLoading: isLoadingUsage
+  } = useQuery({
+    queryKey: ["passUsage"],
+    queryFn: passesAPI.getPassUsage,
+    enabled: !!activePass
+  });
   
   const selectedRoute = routes.find(r => r._id === selectedRouteId);
+
+  // Confirm payment after successful checkout
+  const confirmPayment = async (sessionId) => {
+    try {
+      setIsProcessing(true);
+      const result = await passesAPI.confirmPassPayment(sessionId);
+      
+      if (result.success) {
+        toast.success("Monthly pass purchased successfully!");
+        queryClient.invalidateQueries({ queryKey: ["activePass"] });
+        navigate("/pass"); // Remove query params
+      }
+    } catch (error) {
+      toast.error("Failed to process payment confirmation");
+      console.error(error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
   
   const handlePurchasePass = async () => {
     if (!selectedRouteId) {
@@ -53,22 +106,15 @@ const PassPage = () => {
     try {
       setIsProcessing(true);
       
-      // In a real app, this would redirect to Stripe
-      const sessionId = await paymentAPI.createPassCheckoutSession(
+      const response = await paymentAPI.createPassCheckoutSession(
         selectedRouteId,
         selectedRoute.fare * 20 // Monthly pass discount (assuming 20x the single fare)
       );
       
-      // Create pass after successful payment
-      const result = await passesAPI.createPass({
-        routeId: selectedRouteId,
-        fare: selectedRoute.fare * 20,
-        sessionId
-      });
-      
-      if (result.success) {
-        toast.success("Monthly pass purchased successfully!");
-        navigate(0); // Refresh the page to show the new pass
+      if (response.url) {
+        window.location.href = response.url;
+      } else {
+        toast.error("Failed to create checkout session");
       }
     } catch (error) {
       toast.error("Failed to process payment");
@@ -80,42 +126,85 @@ const PassPage = () => {
 
   return (
     <MainLayout title="Monthly Pass">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-transit-blue">Monthly Travel Pass</h1>
+          <p className="text-muted-foreground">Unlimited travel on your selected route for 30 days</p>
+        </div>
+        
         {isLoadingPass ? (
-          <div className="text-center py-8">
-            <div className="animate-pulse">Checking pass status...</div>
+          <div className="space-y-4">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-10 w-32" />
           </div>
         ) : activePass ? (
           <div className="animate-fade-in">
-            <h1 className="text-2xl font-bold mb-6">My Monthly Pass</h1>
-            <PassCard pass={activePass} className="mb-8" />
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Pass Benefits</CardTitle>
-                <CardDescription>
-                  Enjoy unlimited travel on your selected route
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Unlimited rides on the {activePass.routeId.start} - {activePass.routeId.end} route</li>
-                  <li>Valid for a full month from date of purchase</li>
-                  <li>More economical than buying individual tickets</li>
-                  <li>No need to purchase tickets for every journey</li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" onClick={() => navigate("/")}>
-                  Explore Routes
-                </Button>
-              </CardFooter>
-            </Card>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full mb-6">
+                <TabsTrigger value="current" className="flex-1">Current Pass</TabsTrigger>
+                <TabsTrigger value="usage" className="flex-1">Usage History</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="current" className="space-y-6">
+                <PassCard pass={activePass} className="mb-8" />
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <CheckCircle className="mr-2 h-5 w-5 text-transit-green" />
+                      Pass Benefits
+                    </CardTitle>
+                    <CardDescription>
+                      Enjoy unlimited travel on your selected route
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3">
+                      <li className="flex">
+                        <Check className="mr-2 h-4 w-4 text-transit-green mt-1" />
+                        <span>Unlimited rides on the {activePass.routeId.start} - {activePass.routeId.end} route</span>
+                      </li>
+                      <li className="flex">
+                        <Check className="mr-2 h-4 w-4 text-transit-green mt-1" />
+                        <span>Valid for a full month from date of purchase</span>
+                      </li>
+                      <li className="flex">
+                        <Check className="mr-2 h-4 w-4 text-transit-green mt-1" />
+                        <span>More economical than buying individual tickets</span>
+                      </li>
+                      <li className="flex">
+                        <Check className="mr-2 h-4 w-4 text-transit-green mt-1" />
+                        <span>No need to purchase tickets for every journey</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button variant="outline" onClick={() => navigate("/")}>
+                      Explore Routes
+                    </Button>
+                    <Button 
+                      onClick={() => refetchPass()}
+                      variant="ghost" 
+                    >
+                      Refresh Pass Status
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="usage">
+                <PassUsageList 
+                  usageHistory={usageHistory} 
+                  isLoading={isLoadingUsage} 
+                  activePass={activePass} 
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         ) : (
           <div className="animate-fade-in">
             <div className="mb-8">
-              <h1 className="text-2xl font-bold mb-2">Get Your Monthly Pass</h1>
+              <h2 className="text-2xl font-bold mb-2">Get Your Monthly Pass</h2>
               <p className="text-muted-foreground">
                 Purchase a monthly pass for unlimited travel on your selected route
               </p>
@@ -138,8 +227,9 @@ const PassPage = () => {
                     <Select
                       value={selectedRouteId}
                       onValueChange={setSelectedRouteId}
+                      disabled={isLoadingRoutes}
                     >
-                      <SelectTrigger id="route">
+                      <SelectTrigger id="route" className="w-full">
                         <SelectValue placeholder="Choose a route" />
                       </SelectTrigger>
                       <SelectContent>
@@ -147,19 +237,23 @@ const PassPage = () => {
                           <SelectItem value="loading" disabled>
                             Loading...
                           </SelectItem>
-                        ) : (
+                        ) : routes.length > 0 ? (
                           routes.map((route) => (
                             <SelectItem key={route._id} value={route._id}>
-                              {route.start} - {route.end} (${route.fare})
+                              {route.start} - {route.end} (₹{route.fare})
                             </SelectItem>
                           ))
+                        ) : (
+                          <SelectItem value="none" disabled>
+                            No routes available
+                          </SelectItem>
                         )}
                       </SelectContent>
                     </Select>
                   </div>
                   
                   {selectedRouteId && selectedRoute && (
-                    <div className="border rounded-lg p-4 bg-transit-blue bg-opacity-5">
+                    <div className="rounded-lg p-4 bg-transit-light-blue/10">
                       <h3 className="font-medium mb-3 flex items-center gap-2">
                         <Calendar className="h-5 w-5 text-transit-blue" />
                         Monthly Pass Details
@@ -168,15 +262,15 @@ const PassPage = () => {
                       <div className="space-y-2 text-sm">
                         <div className="grid grid-cols-2">
                           <span className="text-muted-foreground">Route:</span>
-                          <span>{selectedRoute.start} - {selectedRoute.end}</span>
+                          <span className="font-medium">{selectedRoute.start} - {selectedRoute.end}</span>
                         </div>
                         <div className="grid grid-cols-2">
                           <span className="text-muted-foreground">Regular fare:</span>
-                          <span>${selectedRoute.fare.toFixed(2)} per trip</span>
+                          <span>₹{selectedRoute.fare.toFixed(2)} per trip</span>
                         </div>
                         <div className="grid grid-cols-2">
                           <span className="text-muted-foreground">Monthly pass price:</span>
-                          <span className="font-medium">${(selectedRoute.fare * 20).toFixed(2)}</span>
+                          <span className="font-medium">₹{(selectedRoute.fare * 20).toFixed(2)}</span>
                         </div>
                         <div className="grid grid-cols-2">
                           <span className="text-muted-foreground">Validity:</span>
@@ -200,6 +294,7 @@ const PassPage = () => {
                 <Button
                   onClick={handlePurchasePass}
                   disabled={!selectedRouteId || isProcessing}
+                  className="px-6"
                 >
                   {isProcessing ? (
                     <span className="flex items-center gap-2">

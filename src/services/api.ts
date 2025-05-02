@@ -1,5 +1,5 @@
 
-import { IRoute, IBus, IStation, ITicket, IPass } from "@/types";
+import { IRoute, IBus, IStation, ITicket, IPass, IPassUsage } from "@/types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const USER_ID = localStorage.getItem("userId") || "12345"; // In a real app, this would come from auth
@@ -128,25 +128,51 @@ export const passesAPI = {
         userId: USER_ID,
       }),
     }),
+    
+  confirmPassPayment: (sessionId: string): Promise<{ success: boolean; pass: IPass }> =>
+    fetchAPI("/payments", {
+      method: "POST",
+      body: JSON.stringify({
+        sessionId,
+        userId: USER_ID
+      }),
+    }),
+    
+  getPassUsage: (): Promise<IPassUsage[]> =>
+    fetchAPI(`/pass-usage?userId=${USER_ID}`),
+    
+  recordPassUsage: (passId: string, location: string): Promise<{ message: string; usage: IPassUsage }> =>
+    fetchAPI("/pass-usage", {
+      method: "POST",
+      body: JSON.stringify({
+        userId: USER_ID,
+        passId,
+        location
+      }),
+    }),
 };
 
-// Mock for stripe payments (in a real app, this would connect to Stripe)
+// Payment API
 export const paymentAPI = {
-  createTicketCheckoutSession: async (stationId: string, busId: string, amount: number): Promise<string> => {
-    // This is a mock function - in a real app, this would create a Stripe Checkout session
-    console.log(`Creating ticket payment for station ${stationId}, bus ${busId}, amount ${amount}`);
-    
-    // Simulate a successful payment
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return "cs_test_" + Math.random().toString(36).substring(2, 15);
+  createTicketCheckoutSession: async (stationId: string, busId: string, amount: number): Promise<{ url: string }> => {
+    return fetchAPI("/checkout", {
+      method: "POST",
+      body: JSON.stringify({
+        station: { id: stationId, fare: amount },
+        bus: { id: busId }
+      }),
+    });
   },
   
-  createPassCheckoutSession: async (routeId: string, amount: number): Promise<string> => {
-    // This is a mock function - in a real app, this would create a Stripe Checkout session
-    console.log(`Creating pass payment for route ${routeId}, amount ${amount}`);
-    
-    // Simulate a successful payment
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return "cs_test_" + Math.random().toString(36).substring(2, 15);
+  createPassCheckoutSession: async (routeId: string, amount: number): Promise<{ url: string }> => {
+    return fetchAPI("/payments", {
+      method: "POST",
+      body: JSON.stringify({
+        type: 'pass',
+        userId: USER_ID,
+        routeId,
+        fare: amount
+      }),
+    });
   },
 };
