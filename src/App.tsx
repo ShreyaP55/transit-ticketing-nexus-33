@@ -11,6 +11,9 @@ import PassPage from "./pages/PassPage";
 import BookingPage from "./pages/BookingPage";
 import RoutesPage from "./pages/RoutesPage";
 import NotFound from "./pages/NotFound";
+import StationManagementPage from "./pages/StationManagementPage";
+import LiveTrackingPage from "./pages/LiveTrackingPage";
+import { LoginPage, SignupPage } from "./pages/AuthPages";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +30,10 @@ const App = () => (
             <Route path="/pass" element={<PassPage />} />
             <Route path="/booking" element={<BookingPage />} />
             <Route path="/routes" element={<RoutesPage />} />
+            <Route path="/stations" element={<StationManagementPage />} />
+            <Route path="/tracking" element={<LiveTrackingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

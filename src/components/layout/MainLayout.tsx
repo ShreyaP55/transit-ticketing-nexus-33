@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Menu, X, User, Ticket, Map, Calendar, Bus } from "lucide-react";
+import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
@@ -21,6 +21,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
     { name: "Routes & Buses", icon: <Bus size={20} />, path: "/routes" },
+    { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
+    { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
   ];
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
