@@ -1,60 +1,70 @@
 
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useUser as useClerkUser } from "@clerk/clerk-react";
 
-interface UserContextType {
-  userId: string;
-  setUserId: (id: string) => void;
+type UserContextType = {
   isAuthenticated: boolean;
-  login: (id: string) => void;
+  userId: string | null;
+  userDetails: any; // Replace with proper type
   logout: () => void;
-}
+};
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+const UserContext = createContext<UserContextType>({
+  isAuthenticated: false,
+  userId: null,
+  userDetails: null,
+  logout: () => {},
+});
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [userId, setUserId] = useState<string>("");
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const { isSignedIn, user, signOut } = useClerkUser();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userDetails, setUserDetails] = useState<any>(null);
 
-  // Check local storage on component mount
+  // Update userId from Clerk when authentication state changes
   useEffect(() => {
-    const storedUserId = localStorage.getItem("userId");
-    if (storedUserId) {
-      setUserId(storedUserId);
-      setIsAuthenticated(true);
+    if (isSignedIn && user) {
+      setUserId(user.id);
+      
+      // Store the basic user info
+      setUserDetails({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.primaryEmailAddress?.emailAddress,
+        imageUrl: user.imageUrl
+      });
+      
+      // Store userId in localStorage for API calls
+      localStorage.setItem("userId", user.id);
+    } else {
+      setUserId(null);
+      setUserDetails(null);
+      localStorage.removeItem("userId");
     }
-  }, []);
+  }, [isSignedIn, user]);
 
-  const login = (id: string) => {
-    setUserId(id);
-    setIsAuthenticated(true);
-    localStorage.setItem("userId", id);
-  };
-
-  const logout = () => {
-    setUserId("");
-    setIsAuthenticated(false);
-    localStorage.removeItem("userId");
+  const logout = async () => {
+    try {
+      await signOut();
+      setUserId(null);
+      setUserDetails(null);
+      localStorage.removeItem("userId");
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
   };
 
   return (
-    <UserContext.Provider
-      value={{
-        userId,
-        setUserId,
-        isAuthenticated,
-        login,
-        logout,
-      }}
-    >
+    <UserContext.Provider value={{ 
+      isAuthenticated: !!userId, 
+      userId, 
+      userDetails,
+      logout 
+    }}>
       {children}
     </UserContext.Provider>
   );
 };
 
-export const useUser = (): UserContextType => {
-  const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider");
-  }
-  return context;
-};
+export const useUser = () => useContext(UserContext);

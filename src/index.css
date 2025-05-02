@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-    --background: 210 33% 98%;
+    --background: 30 30% 96%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -14,74 +14,74 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 210 80% 34%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 24 100% 55%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 30 80% 90%;
+    --secondary-foreground: 24 60% 30%;
 
-    --muted: 210 40% 96.1%;
+    --muted: 30 20% 90%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 90%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 30 40% 90%;
+    --accent-foreground: 24 60% 30%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 210 80% 34%;
+    --border: 30 20% 80%;
+    --input: 30 20% 80%;
+    --ring: 24 100% 55%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 210 33% 98%;
-    --sidebar-foreground: 210 40% 20%;
-    --sidebar-primary: 210 80% 34%;
+    --sidebar-background: 30 30% 20%;
+    --sidebar-foreground: 30 30% 90%;
+    --sidebar-primary: 24 100% 55%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 210 40% 90%;
-    --sidebar-accent-foreground: 210 40% 20%;
-    --sidebar-border: 210 40% 90%;
-    --sidebar-ring: 210 80% 34%;
+    --sidebar-accent: 30 30% 25%;
+    --sidebar-accent-foreground: 30 30% 90%;
+    --sidebar-border: 30 30% 30%;
+    --sidebar-ring: 24 100% 55%;
   }
 
   .dark {
-    --background: 210 40% 4%;
-    --foreground: 210 40% 98%;
+    --background: 30 30% 8%;
+    --foreground: 30 30% 98%;
 
-    --card: 210 40% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 30 30% 12%;
+    --card-foreground: 30 30% 98%;
 
-    --popover: 210 40% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 30 30% 12%;
+    --popover-foreground: 30 30% 98%;
 
-    --primary: 210 60% 50%;
+    --primary: 24 100% 55%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 15%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 30 30% 15%;
+    --secondary-foreground: 30 30% 90%;
 
-    --muted: 210 40% 15%;
-    --muted-foreground: 210 30% 70%;
+    --muted: 30 30% 15%;
+    --muted-foreground: 30 20% 70%;
 
-    --accent: 210 40% 15%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 30 30% 15%;
+    --accent-foreground: 30 30% 90%;
 
     --destructive: 0 62.8% 40%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 30 30% 98%;
 
-    --border: 210 40% 20%;
-    --input: 210 40% 20%;
-    --ring: 210 60% 50%;
+    --border: 30 30% 20%;
+    --input: 30 30% 20%;
+    --ring: 24 100% 55%;
     
-    --sidebar-background: 210 40% 12%;
-    --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 210 60% 50%;
+    --sidebar-background: 30 30% 12%;
+    --sidebar-foreground: 30 30% 90%;
+    --sidebar-primary: 24 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 20%;
-    --sidebar-accent-foreground: 210 40% 90%;
-    --sidebar-border: 210 40% 20%;
-    --sidebar-ring: 210 60% 50%;
+    --sidebar-accent: 30 30% 20%;
+    --sidebar-accent-foreground: 30 30% 90%;
+    --sidebar-border: 30 30% 20%;
+    --sidebar-ring: 24 100% 55%;
   }
 }
 
@@ -118,6 +118,14 @@
 }
 
 .transitBg {
-  background-color: #f8fafc;
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657l1.415 1.414L13.857 0H11.03zm32.284 0l6.364 6.364-1.414 1.414L41.2 0h2.114zM17.657 0l-6.364 6.364 1.414 1.414L19.8 0h-2.143zM30 0l-9.9 9.9 1.415 1.414L30 2.828l8.485 8.485 1.414-1.414L30 0zM0 0c0 .506.077.966.213 1.365l9.585 9.585c.45.056.91.113 1.365.113.456 0 .91-.057 1.364-.113l9.587-9.585A4.025 4.025 0 0124 0H0zm20 6.364L7.878 18.485h39.244L35 6.364H20zM0 17.657l6.364 6.364L0 30.343V17.657zm60 0l-6.364 6.364L60 30.343V17.657zM0 41.97l3.657 3.657L0 49.284v-7.313zm60 0l-3.657 3.657L60 49.284v-7.313z' fill='%23b4c6dc' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+  background-color: #fffaf5;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657l1.415 1.414L13.857 0H11.03zm32.284 0l6.364 6.364-1.414 1.414L41.2 0h2.114zM17.657 0l-6.364 6.364 1.414 1.414L19.8 0h-2.143zM30 0l-9.9 9.9 1.415 1.414L30 2.828l8.485 8.485 1.414-1.414L30 0zM0 0c0 .506.077.966.213 1.365l9.585 9.585c.45.056.91.113 1.365.113.456 0 .91-.057 1.364-.113l9.587-9.585A4.025 4.025 0 0124 0H0zm20 6.364L7.878 18.485h39.244L35 6.364H20zM0 17.657l6.364 6.364L0 30.343V17.657zm60 0l-6.364 6.364L60 30.343V17.657zM0 41.97l3.657 3.657L0 49.284v-7.313zm60 0l-3.657 3.657L60 49.284v-7.313z' fill='%23ff9f4e' fill-opacity='0.3' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+.orangeGradient {
+  background: linear-gradient(90deg, #FF7E1D 0%, #E05E00 100%);
+}
+
+.purpleGradient {
+  background: linear-gradient(90deg, #5B3758 0%, #3A1F37 100%);
 }

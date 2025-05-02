@@ -47,14 +47,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed top-0 left-0 z-30 h-full w-64 transform transition-transform duration-200 ease-in-out bg-white border-r border-border shadow-sm lg:translate-x-0",
+          "fixed top-0 left-0 z-30 h-full w-64 transform transition-transform duration-200 ease-in-out bg-sidebar shadow-lg border-r border-sidebar-border lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-16 items-center border-b border-border px-6">
+        <div className="flex h-16 items-center border-b border-sidebar-border px-6 orangeGradient">
           <Link 
             to="/" 
-            className="flex items-center gap-2 font-bold text-transit-blue text-xl"
+            className="flex items-center gap-2 font-bold text-white text-xl"
             onClick={() => setSidebarOpen(false)}
           >
             <Bus className="h-6 w-6" />
@@ -67,10 +67,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
             <Link
               key={item.name}
               to={item.path}
-              className="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-accent group"
+              className="flex items-center px-4 py-3 text-sm font-medium rounded-md hover:bg-sidebar-accent group text-sidebar-foreground"
               onClick={() => setSidebarOpen(false)}
             >
-              <div className="mr-3 text-transit-blue">{item.icon}</div>
+              <div className="mr-3 text-transit-orange-light">{item.icon}</div>
               {item.name}
             </Link>
           ))}
@@ -80,7 +80,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
           {isAuthenticated ? (
             <Button 
               variant="outline" 
-              className="w-full" 
+              className="w-full bg-sidebar-accent text-sidebar-foreground border-sidebar-border hover:bg-sidebar-primary hover:text-sidebar-primary-foreground" 
               onClick={handleLogout}
             >
               <User className="mr-2 h-4 w-4" />
@@ -88,7 +88,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
             </Button>
           ) : (
             <Button 
-              className="w-full" 
+              className="w-full bg-transit-orange hover:bg-transit-orange-dark" 
               onClick={() => navigate("/login")}
             >
               <User className="mr-2 h-4 w-4" />
@@ -100,8 +100,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
 
       {/* Main content */}
       <div className="flex flex-col w-full lg:pl-64">
-        <header className="h-16 bg-white shadow flex items-center justify-between px-6">
-          <h1 className="text-xl font-semibold">{title || "TransitNexus"}</h1>
+        <header className="h-16 bg-white shadow-md flex items-center justify-between px-6">
+          <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "TransitNexus"}</h1>
         </header>
 
         <main className="flex-1 p-6">
