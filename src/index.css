@@ -5,83 +5,83 @@
 
 @layer base {
   :root {
-    --background: 30 30% 96%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 24 100% 55%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 270 100% 70%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 80% 90%;
-    --secondary-foreground: 24 60% 30%;
+    --secondary: 270 100% 15%;
+    --secondary-foreground: 270 100% 90%;
 
-    --muted: 30 20% 90%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 240 10% 15%;
+    --muted-foreground: 240 10% 70%;
 
-    --accent: 30 40% 90%;
-    --accent-foreground: 24 60% 30%;
+    --accent: 270 100% 25%;
+    --accent-foreground: 270 100% 90%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 30 20% 80%;
-    --input: 30 20% 80%;
-    --ring: 24 100% 55%;
+    --border: 240 10% 20%;
+    --input: 240 10% 20%;
+    --ring: 270 100% 70%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 30 30% 20%;
-    --sidebar-foreground: 30 30% 90%;
-    --sidebar-primary: 24 100% 55%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 30 30% 25%;
-    --sidebar-accent-foreground: 30 30% 90%;
-    --sidebar-border: 30 30% 30%;
-    --sidebar-ring: 24 100% 55%;
+    --sidebar-background: 240 10% 8%;
+    --sidebar-foreground: 270 100% 90%;
+    --sidebar-primary: 270 100% 70%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 270 100% 20%;
+    --sidebar-accent-foreground: 270 100% 90%;
+    --sidebar-border: 240 10% 20%;
+    --sidebar-ring: 270 100% 70%;
   }
 
   .dark {
-    --background: 30 30% 8%;
-    --foreground: 30 30% 98%;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
 
-    --card: 30 30% 12%;
-    --card-foreground: 30 30% 98%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 30 30% 12%;
-    --popover-foreground: 30 30% 98%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 24 100% 55%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 270 100% 70%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 30% 15%;
-    --secondary-foreground: 30 30% 90%;
+    --secondary: 270 100% 15%;
+    --secondary-foreground: 270 100% 90%;
 
-    --muted: 30 30% 15%;
-    --muted-foreground: 30 20% 70%;
+    --muted: 240 10% 15%;
+    --muted-foreground: 240 10% 70%;
 
-    --accent: 30 30% 15%;
-    --accent-foreground: 30 30% 90%;
+    --accent: 270 100% 25%;
+    --accent-foreground: 270 100% 90%;
 
-    --destructive: 0 62.8% 40%;
-    --destructive-foreground: 30 30% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 30 30% 20%;
-    --input: 30 30% 20%;
-    --ring: 24 100% 55%;
+    --border: 240 10% 20%;
+    --input: 240 10% 20%;
+    --ring: 270 100% 70%;
     
-    --sidebar-background: 30 30% 12%;
-    --sidebar-foreground: 30 30% 90%;
-    --sidebar-primary: 24 100% 55%;
+    --sidebar-background: 240 10% 6%;
+    --sidebar-foreground: 270 100% 90%;
+    --sidebar-primary: 270 100% 70%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 30% 20%;
-    --sidebar-accent-foreground: 30 30% 90%;
-    --sidebar-border: 30 30% 20%;
-    --sidebar-ring: 24 100% 55%;
+    --sidebar-accent: 270 100% 20%;
+    --sidebar-accent-foreground: 270 100% 90%;
+    --sidebar-border: 240 10% 20%;
+    --sidebar-ring: 270 100% 70%;
   }
 }
 
@@ -96,7 +96,7 @@
   }
   
   .ticket-card {
-    @apply relative bg-white rounded-lg overflow-hidden shadow-md border border-border;
+    @apply relative bg-card rounded-lg overflow-hidden shadow-md border border-border;
   }
   
   .ticket-card::before {
@@ -118,14 +118,23 @@
 }
 
 .transitBg {
-  background-color: #fffaf5;
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657l1.415 1.414L13.857 0H11.03zm32.284 0l6.364 6.364-1.414 1.414L41.2 0h2.114zM17.657 0l-6.364 6.364 1.414 1.414L19.8 0h-2.143zM30 0l-9.9 9.9 1.415 1.414L30 2.828l8.485 8.485 1.414-1.414L30 0zM0 0c0 .506.077.966.213 1.365l9.585 9.585c.45.056.91.113 1.365.113.456 0 .91-.057 1.364-.113l9.587-9.585A4.025 4.025 0 0124 0H0zm20 6.364L7.878 18.485h39.244L35 6.364H20zM0 17.657l6.364 6.364L0 30.343V17.657zm60 0l-6.364 6.364L60 30.343V17.657zM0 41.97l3.657 3.657L0 49.284v-7.313zm60 0l-3.657 3.657L60 49.284v-7.313z' fill='%23ff9f4e' fill-opacity='0.3' fill-rule='evenodd'/%3E%3C/svg%3E");
+  background-color: #0f0f12;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657l1.415 1.414L13.857 0H11.03zm32.284 0l6.364 6.364-1.414 1.414L41.2 0h2.114zM17.657 0l-6.364 6.364 1.414 1.414L19.8 0h-2.143zM30 0l-9.9 9.9 1.415 1.414L30 2.828l8.485 8.485 1.414-1.414L30 0zM0 0c0 .506.077.966.213 1.365l9.585 9.585c.45.056.91.113 1.365.113.456 0 .91-.057 1.364-.113l9.587-9.585A4.025 4.025 0 0124 0H0zm20 6.364L7.878 18.485h39.244L35 6.364H20zM0 17.657l6.364 6.364L0 30.343V17.657zm60 0l-6.364 6.364L60 30.343V17.657zM0 41.97l3.657 3.657L0 49.284v-7.313zm60 0l-3.657 3.657L60 49.284v-7.313z' fill='%23b14aff' fill-opacity='0.15' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
 
-.orangeGradient {
-  background: linear-gradient(90deg, #FF7E1D 0%, #E05E00 100%);
+.neonPurpleGradient {
+  background: linear-gradient(90deg, #9b30ff 0%, #b14aff 100%);
 }
 
 .purpleGradient {
-  background: linear-gradient(90deg, #5B3758 0%, #3A1F37 100%);
+  background: linear-gradient(90deg, #3a1f37 0%, #5B3758 100%);
+}
+
+.neonGlow {
+  text-shadow: 0 0 5px rgba(177, 74, 255, 0.5), 0 0 10px rgba(177, 74, 255, 0.3);
+  box-shadow: 0 0 5px rgba(177, 74, 255, 0.5), 0 0 10px rgba(177, 74, 255, 0.3);
+}
+
+.neonText {
+  text-shadow: 0 0 5px rgba(177, 74, 255, 0.5), 0 0 10px rgba(177, 74, 255, 0.3);
 }

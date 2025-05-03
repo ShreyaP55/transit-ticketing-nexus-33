@@ -13,23 +13,23 @@ const AdminDashboardPage = () => {
     {
       title: "Routes & Buses Management",
       description: "Manage transit routes and assign buses to routes",
-      icon: <Bus className="h-10 w-10 text-transit-orange-light" />,
+      icon: <Bus className="h-10 w-10 text-primary" />,
       path: "/routes",
-      color: "bg-gradient-to-br from-transit-orange/10 to-transit-orange/20 border-transit-orange-light"
+      color: "bg-gradient-to-br from-primary/20 to-primary/10 border-primary/30"
     },
     {
       title: "Station Management",
       description: "Add, edit and delete stations on routes",
-      icon: <MapPin className="h-10 w-10 text-transit-purple" />,
+      icon: <MapPin className="h-10 w-10 text-primary" />,
       path: "/stations",
-      color: "bg-gradient-to-br from-transit-purple/10 to-transit-purple/20 border-transit-purple-light"
+      color: "bg-gradient-to-br from-primary/20 to-primary/10 border-primary/30"
     },
     {
       title: "System Settings",
       description: "Configure system-wide settings and parameters",
-      icon: <Settings className="h-10 w-10 text-transit-blue" />,
+      icon: <Settings className="h-10 w-10 text-primary" />,
       path: "/settings",
-      color: "bg-gradient-to-br from-transit-blue/10 to-transit-blue/20 border-transit-light-blue"
+      color: "bg-gradient-to-br from-primary/20 to-primary/10 border-primary/30"
     }
   ];
 
@@ -37,7 +37,7 @@ const AdminDashboardPage = () => {
     <MainLayout title="Admin Dashboard">
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-transit-orange-dark">Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold mb-2 text-white neonText">Admin Dashboard</h1>
           <p className="text-muted-foreground">Manage all aspects of your transit system</p>
         </header>
 
@@ -45,18 +45,18 @@ const AdminDashboardPage = () => {
           {adminModules.map((module) => (
             <Card 
               key={module.title} 
-              className={`hover:shadow-lg transition-all cursor-pointer ${module.color}`}
+              className={`hover:shadow-lg transition-all cursor-pointer ${module.color} bg-card`}
               onClick={() => navigate(module.path)}
             >
               <CardHeader>
                 <div className="mb-2">{module.icon}</div>
-                <CardTitle>{module.title}</CardTitle>
+                <CardTitle className="text-white">{module.title}</CardTitle>
                 <CardDescription>{module.description}</CardDescription>
               </CardHeader>
               <CardFooter>
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full border-primary/30 hover:border-primary hover:bg-primary/20 text-primary"
                   onClick={() => navigate(module.path)}
                 >
                   Manage

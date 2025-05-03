@@ -140,9 +140,9 @@ const StationForm: React.FC<StationFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card border-primary/30">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-primary neonText">
             <MapPin className="h-5 w-5" />
             {station ? "Edit Station" : "Add New Station"}
           </DialogTitle>
@@ -163,6 +163,7 @@ const StationForm: React.FC<StationFormProps> = ({
                 value={formValues.name}
                 onChange={handleChange}
                 placeholder="Enter station name"
+                className="border-muted bg-background/50"
                 required
               />
             </div>
@@ -177,7 +178,7 @@ const StationForm: React.FC<StationFormProps> = ({
                   name="busId"
                   value={formValues.busId}
                   onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                  className="flex h-10 w-full rounded-md border border-muted bg-background/50 px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                   required
                 >
                   <option value="" disabled>Select a bus</option>
@@ -199,6 +200,7 @@ const StationForm: React.FC<StationFormProps> = ({
                   value={formValues.latitude}
                   onChange={handleChange}
                   placeholder="Latitude"
+                  className="border-muted bg-background/50"
                   required
                 />
               </div>
@@ -212,6 +214,7 @@ const StationForm: React.FC<StationFormProps> = ({
                   value={formValues.longitude}
                   onChange={handleChange}
                   placeholder="Longitude"
+                  className="border-muted bg-background/50"
                   required
                 />
               </div>
@@ -220,7 +223,7 @@ const StationForm: React.FC<StationFormProps> = ({
             <Button
               type="button"
               variant="outline"
-              className="w-full"
+              className="w-full border-primary/30 hover:border-primary hover:bg-primary/20 text-primary"
               onClick={handleGetCurrentLocation}
             >
               Get Current Location
@@ -237,6 +240,7 @@ const StationForm: React.FC<StationFormProps> = ({
                 value={formValues.fare}
                 onChange={handleChange}
                 placeholder="Enter fare amount"
+                className="border-muted bg-background/50"
                 required
               />
             </div>
@@ -252,6 +256,7 @@ const StationForm: React.FC<StationFormProps> = ({
             </Button>
             <Button
               type="submit"
+              className="bg-primary hover:bg-primary/80 text-white"
               disabled={!isFormValid() || createMutation.isPending || updateMutation.isPending}
             >
               {createMutation.isPending || updateMutation.isPending ? (

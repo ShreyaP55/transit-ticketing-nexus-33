@@ -75,9 +75,10 @@ export default {
 					'orange': '#FF7E1D',
 					'orange-light': '#FFA766',
 					'orange-dark': '#E05E00',
-					'purple': '#5B3758',
-					'purple-light': '#8A678F',
-					'purple-dark': '#3A1F37'
+					'purple': '#9b30ff',
+					'purple-light': '#b14aff',
+					'purple-dark': '#5B3758',
+					'neon': '#b14aff'
 				}
 			},
 			borderRadius: {
