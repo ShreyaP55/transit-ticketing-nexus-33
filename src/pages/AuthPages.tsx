@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { SignIn, SignUp, useUser } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { Bus } from "lucide-react";
@@ -54,13 +54,21 @@ export const LoginPage = () => {
             <p className="mt-4 text-transit-orange-dark">Redirecting to the dashboard...</p>
           </div>
         ) : (
-          <SignIn 
-            appearance={darkTheme}
-            redirectUrl="/"
-            routing="path"
-            path="/login"
-            signUpUrl="/signup"
-          />
+          <>
+            <SignIn 
+              appearance={darkTheme}
+              signUpUrl="/signup"
+              redirectUrl="/"
+            />
+            <div className="mt-4 text-center">
+              <p>
+                Don't have an account?{" "}
+                <Link to="/signup" className="text-transit-orange hover:text-transit-orange-dark font-medium">
+                  Sign up
+                </Link>
+              </p>
+            </div>
+          </>
         )}
       </div>
       
@@ -97,13 +105,21 @@ export const SignupPage = () => {
       </div>
       
       <div className="w-full max-w-md">
-        <SignUp 
-          appearance={darkTheme}
-          redirectUrl="/"
-          routing="path"
-          path="/signup"
-          signInUrl="/login"
-        />
+        <>
+          <SignUp 
+            appearance={darkTheme}
+            signInUrl="/login"
+            redirectUrl="/"
+          />
+          <div className="mt-4 text-center">
+            <p>
+              Already have an account?{" "}
+              <Link to="/login" className="text-transit-orange hover:text-transit-orange-dark font-medium">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </>
       </div>
       
       <Button 

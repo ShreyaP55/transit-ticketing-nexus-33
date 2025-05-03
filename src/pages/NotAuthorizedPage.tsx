@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ShieldX } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
+import AdminInstructions from "@/components/admin/AdminInstructions";
 
 const NotAuthorizedPage = () => {
   const navigate = useNavigate();
@@ -18,6 +19,11 @@ const NotAuthorizedPage = () => {
         <p className="text-muted-foreground mb-6 max-w-md">
           You don't have permission to access this page. Please contact an administrator if you believe this is a mistake.
         </p>
+        
+        <div className="max-w-md w-full mb-8">
+          <AdminInstructions />
+        </div>
+        
         <div className="flex gap-4">
           <Button 
             variant="outline"

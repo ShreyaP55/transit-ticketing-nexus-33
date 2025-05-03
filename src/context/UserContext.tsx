@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useUser as useClerkUser } from "@clerk/clerk-react";
+import { useUser as useClerkUser, useClerk } from "@clerk/clerk-react";
 
 type UserRole = "user" | "admin";
 
@@ -24,6 +24,7 @@ const UserContext = createContext<UserContextType>({
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isSignedIn, user } = useClerkUser();
+  const { signOut } = useClerk();
   const [userId, setUserId] = useState<string | null>(null);
   const [userDetails, setUserDetails] = useState<any>(null);
   const [userRole, setUserRole] = useState<UserRole>("user");
@@ -60,9 +61,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      if (user) {
-        await user.signOut();
-      }
+      await signOut();
       setUserId(null);
       setUserDetails(null);
       localStorage.removeItem("userId");
