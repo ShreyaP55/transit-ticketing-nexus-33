@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation } from "lucide-react";
+import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
@@ -14,16 +14,22 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated, logout } = useUser();
+  const { isAuthenticated, logout, isAdmin } = useUser();
 
-  const navItems = [
+  const publicNavItems = [
     { name: "Home", icon: <Map size={20} />, path: "/" },
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
-    { name: "Routes & Buses", icon: <Bus size={20} />, path: "/routes" },
-    { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
     { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
   ];
+
+  const adminNavItems = [
+    { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin" },
+    { name: "Routes & Buses", icon: <Bus size={20} />, path: "/routes" },
+    { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
+  ];
+
+  const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -76,6 +82,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
           ))}
         </nav>
 
+        {isAdmin && (
+          <div className="px-4 mt-6">
+            <div className="bg-amber-100 text-amber-800 rounded-md p-2 text-sm flex items-center">
+              <Settings className="h-4 w-4 mr-2" />
+              Admin Mode
+            </div>
+          </div>
+        )}
+
         <div className="absolute bottom-10 left-0 w-full px-4">
           {isAuthenticated ? (
             <Button 
@@ -102,6 +117,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
       <div className="flex flex-col w-full lg:pl-64">
         <header className="h-16 bg-white shadow-md flex items-center justify-between px-6">
           <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "TransitNexus"}</h1>
+          
+          {isAdmin && (
+            <div className="flex items-center">
+              <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-medium">
+                Admin Access
+              </span>
+            </div>
+          )}
         </header>
 
         <main className="flex-1 p-6">

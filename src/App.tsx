@@ -15,6 +15,9 @@ import NotFound from "./pages/NotFound";
 import StationManagementPage from "./pages/StationManagementPage";
 import LiveTrackingPage from "./pages/LiveTrackingPage";
 import { LoginPage, SignupPage } from "./pages/AuthPages";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import NotAuthorizedPage from "./pages/NotAuthorizedPage";
+import AdminRoute from "./components/auth/AdminRoute";
 
 const queryClient = new QueryClient();
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -28,15 +31,23 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/tickets" element={<TicketsPage />} />
               <Route path="/pass" element={<PassPage />} />
               <Route path="/booking" element={<BookingPage />} />
-              <Route path="/routes" element={<RoutesPage />} />
-              <Route path="/stations" element={<StationManagementPage />} />
               <Route path="/tracking" element={<LiveTrackingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
+              <Route path="/unauthorized" element={<NotAuthorizedPage />} />
+              
+              {/* Admin Routes */}
+              <Route element={<AdminRoute />}>
+                <Route path="/admin" element={<AdminDashboardPage />} />
+                <Route path="/routes" element={<RoutesPage />} />
+                <Route path="/stations" element={<StationManagementPage />} />
+              </Route>
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -2,18 +2,24 @@
 import { IRoute, IBus, IStation, ITicket, IPass, IPassUsage } from "@/types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-const USER_ID = localStorage.getItem("userId") || "12345"; // In a real app, this would come from auth
+const getUserId = () => localStorage.getItem("userId");
 
 // Helper function for API calls
 async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const userId = getUserId();
+  
+  const headers = {
+    "Content-Type": "application/json",
+    ...(userId ? { "Authorization": `Bearer ${userId}` } : {}),
+    ...(options.headers || {})
+  };
+
   const response = await fetch(`${API_URL}${endpoint}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
     ...options,
+    headers
   });
 
   if (!response.ok) {
@@ -102,30 +108,34 @@ export const stationsAPI = {
 
 // Tickets API
 export const ticketsAPI = {
-  getByUserId: (): Promise<ITicket[]> => 
-    fetchAPI(`/tickets?userId=${USER_ID}`),
+  getByUserId: (): Promise<ITicket[]> => {
+    const userId = getUserId();
+    return fetchAPI(`/tickets?userId=${userId}`);
+  },
     
   create: (ticket: { sessionId: string; stationId: string; busId: string }): Promise<{ success: boolean; ticket: ITicket }> =>
     fetchAPI("/tickets", {
       method: "POST",
       body: JSON.stringify({
         ...ticket,
-        userId: USER_ID,
+        userId: getUserId(),
       }),
     }),
 };
 
 // Passes API
 export const passesAPI = {
-  getActivePass: (): Promise<IPass> => 
-    fetchAPI(`/passes?userId=${USER_ID}`),
+  getActivePass: (): Promise<IPass> => {
+    const userId = getUserId();
+    return fetchAPI(`/passes?userId=${userId}`);
+  },
     
   createPass: (pass: { routeId: string; fare: number; sessionId: string }): Promise<{ success: boolean; pass: IPass }> =>
     fetchAPI("/passes", {
       method: "POST",
       body: JSON.stringify({
         ...pass,
-        userId: USER_ID,
+        userId: getUserId(),
       }),
     }),
     
@@ -134,18 +144,20 @@ export const passesAPI = {
       method: "POST",
       body: JSON.stringify({
         sessionId,
-        userId: USER_ID
+        userId: getUserId()
       }),
     }),
     
-  getPassUsage: (): Promise<IPassUsage[]> =>
-    fetchAPI(`/pass-usage?userId=${USER_ID}`),
+  getPassUsage: (): Promise<IPassUsage[]> => {
+    const userId = getUserId();
+    return fetchAPI(`/pass-usage?userId=${userId}`);
+  },
     
   recordPassUsage: (passId: string, location: string): Promise<{ message: string; usage: IPassUsage }> =>
     fetchAPI("/pass-usage", {
       method: "POST",
       body: JSON.stringify({
-        userId: USER_ID,
+        userId: getUserId(),
         passId,
         location
       }),
@@ -159,7 +171,8 @@ export const paymentAPI = {
       method: "POST",
       body: JSON.stringify({
         station: { id: stationId, fare: amount },
-        bus: { id: busId }
+        bus: { id: busId },
+        userId: getUserId()
       }),
     });
   },
@@ -169,10 +182,22 @@ export const paymentAPI = {
       method: "POST",
       body: JSON.stringify({
         type: 'pass',
-        userId: USER_ID,
+        userId: getUserId(),
         routeId,
         fare: amount
       }),
     });
   },
+};
+
+// Admin API
+export const adminAPI = {
+  checkAdminStatus: (): Promise<{ isAdmin: boolean }> => fetchAPI("/admin/check-status"),
+  
+  getSystemStats: (): Promise<{ 
+    userCount: number, 
+    activePassCount: number, 
+    routeCount: number,
+    totalRevenue: number 
+  }> => fetchAPI("/admin/stats"),
 };
