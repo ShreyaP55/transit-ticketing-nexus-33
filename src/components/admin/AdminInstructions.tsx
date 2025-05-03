@@ -28,7 +28,7 @@ const AdminInstructions = () => {
           <h3 className="font-medium">Steps to access admin features:</h3>
           <ol className="list-decimal list-inside space-y-2 pl-2">
             <li>Sign out if you're currently logged in</li>
-            <li>Sign in with email: <span className="font-mono bg-slate-100 px-2 py-0.5 rounded">admin@example.com</span></li>
+            <li>Sign in with email: <span className="font-mono bg-slate-100 px-2 py-0.5 rounded">parkarshreya45@gmail.com</span></li>
             <li>Once logged in, admin features will be automatically enabled</li>
             <li>Access the admin dashboard through the sidebar menu</li>
           </ol>

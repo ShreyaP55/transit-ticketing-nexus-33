@@ -36,7 +36,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Check for admin role - this would typically come from user metadata or a database
       // For demo purposes, let's use a fixed email for admin
-      const isAdmin = user.primaryEmailAddress?.emailAddress === "admin@example.com";
+      const isAdmin = user.primaryEmailAddress?.emailAddress === "parkarshreya45@gmail.com";
       setUserRole(isAdmin ? "admin" : "user");
       
       // Store the basic user info
