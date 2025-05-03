@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, MapPin, Bus, Calendar, Navigation } from "lucide-react";
+import { Search, MapPin, Bus, Calendar, Navigation, Ticket } from "lucide-react";
 import { routesAPI, busesAPI } from "@/services/api";
 import { IRoute, IBus } from "@/types";
 import MainLayout from "@/components/layout/MainLayout";

@@ -17,7 +17,7 @@ const UserContext = createContext<UserContextType>({
 });
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isSignedIn, user, signOut } = useClerkUser();
+  const { isSignedIn, user } = useClerkUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [userDetails, setUserDetails] = useState<any>(null);
 
@@ -46,7 +46,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await signOut();
+      if (user) {
+        await user.signOut();
+      }
       setUserId(null);
       setUserDetails(null);
       localStorage.removeItem("userId");
