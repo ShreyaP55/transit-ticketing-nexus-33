@@ -1,4 +1,3 @@
-
 import { IRoute, IBus, IStation, ITicket, IPass, IPassUsage } from "@/types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -17,17 +16,22 @@ async function fetchAPI<T>(
     ...(options.headers || {})
   };
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers
-  });
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "An error occurred");
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "An error occurred with status " + response.status);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error(`API Error (${endpoint}):`, error);
+    throw error;
   }
-
-  return response.json();
 }
 
 // Routes API
@@ -61,60 +65,100 @@ export const routesAPI = {
 // Buses API
 export const busesAPI = {
   getAll: async (routeId?: string): Promise<IBus[]> => {
-    return fetchAPI(`/buses${routeId ? `?routeId=${routeId}` : ""}`);
+    try {
+      return fetchAPI(`/buses${routeId ? `?routeId=${routeId}` : ""}`);
+    } catch (error) {
+      console.error("Error fetching buses:", error);
+      throw error;
+    }
   },
     
   create: async (bus: Omit<IBus, "_id" | "route"> & { route: string }): Promise<IBus> => {
-    return fetchAPI("/buses", {
-      method: "POST",
-      body: JSON.stringify(bus),
-    });
+    try {
+      return fetchAPI("/buses", {
+        method: "POST",
+        body: JSON.stringify(bus),
+      });
+    } catch (error) {
+      console.error("Error creating bus:", error);
+      throw error;
+    }
   },
     
   update: async (bus: Omit<IBus, "route"> & { route: string }): Promise<IBus> => {
-    return fetchAPI("/buses", {
-      method: "PUT",
-      body: JSON.stringify(bus),
-    });
+    try {
+      return fetchAPI("/buses", {
+        method: "PUT",
+        body: JSON.stringify(bus),
+      });
+    } catch (error) {
+      console.error("Error updating bus:", error);
+      throw error;
+    }
   },
     
   delete: async (id: string): Promise<{ message: string }> => {
-    return fetchAPI("/buses", {
-      method: "DELETE",
-      body: JSON.stringify({ id }),
-    });
+    try {
+      return fetchAPI("/buses", {
+        method: "DELETE",
+        body: JSON.stringify({ id }),
+      });
+    } catch (error) {
+      console.error("Error deleting bus:", error);
+      throw error;
+    }
   },
 };
 
 // Stations API
 export const stationsAPI = {
   getAll: async (params?: { routeId?: string; busId?: string }): Promise<IStation[]> => {
-    const queryParams = new URLSearchParams();
-    if (params?.routeId) queryParams.append("routeId", params.routeId);
-    if (params?.busId) queryParams.append("busId", params.busId);
-      
-    return fetchAPI(`/stations?${queryParams.toString()}`);
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.routeId) queryParams.append("routeId", params.routeId);
+      if (params?.busId) queryParams.append("busId", params.busId);
+        
+      return fetchAPI(`/stations?${queryParams.toString()}`);
+    } catch (error) {
+      console.error("Error fetching stations:", error);
+      throw error;
+    }
   },
   
   create: async (station: Omit<IStation, "_id" | "routeId" | "busId"> & { routeId: string; busId: string }): Promise<IStation> => {
-    return fetchAPI("/stations", {
-      method: "POST",
-      body: JSON.stringify(station),
-    });
+    try {
+      return fetchAPI("/stations", {
+        method: "POST",
+        body: JSON.stringify(station),
+      });
+    } catch (error) {
+      console.error("Error creating station:", error);
+      throw error;
+    }
   },
     
   update: async (station: Omit<IStation, "routeId" | "busId"> & { routeId: string; busId: string }): Promise<IStation> => {
-    return fetchAPI("/stations", {
-      method: "PUT",
-      body: JSON.stringify(station),
-    });
+    try {
+      return fetchAPI("/stations", {
+        method: "PUT",
+        body: JSON.stringify(station),
+      });
+    } catch (error) {
+      console.error("Error updating station:", error);
+      throw error;
+    }
   },
     
   delete: async (id: string): Promise<{ message: string }> => {
-    return fetchAPI("/stations", {
-      method: "DELETE",
-      body: JSON.stringify({ id }),
-    });
+    try {
+      return fetchAPI("/stations", {
+        method: "DELETE",
+        body: JSON.stringify({ id }),
+      });
+    } catch (error) {
+      console.error("Error deleting station:", error);
+      throw error;
+    }
   },
 };
 

@@ -11,6 +11,7 @@ import TicketsPage from "./pages/TicketsPage";
 import PassPage from "./pages/PassPage";
 import BookingPage from "./pages/BookingPage";
 import RoutesPage from "./pages/RoutesPage";
+import BusesPage from "./pages/BusesPage";
 import NotFound from "./pages/NotFound";
 import StationManagementPage from "./pages/StationManagementPage";
 import LiveTrackingPage from "./pages/LiveTrackingPage";
@@ -45,6 +46,7 @@ const App = () => (
               <Route element={<AdminRoute />}>
                 <Route path="/admin" element={<AdminDashboardPage />} />
                 <Route path="/routes" element={<RoutesPage />} />
+                <Route path="/buses" element={<BusesPage />} />
                 <Route path="/stations" element={<StationManagementPage />} />
               </Route>
               
