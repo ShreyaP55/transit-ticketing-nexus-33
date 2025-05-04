@@ -8,12 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash, Bus as BusIcon, Route } from "lucide-react";
+import { Plus, Edit, Trash, Bus as BusIcon, Route, QrCode } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import BusForm from "@/components/buses/BusForm";
+import BusQRCode from "@/components/buses/BusQRCode";
 import { useUser } from "@/context/UserContext";
 import { IBus, IRoute } from "@/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const BusesPage = () => {
   const { isAdmin } = useUser();
@@ -23,15 +25,25 @@ const BusesPage = () => {
   const [selectedRouteId, setSelectedRouteId] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingBusId, setDeletingBusId] = useState<string>("");
+  const [isQRDialogOpen, setIsQRDialogOpen] = useState(false);
+  const [busForQR, setBusForQR] = useState<IBus | null>(null);
 
   // Fetch routes for filter
-  const { data: routes } = useQuery({
+  const { 
+    data: routes,
+    isLoading: isLoadingRoutes,
+    error: routesError 
+  } = useQuery({
     queryKey: ['routes'],
     queryFn: routesAPI.getAll
   });
 
   // Fetch buses data
-  const { data: buses, isLoading } = useQuery({
+  const { 
+    data: buses, 
+    isLoading,
+    error: busesError 
+  } = useQuery({
     queryKey: ['buses', selectedRouteId],
     queryFn: () => busesAPI.getAll(selectedRouteId),
   });
@@ -47,6 +59,12 @@ const BusesPage = () => {
       toast.error(`Error: ${error.message}`);
     }
   });
+
+  // Handle QR code generation
+  const handleGenerateQR = (bus: IBus) => {
+    setBusForQR(bus);
+    setIsQRDialogOpen(true);
+  };
 
   const handleDeleteClick = (id: string) => {
     setDeletingBusId(id);
@@ -78,6 +96,11 @@ const BusesPage = () => {
   const handleRouteFilter = (routeId: string) => {
     setSelectedRouteId(routeId === selectedRouteId ? "" : routeId);
   };
+
+  // Display data fetching errors
+  if (routesError || busesError) {
+    toast.error(`Error loading data: ${(routesError || busesError).message}`);
+  }
 
   return (
     <MainLayout title="Bus Management">
@@ -113,7 +136,11 @@ const BusesPage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {routes?.map(route => (
+                {isLoadingRoutes ? (
+                  Array(4).fill(0).map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))
+                ) : routes?.map(route => (
                   <div
                     key={route._id}
                     onClick={() => handleRouteFilter(route._id)}
@@ -175,7 +202,7 @@ const BusesPage = () => {
                         <TableHead>Name</TableHead>
                         <TableHead>Route</TableHead>
                         <TableHead>Capacity</TableHead>
-                        {isAdmin && <TableHead className="w-[100px]">Actions</TableHead>}
+                        <TableHead className="w-[150px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -193,18 +220,29 @@ const BusesPage = () => {
                               {bus.capacity} seats
                             </Badge>
                           </TableCell>
-                          {isAdmin && (
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={() => handleEdit(bus)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteClick(bus._id)}>
-                                  <Trash className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          )}
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-8 p-2 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10" 
+                                onClick={() => handleGenerateQR(bus)}
+                              >
+                                <QrCode className="h-4 w-4 mr-1" /> QR
+                              </Button>
+                              
+                              {isAdmin && (
+                                <>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={() => handleEdit(bus)}>
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteClick(bus._id)}>
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -225,6 +263,16 @@ const BusesPage = () => {
             selectedRouteId={selectedRouteId}
           />
         )}
+
+        {/* QR Code Dialog */}
+        <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
+          <DialogContent className="bg-card max-w-sm">
+            <DialogHeader>
+              <DialogTitle>QR Code for Bus</DialogTitle>
+            </DialogHeader>
+            {busForQR && <BusQRCode bus={busForQR} />}
+          </DialogContent>
+        </Dialog>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

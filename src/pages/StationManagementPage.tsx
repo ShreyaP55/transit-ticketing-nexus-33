@@ -3,13 +3,12 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import MainLayout from "@/components/layout/MainLayout";
-import { routesAPI, busesAPI, stationsAPI } from "@/services/api";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { routesAPI, stationsAPI } from "@/services/api";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Bus, Plus, Edit, Trash } from "lucide-react";
-import { IStation } from "@/types";
+import { Plus, Edit, Trash, Bus, MapPin } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import StationForm from "@/components/stations/StationForm";
 import { useUser } from "@/context/UserContext";
@@ -18,28 +17,23 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 const StationManagementPage = () => {
   const { isAdmin } = useUser();
   const queryClient = useQueryClient();
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedStation, setSelectedStation] = useState<IStation | null>(null);
-  const [selectedRouteId, setSelectedRouteId] = useState<string>("");
+  const [isStationFormOpen, setIsStationFormOpen] = useState(false);
+  const [selectedStation, setSelectedStation] = useState(null);
+  const [selectedRouteId, setSelectedRouteId] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingStationId, setDeletingStationId] = useState<string>("");
-  
-  // Fetch routes with error handling
+  const [deletingStationId, setDeletingStationId] = useState("");
+
+  // Fetch routes for filter
   const { 
-    data: routes, 
+    data: routes,
     isLoading: isLoadingRoutes,
     error: routesError
   } = useQuery({
     queryKey: ['routes'],
-    queryFn: routesAPI.getAll,
-    retry: 1,
-    onError: (error: Error) => {
-      console.error("Failed to fetch routes:", error);
-      toast.error("Failed to load routes. Please check your network connection.");
-    }
+    queryFn: routesAPI.getAll
   });
 
-  // Fetch stations with error handling
+  // Fetch stations data
   const { 
     data: stations, 
     isLoading: isLoadingStations,
@@ -47,26 +41,22 @@ const StationManagementPage = () => {
   } = useQuery({
     queryKey: ['stations', selectedRouteId],
     queryFn: () => stationsAPI.getAll({ routeId: selectedRouteId }),
-    enabled: !!selectedRouteId,
-    retry: 1,
-    onError: (error: Error) => {
-      console.error("Failed to fetch stations:", error);
-      toast.error("Failed to load stations. Please check your network connection.");
-    }
+    enabled: true,
   });
 
+  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: stationsAPI.delete,
     onSuccess: () => {
       toast.success("Station deleted successfully");
       queryClient.invalidateQueries({ queryKey: ['stations'] });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast.error(`Error: ${error.message}`);
     }
   });
 
-  const handleDeleteClick = (id: string) => {
+  const handleDeleteClick = (id) => {
     setDeletingStationId(id);
     setDeleteDialogOpen(true);
   };
@@ -76,34 +66,35 @@ const StationManagementPage = () => {
     setDeleteDialogOpen(false);
   };
 
-  const handleEdit = (station: IStation) => {
+  const handleEdit = (station) => {
     setSelectedStation(station);
-    setIsFormOpen(true);
+    setIsStationFormOpen(true);
   };
 
-  const handleAddStation = () => {
-    setSelectedStation(null);  // Ensure we're adding a new station, not editing
-    setIsFormOpen(true);
-  };
-
-  const handleFormClose = () => {
-    setIsFormOpen(false);
+  const handleStationFormClose = () => {
+    setIsStationFormOpen(false);
     setSelectedStation(null);
   };
 
-  const handleFormSuccess = () => {
-    setIsFormOpen(false);
+  const handleStationFormSuccess = () => {
+    setIsStationFormOpen(false);
     setSelectedStation(null);
     queryClient.invalidateQueries({ queryKey: ['stations'] });
     toast.success(`Station ${selectedStation ? 'updated' : 'created'} successfully`);
   };
 
-  // Show connection error state
-  const hasConnectionError = routesError || (selectedRouteId && stationsError);
+  const handleRouteFilter = (routeId) => {
+    setSelectedRouteId(routeId === selectedRouteId ? "" : routeId);
+  };
+
+  // Display data fetching errors
+  if (routesError || stationsError) {
+    toast.error(`Error loading data: ${(routesError || stationsError).message}`);
+  }
 
   return (
     <MainLayout title="Station Management">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-6 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-white neonText flex items-center">
@@ -111,127 +102,83 @@ const StationManagementPage = () => {
               Station Management
             </h1>
             <p className="text-muted-foreground">
-              Create and manage stations for your routes
+              Create and manage stations for your transit network
             </p>
           </div>
           {isAdmin && (
             <Button 
-              onClick={handleAddStation} 
+              onClick={() => setIsStationFormOpen(true)} 
               className="bg-purple-700 hover:bg-purple-800 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]"
-              disabled={!selectedRouteId}
             >
               <Plus className="mr-2 h-4 w-4" /> Add Station
             </Button>
           )}
         </div>
-
-        {hasConnectionError && (
-          <Card className="mb-6 border-amber-500/50 bg-amber-500/10">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-4">
-                <div className="p-2 bg-amber-500/20 rounded-full">
-                  <MapPin className="h-5 w-5 text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="font-medium mb-1">Connection Issue Detected</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Unable to connect to the backend API. Please ensure your API server is running and accessible at: {import.meta.env.VITE_API_URL || "http://localhost:3000/api"}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Route Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Route Filter */}
           <Card className="md:col-span-1 bg-gradient-to-br from-card to-background border-primary/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-bold text-primary flex items-center neonText">
-                <MapPin className="mr-2 h-5 w-5" /> 
-                Select Route
+                <Bus className="mr-2 h-5 w-5" /> 
+                Filter by Route
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoadingRoutes ? (
-                <div className="space-y-2">
-                  {Array(5).fill(0).map((_, i) => (
+              <div className="space-y-2">
+                {isLoadingRoutes ? (
+                  Array(4).fill(0).map((_, i) => (
                     <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : routes?.length === 0 || !routes ? (
-                <div className="text-center p-6 border rounded-lg border-dashed">
-                  <p className="text-muted-foreground mb-2">No routes available</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => window.location.href = '/routes'}
+                  ))
+                ) : routes?.map(route => (
+                  <div
+                    key={route._id}
+                    onClick={() => handleRouteFilter(route._id)}
+                    className={`p-3 border rounded-lg cursor-pointer transition-all flex justify-between items-center
+                      ${selectedRouteId === route._id 
+                        ? "border-primary bg-primary/20 text-white shadow-md neonGlow" 
+                        : "hover:border-primary/50 bg-background/50 border-border shadow-sm hover:bg-primary/5"}`}
                   >
-                    Go to Routes Page
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {routes?.map(route => (
-                    <div
-                      key={route._id}
-                      onClick={() => setSelectedRouteId(route._id)}
-                      className={`p-3 border rounded-lg cursor-pointer transition-all flex justify-between items-center
-                        ${selectedRouteId === route._id 
-                          ? "border-primary bg-primary/20 text-white shadow-md neonGlow" 
-                          : "hover:border-primary/50 bg-background/50 border-border shadow-sm hover:bg-primary/5"}`}
-                    >
-                      <span className="font-medium">{route.start} - {route.end}</span>
-                      <Badge variant={selectedRouteId === route._id ? "secondary" : "outline"} 
-                        className={selectedRouteId === route._id ? "bg-primary/30 text-white border-primary/30" : ""}>
-                        ₹{route.fare}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    <span className="font-medium">{route.start} - {route.end}</span>
+                    <Badge variant={selectedRouteId === route._id ? "secondary" : "outline"} 
+                      className={selectedRouteId === route._id ? "bg-primary/30 text-white border-primary/30" : ""}>
+                      ₹{route.fare}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
 
           {/* Station Listing */}
-          <Card className="md:col-span-2 h-fit border-primary/20 bg-card">
+          <Card className="md:col-span-3 h-fit border-primary/20 bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border">
               <div>
                 <CardTitle className="text-xl font-bold text-white">Stations</CardTitle>
                 <CardDescription>
-                  {selectedRouteId ? "Manage stations for the selected route" : "Please select a route to view stations"}
+                  {selectedRouteId ? 
+                    "Stations for the selected route" : 
+                    "All stations in the system"
+                  }
                 </CardDescription>
               </div>
-              {isAdmin && selectedRouteId && (
-                <Button 
-                  onClick={handleAddStation} 
-                  className="bg-purple-700 hover:bg-purple-800 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]"
-                >
-                  <Plus className="mr-2 h-4 w-4" /> Add Station
-                </Button>
-              )}
             </CardHeader>
             <CardContent className="pt-6">
-              {!selectedRouteId ? (
-                <div className="text-center p-8 text-muted-foreground bg-background/20 rounded-lg">
-                  <MapPin className="mx-auto h-12 w-12 mb-2 text-muted-foreground/50" />
-                  <p>Please select a route from the left panel to view its stations</p>
-                </div>
-              ) : isLoadingStations ? (
+              {isLoadingStations ? (
                 <div className="space-y-2">
                   {Array(3).fill(0).map((_, i) => (
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
-              ) : stations?.length === 0 || !stations ? (
+              ) : stations?.length === 0 ? (
                 <div className="text-center p-8 border rounded-lg border-dashed border-border bg-background/20">
                   <MapPin className="mx-auto h-12 w-12 mb-2 text-muted-foreground/50" />
-                  <p className="text-muted-foreground">No stations found for this route</p>
+                  <p className="text-muted-foreground">No stations found</p>
                   {isAdmin && (
                     <Button 
                       variant="outline" 
                       className="mt-4 border-purple-600/40 hover:border-purple-600 hover:bg-purple-600/10 text-purple-400 hover:text-purple-200" 
-                      onClick={handleAddStation}
+                      onClick={() => setIsStationFormOpen(true)}
                     >
                       <Plus className="mr-2 h-4 w-4" /> Add First Station
                     </Button>
@@ -243,9 +190,8 @@ const StationManagementPage = () => {
                     <TableHeader className="bg-muted/30">
                       <TableRow>
                         <TableHead>Name</TableHead>
-                        <TableHead>Bus</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Fare</TableHead>
+                        <TableHead>Route</TableHead>
+                        <TableHead>Address</TableHead>
                         {isAdmin && <TableHead className="w-[100px]">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
@@ -256,14 +202,14 @@ const StationManagementPage = () => {
                           <TableCell>
                             <div className="flex items-center">
                               <Bus className="h-4 w-4 mr-1 text-primary" />
-                              <span>{station.busId.name}</span>
+                              <span>{station.route.start} - {station.route.end}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {station.latitude.toFixed(4)}, {station.longitude.toFixed(4)}
-                          </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-primary/20">₹{station.fare}</Badge>
+                            <div className="flex items-center">
+                              <MapPin className="h-4 w-4 mr-1 text-primary" />
+                              <span>{station.address}</span>
+                            </div>
                           </TableCell>
                           {isAdmin && (
                             <TableCell>
@@ -288,11 +234,11 @@ const StationManagementPage = () => {
         </div>
 
         {/* Station Form Dialog */}
-        {isFormOpen && (
-          <StationForm 
-            isOpen={isFormOpen}
-            onClose={handleFormClose}
-            onSuccess={handleFormSuccess}
+        {isStationFormOpen && (
+          <StationForm
+            isOpen={isStationFormOpen}
+            onClose={handleStationFormClose}
+            onSuccess={handleStationFormSuccess}
             station={selectedStation}
             selectedRouteId={selectedRouteId}
           />
