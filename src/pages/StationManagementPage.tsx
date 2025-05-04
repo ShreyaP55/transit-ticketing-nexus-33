@@ -24,21 +24,35 @@ const StationManagementPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingStationId, setDeletingStationId] = useState<string>("");
   
+  // Fetch routes with error handling
   const { 
     data: routes, 
-    isLoading: isLoadingRoutes 
+    isLoading: isLoadingRoutes,
+    error: routesError
   } = useQuery({
     queryKey: ['routes'],
-    queryFn: routesAPI.getAll
+    queryFn: routesAPI.getAll,
+    retry: 1,
+    onError: (error: Error) => {
+      console.error("Failed to fetch routes:", error);
+      toast.error("Failed to load routes. Please check your network connection.");
+    }
   });
 
+  // Fetch stations with error handling
   const { 
     data: stations, 
-    isLoading: isLoadingStations 
+    isLoading: isLoadingStations,
+    error: stationsError
   } = useQuery({
     queryKey: ['stations', selectedRouteId],
     queryFn: () => stationsAPI.getAll({ routeId: selectedRouteId }),
-    enabled: !!selectedRouteId
+    enabled: !!selectedRouteId,
+    retry: 1,
+    onError: (error: Error) => {
+      console.error("Failed to fetch stations:", error);
+      toast.error("Failed to load stations. Please check your network connection.");
+    }
   });
 
   const deleteMutation = useMutation({
@@ -67,6 +81,11 @@ const StationManagementPage = () => {
     setIsFormOpen(true);
   };
 
+  const handleAddStation = () => {
+    setSelectedStation(null);  // Ensure we're adding a new station, not editing
+    setIsFormOpen(true);
+  };
+
   const handleFormClose = () => {
     setIsFormOpen(false);
     setSelectedStation(null);
@@ -78,6 +97,9 @@ const StationManagementPage = () => {
     queryClient.invalidateQueries({ queryKey: ['stations'] });
     toast.success(`Station ${selectedStation ? 'updated' : 'created'} successfully`);
   };
+
+  // Show connection error state
+  const hasConnectionError = routesError || (selectedRouteId && stationsError);
 
   return (
     <MainLayout title="Station Management">
@@ -94,7 +116,7 @@ const StationManagementPage = () => {
           </div>
           {isAdmin && (
             <Button 
-              onClick={() => setIsFormOpen(true)} 
+              onClick={handleAddStation} 
               className="bg-purple-700 hover:bg-purple-800 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]"
               disabled={!selectedRouteId}
             >
@@ -102,6 +124,24 @@ const StationManagementPage = () => {
             </Button>
           )}
         </div>
+
+        {hasConnectionError && (
+          <Card className="mb-6 border-amber-500/50 bg-amber-500/10">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-amber-500/20 rounded-full">
+                  <MapPin className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium mb-1">Connection Issue Detected</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Unable to connect to the backend API. Please ensure your API server is running and accessible at: {import.meta.env.VITE_API_URL || "http://localhost:3000/api"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Route Selection */}
@@ -118,6 +158,17 @@ const StationManagementPage = () => {
                   {Array(5).fill(0).map((_, i) => (
                     <Skeleton key={i} className="h-12 w-full" />
                   ))}
+                </div>
+              ) : routes?.length === 0 || !routes ? (
+                <div className="text-center p-6 border rounded-lg border-dashed">
+                  <p className="text-muted-foreground mb-2">No routes available</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => window.location.href = '/routes'}
+                  >
+                    Go to Routes Page
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -153,7 +204,7 @@ const StationManagementPage = () => {
               </div>
               {isAdmin && selectedRouteId && (
                 <Button 
-                  onClick={() => setIsFormOpen(true)} 
+                  onClick={handleAddStation} 
                   className="bg-purple-700 hover:bg-purple-800 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]"
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add Station
@@ -172,7 +223,7 @@ const StationManagementPage = () => {
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
-              ) : stations?.length === 0 ? (
+              ) : stations?.length === 0 || !stations ? (
                 <div className="text-center p-8 border rounded-lg border-dashed border-border bg-background/20">
                   <MapPin className="mx-auto h-12 w-12 mb-2 text-muted-foreground/50" />
                   <p className="text-muted-foreground">No stations found for this route</p>
@@ -180,7 +231,7 @@ const StationManagementPage = () => {
                     <Button 
                       variant="outline" 
                       className="mt-4 border-purple-600/40 hover:border-purple-600 hover:bg-purple-600/10 text-purple-400 hover:text-purple-200" 
-                      onClick={() => setIsFormOpen(true)}
+                      onClick={handleAddStation}
                     >
                       <Plus className="mr-2 h-4 w-4" /> Add First Station
                     </Button>
