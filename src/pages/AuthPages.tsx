@@ -58,7 +58,7 @@ export const LoginPage = () => {
             <SignIn 
               appearance={darkTheme}
               signUpUrl="/signup"
-              redirectUrl="/"
+              fallbackRedirectUrl="/"
             />
             <div className="mt-4 text-center">
               <p>
@@ -109,7 +109,7 @@ export const SignupPage = () => {
           <SignUp 
             appearance={darkTheme}
             signInUrl="/login"
-            redirectUrl="/"
+            fallbackRedirectUrl="/"
           />
           <div className="mt-4 text-center">
             <p>
