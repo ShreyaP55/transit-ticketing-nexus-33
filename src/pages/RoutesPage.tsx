@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -181,7 +180,7 @@ const RoutesPage = () => {
             isOpen={isBusFormOpen}
             onClose={handleBusFormClose}
             onSuccess={handleBusFormSuccess}
-            routeId={selectedRoute._id}
+            selectedRouteId={selectedRoute._id}
           />
         )}
 

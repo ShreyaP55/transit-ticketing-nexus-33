@@ -1,34 +1,14 @@
 
+// This file is meant for server-side usage only
+// In a browser environment, it will not function, as MongoDB requires Node.js
+
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
-const uri = import.meta.env.VITE_MONGODB_URI || "";
-const options = {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
+// This code will never actually run in the browser environment
+// It's kept for reference or potential server-side use
+const getMongoClient = () => {
+  console.warn("MongoDB cannot connect directly from browser environments");
+  return null;
 };
 
-let client: MongoClient | null = null;
-let clientPromise: Promise<MongoClient>;
-
-if (!uri) {
-  throw new Error('Please define the MONGODB_URI environment variable');
-}
-
-if (process.env.NODE_ENV === 'development') {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    global._mongoClientPromise = client.connect();
-  }
-  clientPromise = global._mongoClientPromise;
-} else {
-  // In production mode, it's best to not use a global variable.
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
-}
-
-export default clientPromise;
+export default getMongoClient;
