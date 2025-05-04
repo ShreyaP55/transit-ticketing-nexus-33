@@ -1,360 +1,187 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Map, Bus, MapPin, Plus, Edit, Trash } from "lucide-react";
-import { routesAPI, busesAPI } from "@/services/api";
+import { toast } from "sonner";
 import MainLayout from "@/components/layout/MainLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { IBus, IRoute } from "@/types";
+import { routesAPI, busesAPI } from "@/services/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Edit, Trash, Bus as BusIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import RouteForm from "@/components/routes/RouteForm";
 import BusForm from "@/components/buses/BusForm";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { useUser } from "@/context/UserContext";
+import { IRoute } from "@/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const RoutesPage = () => {
   const { isAdmin } = useUser();
   const queryClient = useQueryClient();
-  const [selectedRoute, setSelectedRoute] = useState<string>("");
   const [isRouteFormOpen, setIsRouteFormOpen] = useState(false);
   const [isBusFormOpen, setIsBusFormOpen] = useState(false);
-  const [editingRoute, setEditingRoute] = useState<IRoute | null>(null);
-  const [editingBus, setEditingBus] = useState<IBus | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<IRoute | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingItemId, setDeletingItemId] = useState<string>("");
-  const [deleteType, setDeleteType] = useState<"route" | "bus">("route");
-  
-  // Fetch routes
-  const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
-    queryKey: ["routes"],
+  const [deletingRouteId, setDeletingRouteId] = useState<string>("");
+
+  // Fetch routes data
+  const { data: routes, isLoading } = useQuery({
+    queryKey: ['routes'],
     queryFn: routesAPI.getAll
   });
-  
-  // Fetch buses based on selected route
-  const { data: buses = [], isLoading: isLoadingBuses } = useQuery({
-    queryKey: ["buses", selectedRoute],
-    queryFn: () => selectedRoute ? busesAPI.getAll(selectedRoute) : Promise.resolve([]),
-    enabled: !!selectedRoute
-  });
 
-  // Delete mutations
-  const deleteRouteMutation = useMutation({
+  // Delete mutation
+  const deleteMutation = useMutation({
     mutationFn: routesAPI.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routes'] });
       toast.success("Route deleted successfully");
-      if (selectedRoute === deletingItemId) {
-        setSelectedRoute("");
-      }
+      queryClient.invalidateQueries({ queryKey: ['routes'] });
     },
     onError: (error: Error) => {
       toast.error(`Error: ${error.message}`);
     }
   });
 
-  const deleteBusMutation = useMutation({
-    mutationFn: busesAPI.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['buses'] });
-      toast.success("Bus deleted successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(`Error: ${error.message}`);
-    }
-  });
-  
-  const handleRouteSelect = (routeId: string) => {
-    setSelectedRoute(routeId);
-  };
-
-  const handleAddRoute = () => {
-    setEditingRoute(null);
-    setIsRouteFormOpen(true);
-  };
-
-  const handleEditRoute = (route: IRoute) => {
-    setEditingRoute(route);
-    setIsRouteFormOpen(true);
-  };
-
-  const handleAddBus = () => {
-    setEditingBus(null);
-    setIsBusFormOpen(true);
-  };
-
-  const handleEditBus = (bus: IBus) => {
-    setEditingBus(bus);
-    setIsBusFormOpen(true);
-  };
-
-  const handleDeleteClick = (id: string, type: "route" | "bus") => {
-    setDeletingItemId(id);
-    setDeleteType(type);
+  const handleDeleteClick = (id: string) => {
+    setDeletingRouteId(id);
     setDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = () => {
-    if (deleteType === "route") {
-      deleteRouteMutation.mutate(deletingItemId);
-    } else {
-      deleteBusMutation.mutate(deletingItemId);
-    }
+    deleteMutation.mutate(deletingRouteId);
     setDeleteDialogOpen(false);
+  };
+
+  const handleEdit = (route: IRoute) => {
+    setSelectedRoute(route);
+    setIsRouteFormOpen(true);
   };
 
   const handleRouteFormClose = () => {
     setIsRouteFormOpen(false);
-    setEditingRoute(null);
+    setSelectedRoute(null);
+  };
+
+  const handleAddBus = (route: IRoute) => {
+    setSelectedRoute(route);
+    setIsBusFormOpen(true);
   };
 
   const handleBusFormClose = () => {
     setIsBusFormOpen(false);
-    setEditingBus(null);
+    setSelectedRoute(null);
+  };
+
+  const handleFormSuccess = () => {
+    setIsRouteFormOpen(false);
+    setSelectedRoute(null);
+    queryClient.invalidateQueries({ queryKey: ['routes'] });
+    toast.success(`Route ${selectedRoute ? 'updated' : 'created'} successfully`);
+  };
+
+  const handleBusFormSuccess = () => {
+    setIsBusFormOpen(false);
+    setSelectedRoute(null);
+    queryClient.invalidateQueries({ queryKey: ['buses'] });
+    toast.success(`Bus added successfully`);
   };
 
   return (
-    <MainLayout title="Routes & Buses">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <div className="h-10 w-10 flex items-center justify-center rounded-full bg-primary/20 text-primary mr-3">
-              <Map size={20} className="text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Transit Routes & Buses</h1>
-              <p className="text-muted-foreground">
-                Explore available routes and buses in our network
-              </p>
-            </div>
-          </div>
+    <MainLayout title="Routes Management">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-white neonText">Routes Management</h1>
           {isAdmin && (
-            <Button onClick={handleAddRoute} className="bg-primary hover:bg-primary/80 text-white">
+            <Button onClick={() => setIsRouteFormOpen(true)} className="bg-primary hover:bg-primary/80 text-white">
               <Plus className="mr-2 h-4 w-4" /> Add Route
             </Button>
           )}
         </div>
-        
-        <Tabs defaultValue="routes" className="mb-8">
-          <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted">
-            <TabsTrigger value="routes" className="data-[state=active]:bg-primary data-[state=active]:text-white">Routes</TabsTrigger>
-            <TabsTrigger value="buses" className="data-[state=active]:bg-primary data-[state=active]:text-white">Buses</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="routes" className="animate-fade-in">
-            <Card className="border-primary/20 bg-card shadow-lg">
-              <CardHeader className="border-b border-border pb-4">
-                <CardTitle className="text-white">Available Routes</CardTitle>
-                <CardDescription>
-                  Click on a route to see the buses that operate on it
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="pt-6">
-                {isLoadingRoutes ? (
-                  <div className="text-center py-8">
-                    <div className="animate-pulse">Loading routes...</div>
-                  </div>
-                ) : routes.length === 0 ? (
-                  <div className="text-center py-8">
-                    <MapPin className="mx-auto h-12 w-12 mb-3 text-muted-foreground/60" />
-                    <p className="text-muted-foreground">No routes available</p>
-                    {isAdmin && (
-                      <Button 
-                        onClick={handleAddRoute} 
-                        variant="outline" 
-                        className="mt-4 border-primary/40 hover:border-primary hover:bg-primary/10"
-                      >
-                        <Plus className="mr-2 h-4 w-4" /> Add your first route
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="rounded-md border border-border overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-muted/30">
-                        <TableRow>
-                          <TableHead>Origin</TableHead>
-                          <TableHead>Destination</TableHead>
-                          <TableHead>Fare</TableHead>
-                          {isAdmin && <TableHead className="w-[100px]">Actions</TableHead>}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {routes.map((route: IRoute) => (
-                          <TableRow
-                            key={route._id}
-                            className={`cursor-pointer hover:bg-primary/5 ${selectedRoute === route._id ? "bg-primary/10" : ""}`}
-                            onClick={() => handleRouteSelect(route._id)}
-                          >
-                            <TableCell className="font-medium text-white">{route.start}</TableCell>
-                            <TableCell>{route.end}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-primary/20">
-                                ₹{route.fare.toFixed(2)}
-                              </Badge>
-                            </TableCell>
-                            {isAdmin && (
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost" 
-                                    className="h-8 w-8 p-0 text-primary"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditRoute(route);
-                                    }}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost" 
-                                    className="h-8 w-8 p-0 text-destructive"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteClick(route._id, "route");
-                                    }}
-                                  >
-                                    <Trash className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            )}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="buses" className="animate-fade-in">
-            <Card className="border-primary/20 bg-card shadow-lg">
-              <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-white">Available Buses</CardTitle>
-                  <CardDescription>
-                    Select a route to see buses operating on that route
-                  </CardDescription>
-                </div>
-                {isAdmin && selectedRoute && (
-                  <Button onClick={handleAddBus} className="bg-primary hover:bg-primary/80 text-white">
-                    <Plus className="mr-2 h-4 w-4" /> Add Bus
+
+        <Card className="bg-card border-primary/20">
+          <CardHeader className="pb-2 border-b border-border">
+            <CardTitle className="text-white">Transit Routes</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {isLoading ? (
+              <div className="space-y-2">
+                {Array(3).fill(0).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : routes?.length === 0 ? (
+              <div className="text-center p-8 border rounded-lg border-dashed border-border">
+                <p className="text-muted-foreground">No routes found</p>
+                {isAdmin && (
+                  <Button variant="outline" className="mt-4 border-primary/40 hover:border-primary hover:bg-primary/10" onClick={() => setIsRouteFormOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add First Route
                   </Button>
                 )}
-              </CardHeader>
-              
-              <CardContent className="pt-6">
-                {!selectedRoute ? (
-                  <div className="border rounded-lg p-6 text-center bg-background/30">
-                    <MapPin className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                    <h3 className="font-medium mb-1 text-white">No route selected</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Please select a route from the Routes tab to view buses
-                    </p>
-                  </div>
-                ) : isLoadingBuses ? (
-                  <div className="text-center py-8">
-                    <div className="animate-pulse">Loading buses...</div>
-                  </div>
-                ) : buses.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Bus className="mx-auto h-12 w-12 mb-3 text-muted-foreground/60" />
-                    <p className="text-muted-foreground">No buses available for this route</p>
-                    {isAdmin && (
-                      <Button 
-                        onClick={handleAddBus} 
-                        variant="outline" 
-                        className="mt-4 border-primary/40 hover:border-primary hover:bg-primary/10"
-                      >
-                        <Plus className="mr-2 h-4 w-4" /> Add your first bus
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <div className="mb-4">
-                      <p className="text-sm text-primary font-medium">
-                        Showing buses for route: {routes.find(r => r._id === selectedRoute)?.start} - {routes.find(r => r._id === selectedRoute)?.end}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-border overflow-hidden">
-                      <Table>
-                        <TableHeader className="bg-muted/30">
-                          <TableRow>
-                            <TableHead>Bus Name</TableHead>
-                            <TableHead>Capacity</TableHead>
-                            {isAdmin && <TableHead className="w-[100px]">Actions</TableHead>}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {buses.map((bus: IBus) => (
-                            <TableRow key={bus._id} className="hover:bg-primary/5">
-                              <TableCell className="font-medium text-white">
-                                <div className="flex items-center">
-                                  <Bus className="mr-2 h-4 w-4 text-primary" /> {bus.name}
-                                </div>
-                              </TableCell>
-                              <TableCell>{bus.capacity} seats</TableCell>
-                              {isAdmin && (
-                                <TableCell>
-                                  <div className="flex gap-2">
-                                    <Button 
-                                      size="sm" 
-                                      variant="ghost" 
-                                      className="h-8 w-8 p-0 text-primary"
-                                      onClick={() => handleEditBus(bus)}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="ghost" 
-                                      className="h-8 w-8 p-0 text-destructive"
-                                      onClick={() => handleDeleteClick(bus._id, "bus")}
-                                    >
-                                      <Trash className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              )}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            ) : (
+              <div className="rounded-md border border-border overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow>
+                      <TableHead>Route Name</TableHead>
+                      <TableHead>Fare</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {routes?.map(route => (
+                      <TableRow key={route._id} className="hover:bg-primary/5">
+                        <TableCell className="font-medium">{route.start} - {route.end}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-primary/20">₹{route.fare}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={() => handleAddBus(route)}
+                              className="h-8 px-3 bg-purple-700 hover:bg-purple-800 text-white"
+                            >
+                              <BusIcon className="mr-1 h-3.5 w-3.5" /> Add Bus
+                            </Button>
+                            {isAdmin && (
+                              <>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={() => handleEdit(route)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteClick(route._id)}>
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Route Form Dialog */}
         {isRouteFormOpen && (
           <RouteForm
             isOpen={isRouteFormOpen}
             onClose={handleRouteFormClose}
-            onSuccess={handleRouteFormClose}
-            route={editingRoute}
+            onSuccess={handleFormSuccess}
+            route={selectedRoute}
           />
         )}
 
-        {/* Bus Form Dialog */}
-        {isBusFormOpen && (
+        {isBusFormOpen && selectedRoute && (
           <BusForm
             isOpen={isBusFormOpen}
             onClose={handleBusFormClose}
-            onSuccess={handleBusFormClose}
-            bus={editingBus}
-            selectedRouteId={selectedRoute}
+            onSuccess={handleBusFormSuccess}
+            routeId={selectedRoute._id}
           />
         )}
 
@@ -364,7 +191,7 @@ const RoutesPage = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the {deleteType}. This action cannot be undone.
+                This will permanently delete the route. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

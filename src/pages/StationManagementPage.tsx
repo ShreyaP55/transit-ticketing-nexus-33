@@ -82,14 +82,25 @@ const StationManagementPage = () => {
   return (
     <MainLayout title="Station Management">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white neonText flex items-center">
-            <MapPin className="mr-2 h-6 w-6 text-primary" />
-            Station Management
-          </h1>
-          <p className="text-muted-foreground">
-            Create and manage stations for your routes
-          </p>
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white neonText flex items-center">
+              <MapPin className="mr-2 h-6 w-6 text-primary" />
+              Station Management
+            </h1>
+            <p className="text-muted-foreground">
+              Create and manage stations for your routes
+            </p>
+          </div>
+          {isAdmin && (
+            <Button 
+              onClick={() => setIsFormOpen(true)} 
+              className="bg-purple-700 hover:bg-purple-800 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]"
+              disabled={!selectedRouteId}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Station
+            </Button>
+          )}
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -141,7 +152,10 @@ const StationManagementPage = () => {
                 </CardDescription>
               </div>
               {isAdmin && selectedRouteId && (
-                <Button onClick={() => setIsFormOpen(true)} className="bg-primary hover:bg-primary/80 text-white">
+                <Button 
+                  onClick={() => setIsFormOpen(true)} 
+                  className="bg-purple-700 hover:bg-purple-800 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]"
+                >
                   <Plus className="mr-2 h-4 w-4" /> Add Station
                 </Button>
               )}
@@ -163,7 +177,11 @@ const StationManagementPage = () => {
                   <MapPin className="mx-auto h-12 w-12 mb-2 text-muted-foreground/50" />
                   <p className="text-muted-foreground">No stations found for this route</p>
                   {isAdmin && (
-                    <Button variant="outline" className="mt-4 border-primary/40 hover:border-primary hover:bg-primary/10" onClick={() => setIsFormOpen(true)}>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4 border-purple-600/40 hover:border-purple-600 hover:bg-purple-600/10 text-purple-400 hover:text-purple-200" 
+                      onClick={() => setIsFormOpen(true)}
+                    >
                       <Plus className="mr-2 h-4 w-4" /> Add First Station
                     </Button>
                   )}
