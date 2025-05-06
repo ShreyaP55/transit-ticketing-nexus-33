@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -213,7 +212,9 @@ const StationManagementPage = () => {
                           <TableCell>
                             <div className="flex items-center">
                               <MapPin className="h-4 w-4 mr-1 text-transit-orange" />
-                              <span>{station.location || "Location not available"}</span>
+                              <span>
+                                {station.location || `${station.latitude.toFixed(6)}, ${station.longitude.toFixed(6)}`}
+                              </span>
                             </div>
                           </TableCell>
                           {isAdmin && (

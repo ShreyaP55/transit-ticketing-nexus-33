@@ -1,4 +1,3 @@
-
 export interface IRoute {
   _id: string;
   start: string;
@@ -21,6 +20,7 @@ export interface IStation {
   latitude: number;
   longitude: number;
   fare: number;
+  location?: string; // Added location property as optional
 }
 
 export interface ITicket {
