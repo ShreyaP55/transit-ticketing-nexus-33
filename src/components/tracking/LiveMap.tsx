@@ -60,7 +60,7 @@ const LiveMap: React.FC<LiveMapProps> = ({
     
     // Initialize the map
     if (mapRef.current && !googleMapRef.current) {
-      googleMapRef.current = new google.maps.Map(mapRef.current, {
+      googleMapRef.current = new window.google.maps.Map(mapRef.current, {
         center: mapCenter,
         zoom: 12,
         streetViewControl: false,
@@ -77,12 +77,12 @@ const LiveMap: React.FC<LiveMapProps> = ({
 
       // Add user marker if location is available
       if (userLocation) {
-        new google.maps.Marker({
+        new window.google.maps.Marker({
           position: userLocation,
           map: googleMapRef.current,
           icon: {
             url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-            scaledSize: new google.maps.Size(40, 40),
+            scaledSize: new window.google.maps.Size(40, 40),
           },
           title: "Your Location",
         });
@@ -114,21 +114,21 @@ const LiveMap: React.FC<LiveMapProps> = ({
           url: isSelected 
             ? "https://maps.google.com/mapfiles/ms/icons/orange-dot.png" 
             : "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-          scaledSize: new google.maps.Size(isSelected ? 50 : 40, isSelected ? 50 : 40),
+          scaledSize: new window.google.maps.Size(isSelected ? 50 : 40, isSelected ? 50 : 40),
         });
       } else {
         // Create new marker
-        const marker = new google.maps.Marker({
+        const marker = new window.google.maps.Marker({
           position,
           map: googleMapRef.current,
           icon: {
             url: isSelected 
               ? "https://maps.google.com/mapfiles/ms/icons/orange-dot.png" 
               : "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-            scaledSize: new google.maps.Size(isSelected ? 50 : 40, isSelected ? 50 : 40),
+            scaledSize: new window.google.maps.Size(isSelected ? 50 : 40, isSelected ? 50 : 40),
           },
           title: bus?.name || `Bus ${busId}`,
-          animation: google.maps.Animation.DROP,
+          animation: window.google.maps.Animation.DROP,
         });
         
         // Add click handler
@@ -162,8 +162,8 @@ const LiveMap: React.FC<LiveMapProps> = ({
 
   if (mapError) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-gray-100">
-        <AlertCircle className="h-12 w-12 text-transit-red mb-4" />
+      <div className="flex flex-col items-center justify-center h-full bg-orange-50">
+        <AlertCircle className="h-12 w-12 text-transit-orange mb-4" />
         <h3 className="text-lg font-semibold">Map Error</h3>
         <p className="text-muted-foreground">{mapError}</p>
       </div>
@@ -179,8 +179,8 @@ const LiveMap: React.FC<LiveMapProps> = ({
       <div className="absolute top-2 left-2 z-20 bg-white/80 px-2 py-1 rounded-md shadow-md flex items-center">
         {isConnected ? (
           <>
-            <Wifi className="h-4 w-4 text-transit-green mr-2" />
-            <span className="text-xs font-medium text-transit-green">Live Tracking Active</span>
+            <Wifi className="h-4 w-4 text-transit-orange mr-2" />
+            <span className="text-xs font-medium text-transit-orange">Live Tracking Active</span>
           </>
         ) : (
           <>

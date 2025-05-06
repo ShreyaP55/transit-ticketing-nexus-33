@@ -72,13 +72,13 @@ export default {
 					'red': '#e74c3c',
 					'gray': '#95a5a6',
 					'dark-gray': '#34495e',
-					'orange': '#FF7E1D',
-					'orange-light': '#FFA766',
-					'orange-dark': '#E05E00',
+					'orange': '#F97316',
+					'orange-light': '#FDBA74',
+					'orange-dark': '#C2410C',
 					'purple': '#9b30ff',
 					'purple-light': '#b14aff',
 					'purple-dark': '#5B3758',
-					'neon': '#b14aff'
+					'neon': '#F97316'
 				}
 			},
 			borderRadius: {
