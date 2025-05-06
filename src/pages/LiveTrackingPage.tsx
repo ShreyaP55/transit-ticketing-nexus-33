@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +20,46 @@ const LiveTrackingPage = () => {
   const [selectedRouteId, setSelectedRouteId] = useState<string>("");
   const [selectedBus, setSelectedBus] = useState<IBus | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+  
+  // Google Maps script loader
+  useEffect(() => {
+    // Check if Google Maps is already loaded
+    if (window.google && window.google.maps) {
+      setGoogleMapsLoaded(true);
+      return;
+    }
+    
+    // Create script element
+    const googleMapScript = document.createElement('script');
+    googleMapScript.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAFSdBkOwNVSZenjRSAFuPZynGbsNLeBgM&libraries=places`;
+    googleMapScript.async = true;
+    googleMapScript.defer = true;
+    
+    // Set up callback when script loads
+    googleMapScript.addEventListener('load', () => {
+      setGoogleMapsLoaded(true);
+      console.log('Google Maps API loaded successfully');
+    });
+    
+    // Handle errors
+    googleMapScript.addEventListener('error', (e) => {
+      console.error('Error loading Google Maps API:', e);
+      toast({
+        title: "Error Loading Map",
+        description: "Could not load Google Maps. Please try refreshing the page.",
+        variant: "destructive",
+      });
+    });
+    
+    // Append script to document
+    document.body.appendChild(googleMapScript);
+    
+    // Cleanup function
+    return () => {
+      document.body.removeChild(googleMapScript);
+    };
+  }, []);
   
   // Fetch routes
   const { 
@@ -194,22 +233,31 @@ const LiveTrackingPage = () => {
           {/* Map Area */}
           <Card className="md:col-span-3 overflow-hidden border-none shadow-xl">
             <CardContent className="p-0 h-[70vh]">
-              <LiveMap 
-                buses={buses || []} 
-                busLocations={busLocations} 
-                selectedBusId={selectedBus?._id} 
-                onSelectBus={(busId) => {
-                  const bus = buses?.find(b => b._id === busId);
-                  if (bus) {
-                    setSelectedBus(bus);
-                    toast({
-                      title: `Selected ${bus.name}`,
-                      description: "Now tracking this bus in real-time.",
-                      duration: 3000,
-                    });
-                  }
-                }}
-              />
+              {!googleMapsLoaded ? (
+                <div className="h-full w-full flex items-center justify-center bg-blue-50">
+                  <div className="text-center">
+                    <Skeleton className="h-16 w-16 rounded-full mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading Google Maps...</p>
+                  </div>
+                </div>
+              ) : (
+                <LiveMap 
+                  buses={buses || []} 
+                  busLocations={busLocations} 
+                  selectedBusId={selectedBus?._id} 
+                  onSelectBus={(busId) => {
+                    const bus = buses?.find(b => b._id === busId);
+                    if (bus) {
+                      setSelectedBus(bus);
+                      toast({
+                        title: `Selected ${bus.name}`,
+                        description: "Now tracking this bus in real-time.",
+                        duration: 3000,
+                      });
+                    }
+                  }}
+                />
+              )}
             </CardContent>
           </Card>
         </div>
