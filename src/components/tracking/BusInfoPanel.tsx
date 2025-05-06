@@ -4,14 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navigation, Clock, MapPin, Users, Wifi, AlertTriangle } from 'lucide-react';
 import { IBus, IRoute } from '@/types';
+import { BusLocation } from '@/services/liveTrackingService';
 
 interface BusInfoPanelProps {
   bus: IBus;
-  location: {
-    lat: number;
-    lng: number;
-    updatedAt: Date;
-  };
+  location: BusLocation;
   route?: IRoute;
 }
 
@@ -30,9 +27,30 @@ const BusInfoPanel: React.FC<BusInfoPanelProps> = ({ bus, location, route }) => 
     }
   };
   
-  // Simulated ETA calculation
-  const getRandomETA = () => {
-    return Math.floor(Math.random() * 30) + 5; // Random ETA between 5-35 minutes
+  // Direction based on heading
+  const getDirectionFromHeading = (heading?: number) => {
+    if (heading === undefined) return "Unknown";
+    
+    const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    const index = Math.round(((heading % 360) / 45)) % 8;
+    return directions[index];
+  };
+  
+  // Format speed
+  const formatSpeed = (speed?: number) => {
+    if (speed === undefined) return "Unknown";
+    return `${Math.round(speed)} km/h`;
+  };
+  
+  // Simulated ETA calculation based on speed and distance
+  const calculateETA = () => {
+    if (!route) return Math.floor(Math.random() * 30) + 5;
+    
+    const speed = location.speed || 30; // km/h
+    const distanceRemaining = Math.random() * 10; // Random distance 0-10 km for demo
+    
+    // Time = distance / speed (hours) * 60 (minutes)
+    return Math.max(1, Math.round((distanceRemaining / speed) * 60));
   };
 
   return (
@@ -58,6 +76,30 @@ const BusInfoPanel: React.FC<BusInfoPanelProps> = ({ bus, location, route }) => 
             </span>
           </li>
           
+          <li className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm">
+            <div className="flex items-center text-sm">
+              <Navigation className="mr-2 h-4 w-4 text-transit-orange" />
+              <span>Direction</span>
+            </div>
+            <div className="flex items-center">
+              <Badge variant="outline" className="bg-transit-orange/10 text-transit-orange border-transit-orange">
+                {getDirectionFromHeading(location.heading)}
+              </Badge>
+            </div>
+          </li>
+          
+          <li className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm">
+            <div className="flex items-center text-sm">
+              <Navigation className="mr-2 h-4 w-4 text-transit-orange transform rotate-45" />
+              <span>Speed</span>
+            </div>
+            <div className="flex items-center">
+              <Badge variant="outline" className="bg-transit-orange/10 text-transit-orange border-transit-orange">
+                {formatSpeed(location.speed)}
+              </Badge>
+            </div>
+          </li>
+
           <li className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm">
             <div className="flex items-center text-sm">
               <Clock className="mr-2 h-4 w-4 text-transit-orange" />
@@ -132,7 +174,7 @@ const BusInfoPanel: React.FC<BusInfoPanelProps> = ({ bus, location, route }) => 
                   <Clock className="mr-2 h-4 w-4 text-transit-orange" />
                   <span>ETA</span>
                 </div>
-                <Badge className="bg-transit-orange">{getRandomETA()} min</Badge>
+                <Badge className="bg-transit-orange">{calculateETA()} min</Badge>
               </li>
             </>
           )}
