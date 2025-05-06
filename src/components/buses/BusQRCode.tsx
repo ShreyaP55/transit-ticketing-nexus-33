@@ -23,10 +23,10 @@ const BusQRCode: React.FC<BusQRCodeProps> = ({ bus }) => {
   // In a real app, we'd use a proper QR code library
   // For this demo, we'll simulate a QR code with a placeholder
   return (
-    <Card className="overflow-hidden border-primary/20">
-      <CardHeader className="bg-primary/10 pb-2">
+    <Card className="overflow-hidden border-transit-orange/20">
+      <CardHeader className="bg-transit-orange/10 pb-2">
         <CardTitle className="text-sm font-medium flex items-center">
-          <QrCode className="h-4 w-4 mr-2" />
+          <QrCode className="h-4 w-4 mr-2 text-transit-orange" />
           Bus Verification QR Code
         </CardTitle>
       </CardHeader>

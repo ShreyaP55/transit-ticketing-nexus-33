@@ -93,13 +93,13 @@ const RoutesPage = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-white neonText">Routes Management</h1>
           {isAdmin && (
-            <Button onClick={() => setIsRouteFormOpen(true)} className="bg-primary hover:bg-primary/80 text-white">
+            <Button onClick={() => setIsRouteFormOpen(true)} className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)]">
               <Plus className="mr-2 h-4 w-4" /> Add Route
             </Button>
           )}
         </div>
 
-        <Card className="bg-card border-primary/20">
+        <Card className="bg-card border-transit-orange/20">
           <CardHeader className="pb-2 border-b border-border">
             <CardTitle className="text-white">Transit Routes</CardTitle>
           </CardHeader>
@@ -114,7 +114,7 @@ const RoutesPage = () => {
               <div className="text-center p-8 border rounded-lg border-dashed border-border">
                 <p className="text-muted-foreground">No routes found</p>
                 {isAdmin && (
-                  <Button variant="outline" className="mt-4 border-primary/40 hover:border-primary hover:bg-primary/10" onClick={() => setIsRouteFormOpen(true)}>
+                  <Button variant="outline" className="mt-4 border-transit-orange/40 hover:border-transit-orange hover:bg-transit-orange/10" onClick={() => setIsRouteFormOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" /> Add First Route
                   </Button>
                 )}
@@ -131,10 +131,10 @@ const RoutesPage = () => {
                   </TableHeader>
                   <TableBody>
                     {routes?.map(route => (
-                      <TableRow key={route._id} className="hover:bg-primary/5">
+                      <TableRow key={route._id} className="hover:bg-transit-orange/5">
                         <TableCell className="font-medium">{route.start} - {route.end}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-primary/20">₹{route.fare}</Badge>
+                          <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-transit-orange/20">₹{route.fare}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -142,13 +142,13 @@ const RoutesPage = () => {
                               variant="secondary" 
                               size="sm"
                               onClick={() => handleAddBus(route)}
-                              className="h-8 px-3 bg-purple-700 hover:bg-purple-800 text-white"
+                              className="h-8 px-3 bg-transit-orange hover:bg-transit-orange-dark text-white"
                             >
                               <BusIcon className="mr-1 h-3.5 w-3.5" /> Add Bus
                             </Button>
                             {isAdmin && (
                               <>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={() => handleEdit(route)}>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-transit-orange" onClick={() => handleEdit(route)}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteClick(route._id)}>

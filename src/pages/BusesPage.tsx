@@ -99,7 +99,7 @@ const BusesPage = () => {
 
   // Display data fetching errors
   if (routesError || busesError) {
-    toast.error(`Error loading data: ${(routesError || busesError).message}`);
+    toast.error(`Error loading data: ${(routesError || busesError as Error).message}`);
   }
 
   return (
@@ -108,7 +108,7 @@ const BusesPage = () => {
         <div className="mb-6 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-white neonText flex items-center">
-              <BusIcon className="mr-2 h-6 w-6 text-primary" />
+              <BusIcon className="mr-2 h-6 w-6 text-transit-orange" />
               Bus Management
             </h1>
             <p className="text-muted-foreground">
@@ -118,7 +118,7 @@ const BusesPage = () => {
           {isAdmin && (
             <Button 
               onClick={() => setIsBusFormOpen(true)} 
-              className="bg-purple-700 hover:bg-purple-800 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]"
+              className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)]"
             >
               <Plus className="mr-2 h-4 w-4" /> Add Bus
             </Button>
@@ -127,9 +127,9 @@ const BusesPage = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Route Filter */}
-          <Card className="md:col-span-1 bg-gradient-to-br from-card to-background border-primary/20">
+          <Card className="md:col-span-1 bg-gradient-to-br from-card to-background border-transit-orange/20">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-bold text-primary flex items-center neonText">
+              <CardTitle className="text-lg font-bold text-transit-orange flex items-center neonText">
                 <Route className="mr-2 h-5 w-5" /> 
                 Filter by Route
               </CardTitle>
@@ -146,12 +146,12 @@ const BusesPage = () => {
                     onClick={() => handleRouteFilter(route._id)}
                     className={`p-3 border rounded-lg cursor-pointer transition-all flex justify-between items-center
                       ${selectedRouteId === route._id 
-                        ? "border-primary bg-primary/20 text-white shadow-md neonGlow" 
-                        : "hover:border-primary/50 bg-background/50 border-border shadow-sm hover:bg-primary/5"}`}
+                        ? "border-transit-orange bg-transit-orange/20 text-white shadow-md" 
+                        : "hover:border-transit-orange/50 bg-background/50 border-border shadow-sm hover:bg-transit-orange/5"}`}
                   >
                     <span className="font-medium">{route.start} - {route.end}</span>
                     <Badge variant={selectedRouteId === route._id ? "secondary" : "outline"} 
-                      className={selectedRouteId === route._id ? "bg-primary/30 text-white border-primary/30" : ""}>
+                      className={selectedRouteId === route._id ? "bg-transit-orange/30 text-white border-transit-orange/30" : ""}>
                       ₹{route.fare}
                     </Badge>
                   </div>
@@ -161,7 +161,7 @@ const BusesPage = () => {
           </Card>
 
           {/* Bus Listing */}
-          <Card className="md:col-span-3 h-fit border-primary/20 bg-card">
+          <Card className="md:col-span-3 h-fit border-transit-orange/20 bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border">
               <div>
                 <CardTitle className="text-xl font-bold text-white">Buses</CardTitle>
@@ -187,7 +187,7 @@ const BusesPage = () => {
                   {isAdmin && (
                     <Button 
                       variant="outline" 
-                      className="mt-4 border-purple-600/40 hover:border-purple-600 hover:bg-purple-600/10 text-purple-400 hover:text-purple-200" 
+                      className="mt-4 border-transit-orange/40 hover:border-transit-orange hover:bg-transit-orange/10 text-transit-orange-light hover:text-transit-orange-light" 
                       onClick={() => setIsBusFormOpen(true)}
                     >
                       <Plus className="mr-2 h-4 w-4" /> Add First Bus
@@ -207,16 +207,16 @@ const BusesPage = () => {
                     </TableHeader>
                     <TableBody>
                       {buses?.map(bus => (
-                        <TableRow key={bus._id} className="hover:bg-primary/5">
+                        <TableRow key={bus._id} className="hover:bg-transit-orange/5">
                           <TableCell className="font-medium text-white">{bus.name}</TableCell>
                           <TableCell>
                             <div className="flex items-center">
-                              <Route className="h-4 w-4 mr-1 text-primary" />
+                              <Route className="h-4 w-4 mr-1 text-transit-orange" />
                               <span>{bus.route.start} - {bus.route.end}</span>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-primary/20">
+                            <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-transit-orange/20">
                               {bus.capacity} seats
                             </Badge>
                           </TableCell>
@@ -225,7 +225,7 @@ const BusesPage = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline" 
-                                className="h-8 p-2 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10" 
+                                className="h-8 p-2 text-transit-orange border-transit-orange/20 hover:bg-transit-orange/10" 
                                 onClick={() => handleGenerateQR(bus)}
                               >
                                 <QrCode className="h-4 w-4 mr-1" /> QR
@@ -233,7 +233,7 @@ const BusesPage = () => {
                               
                               {isAdmin && (
                                 <>
-                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={() => handleEdit(bus)}>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-transit-orange" onClick={() => handleEdit(bus)}>
                                     <Edit className="h-4 w-4" />
                                   </Button>
                                   <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteClick(bus._id)}>
