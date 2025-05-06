@@ -25,8 +25,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
 
   const adminNavItems = [
     { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin" },
-    { name: "Routes & Buses", icon: <Bus size={20} />, path: "/routes" },
-      { name: "Routes & Buses", icon: <Bus size={20} />, path: "/buses" },
+    { name: "Routes", icon: <Bus size={20} />, path: "/routes" },
+      { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
     { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
   ];
 
