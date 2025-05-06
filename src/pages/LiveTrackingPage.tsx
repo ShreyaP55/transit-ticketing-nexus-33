@@ -8,15 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Navigation, Bus, Route as RouteIcon, MapPin } from "lucide-react";
+import { Navigation, Bus, Route as RouteIcon, MapPin, Search } from 'lucide-react';
 import { routesAPI, busesAPI } from "@/services/api";
 import LiveMap from "@/components/tracking/LiveMap";
 import BusInfoPanel from "@/components/tracking/BusInfoPanel";
+import { useTrackBuses } from "@/services/liveTrackingService";
 import { IBus } from "@/types";
+import { useToast } from "@/components/ui/use-toast";
 
 const LiveTrackingPage = () => {
+  const { toast } = useToast();
   const [selectedRouteId, setSelectedRouteId] = useState<string>("");
   const [selectedBus, setSelectedBus] = useState<IBus | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   
   // Fetch routes
   const { 
@@ -37,40 +41,31 @@ const LiveTrackingPage = () => {
     enabled: !!selectedRouteId,
   });
 
-  // Simulate bus movement for demo purposes
-  const [busLocations, setBusLocations] = useState<{[key: string]: {lat: number, lng: number, updatedAt: Date}}>({});
+  // Get bus IDs for tracking
+  const busIds = buses ? buses.map(bus => bus._id) : [];
   
+  // Use our custom hook for real-time bus tracking
+  const busLocations = useTrackBuses(busIds);
+  
+  // Notify when new buses are detected
   useEffect(() => {
-    if (!buses || buses.length === 0) return;
-    
-    // Initialize bus locations with random positions around Delhi
-    const initialLocations: {[key: string]: {lat: number, lng: number, updatedAt: Date}} = {};
-    buses.forEach(bus => {
-      initialLocations[bus._id] = {
-        lat: 28.7041 + (Math.random() - 0.5) * 0.05,
-        lng: 77.1025 + (Math.random() - 0.5) * 0.05,
-        updatedAt: new Date()
-      };
-    });
-    setBusLocations(initialLocations);
-    
-    // Update bus locations every 3 seconds for simulation
-    const interval = setInterval(() => {
-      setBusLocations(prevLocations => {
-        const newLocations = {...prevLocations};
-        Object.keys(newLocations).forEach(busId => {
-          newLocations[busId] = {
-            lat: newLocations[busId].lat + (Math.random() - 0.5) * 0.001,
-            lng: newLocations[busId].lng + (Math.random() - 0.5) * 0.001,
-            updatedAt: new Date()
-          };
+    if (buses && buses.length > 0) {
+      const activeBuses = buses.filter(bus => busLocations[bus._id]);
+      if (activeBuses.length > 0 && !selectedBus) {
+        toast({
+          title: "Live Tracking Active",
+          description: `${activeBuses.length} buses are now being tracked in real-time.`,
+          variant: "default",
         });
-        return newLocations;
-      });
-    }, 3000);
-    
-    return () => clearInterval(interval);
-  }, [buses]);
+      }
+    }
+  }, [buses, busLocations, selectedBus]);
+
+  // Filter buses by search query
+  const filteredBuses = buses?.filter(bus => 
+    searchQuery === "" || 
+    bus.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <MainLayout title="Live Bus Tracking">
@@ -80,7 +75,7 @@ const LiveTrackingPage = () => {
           <div className="md:col-span-1 space-y-6">
             {/* Route Selection */}
             <Card className="bg-gradient-to-br from-white to-blue-50 overflow-hidden">
-              <CardHeader className="pb-3 bg-gradient-to-r from-transit-blue to-transit-dark-blue text-white">
+              <CardHeader className="pb-3 bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
                 <CardTitle className="text-lg font-semibold flex items-center">
                   <RouteIcon className="mr-2 h-5 w-5" />
                   Select Route
@@ -101,11 +96,12 @@ const LiveTrackingPage = () => {
                         onClick={() => {
                           setSelectedRouteId(route._id);
                           setSelectedBus(null);
+                          setSearchQuery("");
                         }}
                         className={`p-3 border rounded-lg cursor-pointer transition-all
                           ${selectedRouteId === route._id 
-                            ? "border-transit-blue bg-transit-blue text-white shadow-md" 
-                            : "hover:border-transit-blue bg-white shadow-sm"}`}
+                            ? "border-transit-orange bg-transit-orange text-white shadow-md" 
+                            : "hover:border-transit-orange bg-white shadow-sm"}`}
                       >
                         <div className="flex justify-between items-center">
                           <span className="font-medium">{route.start} - {route.end}</span>
@@ -123,7 +119,7 @@ const LiveTrackingPage = () => {
             {/* Bus Selection */}
             {selectedRouteId && (
               <Card className="bg-gradient-to-br from-white to-blue-50">
-                <CardHeader className="pb-3 bg-gradient-to-r from-transit-blue to-transit-dark-blue text-white">
+                <CardHeader className="pb-3 bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
                   <CardTitle className="text-lg font-semibold flex items-center">
                     <Bus className="mr-2 h-5 w-5" />
                     Select Bus
@@ -136,28 +132,50 @@ const LiveTrackingPage = () => {
                         <Skeleton key={i} className="h-12 w-full" />
                       ))}
                     </div>
-                  ) : buses?.length === 0 ? (
-                    <p className="text-center py-4 text-muted-foreground">No buses available for this route</p>
                   ) : (
-                    <div className="space-y-2">
-                      {buses?.map(bus => (
-                        <div
-                          key={bus._id}
-                          onClick={() => setSelectedBus(bus)}
-                          className={`p-3 border rounded-lg cursor-pointer transition-all
-                            ${selectedBus?._id === bus._id 
-                              ? "border-transit-green bg-transit-green text-white shadow-md" 
-                              : "hover:border-transit-green bg-white shadow-sm"}`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium">{bus.name}</span>
-                            <Badge variant={selectedBus?._id === bus._id ? "outline" : "secondary"}>
-                              {busLocations[bus._id] ? "Active" : "Inactive"}
-                            </Badge>
-                          </div>
+                    <>
+                      <div className="relative mb-4">
+                        <Input
+                          placeholder="Search buses..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-8"
+                        />
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      </div>
+                      
+                      {filteredBuses?.length === 0 ? (
+                        <p className="text-center py-4 text-muted-foreground">
+                          {buses?.length === 0 
+                            ? "No buses available for this route" 
+                            : "No buses match your search"}
+                        </p>
+                      ) : (
+                        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                          {filteredBuses?.map(bus => {
+                            const isActive = !!busLocations[bus._id];
+                            return (
+                              <div
+                                key={bus._id}
+                                onClick={() => setSelectedBus(bus)}
+                                className={`p-3 border rounded-lg cursor-pointer transition-all
+                                  ${selectedBus?._id === bus._id 
+                                    ? "border-transit-orange bg-transit-orange text-white shadow-md" 
+                                    : "hover:border-transit-orange bg-white shadow-sm"}`}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium">{bus.name}</span>
+                                  <Badge variant={selectedBus?._id === bus._id ? "secondary" : "outline"}
+                                    className={isActive ? "bg-transit-green text-white" : ""}>
+                                    {isActive ? "Active" : "Inactive"}
+                                  </Badge>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -182,7 +200,14 @@ const LiveTrackingPage = () => {
                 selectedBusId={selectedBus?._id} 
                 onSelectBus={(busId) => {
                   const bus = buses?.find(b => b._id === busId);
-                  if (bus) setSelectedBus(bus);
+                  if (bus) {
+                    setSelectedBus(bus);
+                    toast({
+                      title: `Selected ${bus.name}`,
+                      description: "Now tracking this bus in real-time.",
+                      duration: 3000,
+                    });
+                  }
                 }}
               />
             </CardContent>
