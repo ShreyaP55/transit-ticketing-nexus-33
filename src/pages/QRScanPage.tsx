@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, Check, X } from "lucide-react";
 import { startTrip, getActiveTrip, endTrip } from "@/services/tripService";
 import { useUser } from "@/context/UserContext";
+import { deductFunds } from "@/services/walletService";
 
 const QRScanPage = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -18,7 +19,7 @@ const QRScanPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { isAuthenticated } = useUser();
+  const { isAuthenticated, userId: currentUserId } = useUser();
 
   // Get current location
   useEffect(() => {
@@ -106,6 +107,25 @@ const QRScanPage = () => {
       
       // End the trip
       const trip = await endTrip(activeTrip._id, location.lat, location.lng);
+      
+      // Deduct fare from wallet
+      if (trip.fare) {
+        try {
+          await deductFunds(userId, trip.fare);
+          toast({
+            title: "Fare Deducted",
+            description: `₹${trip.fare} has been deducted from your wallet`,
+            variant: "default",
+          });
+        } catch (error) {
+          console.error("Error deducting funds:", error);
+          toast({
+            title: "Payment Error",
+            description: "Failed to deduct fare from your wallet. Please add funds.",
+            variant: "destructive",
+          });
+        }
+      }
       
       setActiveTrip(null);
       
