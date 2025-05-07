@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Navigation, Bus, Route as RouteIcon, MapPin, Search } from 'lucide-react';
+import { Navigation, Bus, Route as RouteIcon, MapPin, Search, AlertTriangle, Info, Clock } from 'lucide-react';
 import { routesAPI, busesAPI } from "@/services/api";
 import LiveMap from "@/components/tracking/LiveMap";
 import BusInfoPanel from "@/components/tracking/BusInfoPanel";
@@ -108,12 +108,12 @@ const LiveTrackingPage = () => {
 
   return (
     <MainLayout title="Live Bus Tracking">
-      <div className="max-w-7xl mx-auto p-4">
+      <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="md:col-span-1 space-y-6">
             {/* Route Selection */}
-            <Card className="bg-gradient-to-br from-white to-blue-50 overflow-hidden">
+            <Card className="bg-gradient-to-br from-white to-blue-50 overflow-hidden shadow-lg border-none">
               <CardHeader className="pb-3 bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
                 <CardTitle className="text-lg font-semibold flex items-center">
                   <RouteIcon className="mr-2 h-5 w-5" />
@@ -127,6 +127,11 @@ const LiveTrackingPage = () => {
                       <Skeleton key={i} className="h-12 w-full" />
                     ))}
                   </div>
+                ) : routes?.length === 0 ? (
+                  <div className="text-center py-8">
+                    <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
+                    <p className="text-muted-foreground">No routes available</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {routes?.map(route => (
@@ -137,17 +142,19 @@ const LiveTrackingPage = () => {
                           setSelectedBus(null);
                           setSearchQuery("");
                         }}
-                        className={`p-3 border rounded-lg cursor-pointer transition-all
+                        className={`p-3 border rounded-lg cursor-pointer transition-all flex justify-between items-center
                           ${selectedRouteId === route._id 
-                            ? "border-transit-orange bg-transit-orange text-white shadow-md" 
-                            : "hover:border-transit-orange bg-white shadow-sm"}`}
+                            ? "border-transit-orange bg-transit-orange text-white shadow-md transform scale-[1.02]" 
+                            : "hover:border-transit-orange bg-white shadow-sm hover:bg-orange-50"}`}
                       >
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col">
                           <span className="font-medium">{route.start} - {route.end}</span>
-                          <Badge variant={selectedRouteId === route._id ? "secondary" : "outline"}>
-                            ₹{route.fare}
-                          </Badge>
+                          <span className="text-xs opacity-75">{route.fare ? `${route.fare} km` : 'Distance N/A'}</span>
                         </div>
+                        <Badge variant={selectedRouteId === route._id ? "secondary" : "outline"}
+                          className="ml-2">
+                          ₹{route.fare}
+                        </Badge>
                       </div>
                     ))}
                   </div>
@@ -157,7 +164,7 @@ const LiveTrackingPage = () => {
 
             {/* Bus Selection */}
             {selectedRouteId && (
-              <Card className="bg-gradient-to-br from-white to-blue-50">
+              <Card className="bg-gradient-to-br from-white to-blue-50 shadow-lg border-none">
                 <CardHeader className="pb-3 bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
                   <CardTitle className="text-lg font-semibold flex items-center">
                     <Bus className="mr-2 h-5 w-5" />
@@ -178,32 +185,46 @@ const LiveTrackingPage = () => {
                           placeholder="Search buses..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-8"
+                          className="pl-8 border-transit-orange/30 focus:border-transit-orange"
                         />
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-transit-orange" />
                       </div>
                       
-                      {filteredBuses?.length === 0 ? (
-                        <p className="text-center py-4 text-muted-foreground">
-                          {buses?.length === 0 
-                            ? "No buses available for this route" 
-                            : "No buses match your search"}
-                        </p>
+                      {!filteredBuses || filteredBuses.length === 0 ? (
+                        <div className="text-center py-6 bg-orange-50/50 rounded-lg">
+                          <Info className="mx-auto h-8 w-8 text-transit-orange mb-2" />
+                          <p className="text-muted-foreground">
+                            {buses?.length === 0 
+                              ? "No buses available for this route" 
+                              : "No buses match your search"}
+                          </p>
+                        </div>
                       ) : (
-                        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        <div className="space-y-2 max-h-64 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-orange-200">
                           {filteredBuses?.map(bus => {
                             const isActive = !!busLocations[bus._id];
+                            const timeSinceUpdate = isActive ? 
+                              Math.round((new Date().getTime() - new Date(busLocations[bus._id].updatedAt).getTime()) / 1000) : null;
+                            
                             return (
                               <div
                                 key={bus._id}
                                 onClick={() => setSelectedBus(bus)}
                                 className={`p-3 border rounded-lg cursor-pointer transition-all
                                   ${selectedBus?._id === bus._id 
-                                    ? "border-transit-orange bg-transit-orange text-white shadow-md" 
-                                    : "hover:border-transit-orange bg-white shadow-sm"}`}
+                                    ? "border-transit-orange bg-transit-orange text-white shadow-md transform scale-[1.02]" 
+                                    : `hover:border-transit-orange bg-white shadow-sm ${isActive ? "border-transit-green/30" : ""}`}`}
                               >
                                 <div className="flex justify-between items-center">
-                                  <span className="font-medium">{bus.name}</span>
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{bus.name}</span>
+                                    {isActive && timeSinceUpdate && (
+                                      <div className="flex items-center text-xs mt-1">
+                                        <Clock className="h-3 w-3 mr-1" />
+                                        <span>{timeSinceUpdate < 60 ? `${timeSinceUpdate}s ago` : `${Math.floor(timeSinceUpdate / 60)}m ago`}</span>
+                                      </div>
+                                    )}
+                                  </div>
                                   <Badge variant={selectedBus?._id === bus._id ? "secondary" : "outline"}
                                     className={isActive ? "bg-transit-green text-white" : ""}>
                                     {isActive ? "Active" : "Inactive"}
@@ -231,13 +252,13 @@ const LiveTrackingPage = () => {
           </div>
 
           {/* Map Area */}
-          <Card className="md:col-span-3 overflow-hidden border-none shadow-xl">
-            <CardContent className="p-0 h-[70vh]">
+          <Card className="md:col-span-3 overflow-hidden border-none shadow-xl rounded-xl">
+            <CardContent className="p-0 h-[75vh]">
               {!googleMapsLoaded ? (
                 <div className="h-full w-full flex items-center justify-center bg-blue-50">
                   <div className="text-center">
-                    <Skeleton className="h-16 w-16 rounded-full mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading Google Maps...</p>
+                    <div className="h-16 w-16 rounded-full mx-auto mb-4 border-4 border-transit-orange border-t-transparent animate-spin"></div>
+                    <p className="text-transit-orange font-medium">Loading Google Maps...</p>
                   </div>
                 </div>
               ) : (

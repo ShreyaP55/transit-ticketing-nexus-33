@@ -96,7 +96,7 @@ const LiveMap: React.FC<LiveMapProps> = ({
         streetViewControl: false,
         mapTypeControl: true,
         fullscreenControl: true,
-        mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
         styles: [
           {
             featureType: "transit",
@@ -124,7 +124,7 @@ const LiveMap: React.FC<LiveMapProps> = ({
         }
       });
       
-      googleMapRef.current.controls[window.google.maps.ControlPosition.TOP_RIGHT].push(locationButton);
+      googleMapRef.current.controls[google.maps.ControlPosition.TOP_RIGHT].push(locationButton);
     }
     
     // Add user marker if location is available
@@ -132,20 +132,21 @@ const LiveMap: React.FC<LiveMapProps> = ({
       if (markersRef.current['user']) {
         markersRef.current['user'].setPosition(userLocation);
       } else {
-        markersRef.current['user'] = new window.google.maps.Marker({
+        const userMarkerOptions: google.maps.MarkerOptions = {
           position: userLocation,
           map: googleMapRef.current,
           icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
+            path: google.maps.SymbolPath.CIRCLE,
             scale: 8,
             fillColor: "#4285F4",
             fillOpacity: 1,
             strokeColor: "#FFFFFF",
             strokeWeight: 2,
           },
-          title: "Your Location",
-          zIndex: 100,
-        });
+          title: "Your Location"
+        };
+        
+        markersRef.current['user'] = new window.google.maps.Marker(userMarkerOptions);
         
         // Add accuracy circle
         new window.google.maps.Circle({
@@ -201,14 +202,15 @@ const LiveMap: React.FC<LiveMapProps> = ({
         markersRef.current[busId].setIcon(createBusIcon(isSelected, heading));
       } else {
         // Create new marker
-        const marker = new window.google.maps.Marker({
+        const busMarkerOptions: google.maps.MarkerOptions = {
           position,
           map: googleMapRef.current,
           icon: createBusIcon(isSelected, heading),
           title: bus?.name || `Bus ${busId}`,
-          animation: window.google.maps.Animation.DROP,
-          optimized: true,
-        });
+          optimized: true
+        };
+        
+        const marker = new window.google.maps.Marker(busMarkerOptions);
         
         // Add click handler
         marker.addListener("click", () => {
