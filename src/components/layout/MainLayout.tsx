@@ -21,8 +21,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
     { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
-    { name: "QR", icon: <Navigation size={20} />, path: "/wallet/UserQRCode" },
-    { name: "wallet", icon: <Navigation size={20} />, path: "/wallet/WalletCard" },
+    { name: "QR", icon: <Navigation size={20} />, path: "/qrscan" },
+    { name: "wallet", icon: <Navigation size={20} />, path: "/wallet" },
   ];
 
   const adminNavItems = [
@@ -30,7 +30,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "Routes", icon: <Bus size={20} />, path: "/routes" },
     { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
     { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
-    { name: "Scanner", icon: <MapPin size={20} />, path: "/qr" },
+    { name: "Scanner", icon: <MapPin size={20} />, path: "/qrscanner" },
   ];
 
   const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
