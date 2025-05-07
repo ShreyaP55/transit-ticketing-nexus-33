@@ -21,13 +21,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
     { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
+    { name: "QR", icon: <Navigation size={20} />, path: "/wallet/UserQRCode" },
+    { name: "wallet", icon: <Navigation size={20} />, path: "/wallet/WalletCard" },
   ];
 
   const adminNavItems = [
     { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin" },
     { name: "Routes", icon: <Bus size={20} />, path: "/routes" },
-      { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
+    { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
     { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
+    { name: "Scanner", icon: <MapPin size={20} />, path: "/qr" },
   ];
 
   const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
