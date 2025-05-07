@@ -9,6 +9,7 @@ declare global {
         LatLng: any;
         Size: any;
         Circle: any;
+        Point: any;
         SymbolPath: {
           CIRCLE: number;
           FORWARD_CLOSED_ARROW: number;

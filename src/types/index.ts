@@ -1,3 +1,4 @@
+
 export interface IRoute {
   _id: string;
   start: string;
@@ -61,5 +62,31 @@ export interface IPayment {
   fare: number;
   stripeSessionId: string;
   status: 'pending' | 'completed' | 'failed';
+  createdAt: string;
+}
+
+export interface IWallet {
+  _id: string;
+  userId: string;
+  balance: number;
+  updatedAt: string;
+}
+
+export interface ITrip {
+  _id: string;
+  userId: string;
+  startLocation: {
+    lat: number;
+    lng: number;
+    timestamp: string;
+  };
+  endLocation?: {
+    lat: number;
+    lng: number;
+    timestamp: string;
+  };
+  distance?: number;  // in kilometers
+  fare?: number;      // calculated fare
+  status: 'started' | 'completed' | 'cancelled';
   createdAt: string;
 }
