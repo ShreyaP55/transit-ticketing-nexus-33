@@ -21,16 +21,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
     { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
-    { name: "QR", icon: <Navigation size={20} />, path: "/qr-scan/:userId" },
-    { name: "wallet", icon: <Navigation size={20} />, path: "/wallet" },
+    { name: "QR", icon: <Qr size={20} />, path: "/qr-scan/:userId" },
+    { name: "wallet", icon: <Wallet size={20} />, path: "/wallet" },
   ];
 
   const adminNavItems = [
     { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin" },
-    { name: "Routes", icon: <Bus size={20} />, path: "/routes" },
+    { name: "Routes", icon: <Route size={20} />, path: "/routes" },
     { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
     { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
-    { name: "Scanner", icon: <MapPin size={20} />, path: "/qr-scanner" },
+    { name: "Scanner", icon: <Scanner size={20} />, path: "/qr-scanner" },
   ];
 
   const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
@@ -64,11 +64,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
         <div className="flex h-16 items-center border-b border-sidebar-border px-6 orangeGradient">
           <Link 
             to="/" 
-            className="flex items-center gap-2 font-bold text-white text-xl"
+            className="flex items-center gap-2 font-bold text-transit-orange-dark text-xl"
             onClick={() => setSidebarOpen(false)}
           >
             <Bus className="h-6 w-6" />
-            <span>TransitNexus</span>
+            <span>BusInn</span>
           </Link>
         </div>
 
@@ -85,15 +85,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
             </Link>
           ))}
         </nav>
-
-        {isAdmin && (
-          <div className="px-4 mt-6">
-            <div className="bg-amber-100 text-amber-800 rounded-md p-2 text-sm flex items-center">
-              <Settings className="h-4 w-4 mr-2" />
-              Admin Mode
-            </div>
-          </div>
-        )}
 
         <div className="absolute bottom-10 left-0 w-full px-4">
           {isAuthenticated ? (
