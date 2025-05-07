@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings } from "lucide-react";
+import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings, QrCode, Wallet, Route, Scanner } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
@@ -21,7 +21,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
     { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
-    { name: "QR", icon: <Qr size={20} />, path: "/qr-scan/:userId" },
+    { name: "QR", icon: <QrCode size={20} />, path: "/qr-scan/:userId" },
     { name: "wallet", icon: <Wallet size={20} />, path: "/wallet" },
   ];
 
