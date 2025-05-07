@@ -11,6 +11,19 @@ export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
   const [isScanning, setIsScanning] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   
+  const safeStopScanner = async (scanner: Html5Qrcode) => {
+    try {
+      // Only attempt to stop if the scanner exists
+      if (scanner) {
+        await scanner.stop();
+        setIsScanning(false);
+      }
+    } catch (err) {
+      // Silently handle the "not running" error 
+      console.log("Scanner already stopped or not running");
+    }
+  };
+  
   useEffect(() => {
     const qrId = 'qr-reader';
     const html5QrCode = new Html5Qrcode(qrId);
@@ -43,16 +56,9 @@ export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
         config,
         (decodedText) => {
           onScan(decodedText);
-          // Only attempt to stop if we're currently scanning
-          if (isScanning) {
-            scanner.stop()
-              .then(() => {
-                setIsScanning(false);
-              })
-              .catch(err => {
-                console.error("Failed to stop scanner:", err);
-              });
-          }
+          
+          // Use our safe stop method
+          safeStopScanner(scanner);
         },
         (errorMessage) => {
           // QR code not found is expected, so don't call onError
@@ -68,15 +74,8 @@ export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
     
     // Cleanup function
     return () => {
-      if (scannerRef.current && isScanning) {
-        // Only attempt to stop if we're currently scanning
-        scannerRef.current.stop()
-          .then(() => {
-            setIsScanning(false);
-          })
-          .catch(err => {
-            console.error("Failed to stop scanner on unmount:", err);
-          });
+      if (scannerRef.current) {
+        safeStopScanner(scannerRef.current);
       }
     };
   }, [onScan, onError]);
