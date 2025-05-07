@@ -21,7 +21,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
     { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
-    { name: "QR", icon: <Navigation size={20} />, path: "/qr-scan" },
+    { name: "QR", icon: <Navigation size={20} />, path: "/qr-scan/:userId" },
     { name: "wallet", icon: <Navigation size={20} />, path: "/wallet" },
   ];
 
