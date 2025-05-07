@@ -21,6 +21,7 @@ import NotAuthorizedPage from "./pages/NotAuthorizedPage";
 import AdminRoute from "./components/auth/AdminRoute";
 import WalletPage from "./pages/WalletPage";
 import QRScanPage from "./pages/QRScanPage";
+import QRScannerPage from "./pages/QRScannerPage";
 
 const queryClient = new QueryClient();
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/unauthorized" element={<NotAuthorizedPage />} />
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/qr-scan/:userId" element={<QRScanPage />} />
+              <Route path="/qr-scanner" element={<QRScannerPage />} />
               
               {/* Admin Routes */}
               <Route element={<AdminRoute />}>
