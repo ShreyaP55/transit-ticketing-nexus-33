@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 interface QrScannerProps {
@@ -9,17 +9,18 @@ interface QrScannerProps {
 
 export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
   const [isScanning, setIsScanning] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
   
   useEffect(() => {
     const qrId = 'qr-reader';
     const html5QrCode = new Html5Qrcode(qrId);
-    let cameraId = '';
+    scannerRef.current = html5QrCode;
     
     // Get available cameras
     Html5Qrcode.getCameras()
       .then(devices => {
         if (devices && devices.length) {
-          cameraId = devices[0].id;
+          const cameraId = devices[0].id;
           startScanner(html5QrCode, cameraId);
         } else {
           onError("No camera found");
@@ -42,8 +43,16 @@ export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
         config,
         (decodedText) => {
           onScan(decodedText);
-          scanner.stop().catch(err => console.error("Failed to stop scanner:", err));
-          setIsScanning(false);
+          // Only attempt to stop if we're currently scanning
+          if (isScanning) {
+            scanner.stop()
+              .then(() => {
+                setIsScanning(false);
+              })
+              .catch(err => {
+                console.error("Failed to stop scanner:", err);
+              });
+          }
         },
         (errorMessage) => {
           // QR code not found is expected, so don't call onError
@@ -57,9 +66,17 @@ export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
       });
     }
     
+    // Cleanup function
     return () => {
-      if (isScanning) {
-        html5QrCode.stop().catch(err => console.error("Failed to stop scanner on unmount:", err));
+      if (scannerRef.current && isScanning) {
+        // Only attempt to stop if we're currently scanning
+        scannerRef.current.stop()
+          .then(() => {
+            setIsScanning(false);
+          })
+          .catch(err => {
+            console.error("Failed to stop scanner on unmount:", err);
+          });
       }
     };
   }, [onScan, onError]);
