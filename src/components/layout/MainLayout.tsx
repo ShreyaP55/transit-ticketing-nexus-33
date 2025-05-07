@@ -1,7 +1,6 @@
-
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings, QrCode, Wallet, Route, Scanner } from "lucide-react";
+import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings, QrCode, Wallet, Route, ScanLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
@@ -30,7 +29,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "Routes", icon: <Route size={20} />, path: "/routes" },
     { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
     { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
-    { name: "Scanner", icon: <Scanner size={20} />, path: "/qr-scanner" },
+    { name: "Scanner", icon: <ScanLine size={20} />, path: "/qr-scanner" },
   ];
 
   const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
