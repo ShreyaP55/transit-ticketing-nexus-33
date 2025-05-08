@@ -1,11 +1,11 @@
 
-import mongoose, { Schema, model, models } from "mongoose";
+import mongoose from "mongoose";
 
-const TicketSchema = new Schema(
+const TicketSchema = new mongoose.Schema(
   {
     userId: { type: String, required: true },
-    routeId: { type: Schema.Types.ObjectId, ref: "Route", required: true },
-    busId: { type: Schema.Types.ObjectId, ref: "Bus", required: true },
+    routeId: { type: mongoose.Schema.Types.ObjectId, ref: "Route", required: true },
+    busId: { type: mongoose.Schema.Types.ObjectId, ref: "Bus", required: true },
     startStation: { type: String, required: true },
     endStation: { type: String, required: true },
     price: { type: Number, required: true },
@@ -15,5 +15,6 @@ const TicketSchema = new Schema(
   { timestamps: true }
 );
 
-const Ticket = models.Ticket || model("Ticket", TicketSchema);
+// Check if the model exists before creating a new one
+const Ticket = mongoose.models.Ticket || mongoose.model("Ticket", TicketSchema);
 export default Ticket;

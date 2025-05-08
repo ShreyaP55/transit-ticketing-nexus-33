@@ -1,6 +1,5 @@
 
 import express from 'express';
-import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import busesRouter from './routes/busesRouter.js';
@@ -11,6 +10,7 @@ import passesRouter from './routes/passesRouter.js';
 import passUsageRouter from './routes/passUsageRouter.js';
 import paymentsRouter from './routes/paymentsRouter.js';
 import usersRouter from './routes/usersRouter.js';
+import { connect } from './utils/mongoConnect.js';
 
 dotenv.config();
 
@@ -22,8 +22,8 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
+connect()
+  .then(() => console.log('Connected to MongoDB via utility'))
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
