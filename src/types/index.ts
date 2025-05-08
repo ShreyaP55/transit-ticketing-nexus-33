@@ -9,84 +9,94 @@ export interface IRoute {
 export interface IBus {
   _id: string;
   name: string;
-  route: IRoute;
+  route: string | IRoute;
   capacity: number;
 }
 
 export interface IStation {
   _id: string;
-  routeId: IRoute;
-  busId: IBus;
+  routeId: string | IRoute;
+  busId: string | IBus;
   name: string;
   latitude: number;
   longitude: number;
   fare: number;
-  location?: string; // Added location property as optional
+  location?: string;
 }
 
 export interface ITicket {
   _id: string;
   userId: string;
-  routeId: IRoute;
-  busId: IBus;
+  routeId: string | IRoute;
+  busId: string | IBus;
   startStation: string;
   endStation: string;
   price: number;
   paymentIntentId: string;
   expiryDate: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface IPass {
   _id: string;
   userId: string;
-  routeId: IRoute;
-  fare: number;
-  purchaseDate: string;
-  expiryDate: string;
+  routeId: string | IRoute;
+  startDate: string;
+  endDate: string;
+  active: boolean;
+  price: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface IPassUsage {
   _id: string;
   userId: string;
-  passId: IPass;
-  location: string;
+  passId: string | IPass;
   scannedAt: string;
+  location?: string;
 }
 
 export interface IPayment {
   _id: string;
   userId: string;
   type: 'pass' | 'ticket';
-  routeId: string;
+  routeId: string | IRoute | null;
+  start: string | null;
+  end: string | null;
   fare: number;
   stripeSessionId: string;
-  status: 'pending' | 'completed' | 'failed';
-  createdAt: string;
+  status: 'pending' | 'completed';
 }
 
-export interface IWallet {
+export interface IUser {
   _id: string;
-  userId: string;
-  balance: number;
+  clerkId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  avatar: string;
+  createdAt: string;
   updatedAt: string;
+}
+
+export interface ILocation {
+  latitude: number;
+  longitude: number;
+  timestamp: string;
 }
 
 export interface ITrip {
   _id: string;
   userId: string;
-  startLocation: {
-    lat: number;
-    lng: number;
-    timestamp: string;
-  };
-  endLocation?: {
-    lat: number;
-    lng: number;
-    timestamp: string;
-  };
-  distance?: number;  // in kilometers
-  fare?: number;      // calculated fare
-  status: 'started' | 'completed' | 'cancelled';
+  startLocation: ILocation;
+  endLocation?: ILocation;
+  active: boolean;
+  distance?: number;
+  fare?: number;
+  duration?: number;
   createdAt: string;
+  updatedAt: string;
 }

@@ -1,312 +1,218 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { MapPin, Navigation, AlertCircle, Wifi, WifiOff } from 'lucide-react';
-import { IBus } from '@/types';
-import { BusLocation } from '@/services/liveTrackingService';
+
+import React, { useEffect, useRef, useState } from "react";
+import { Loader } from "@googlemaps/js-api-loader";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { Bus, Navigation } from "lucide-react";
 
 interface LiveMapProps {
-  buses: IBus[];
-  busLocations: { [key: string]: BusLocation };
+  center?: google.maps.LatLngLiteral;
+  zoom?: number;
+  busPosition?: google.maps.LatLngLiteral;
+  stations?: Array<{
+    name: string;
+    position: google.maps.LatLngLiteral;
+  }>;
+  onBusSelect?: (busId: string) => void;
   selectedBusId?: string;
-  onSelectBus: (busId: string) => void;
 }
 
-const LiveMap: React.FC<LiveMapProps> = ({ 
-  buses, 
-  busLocations, 
+const defaultCenter = { lat: 15.4909, lng: 73.8278 }; // Goa
+const defaultZoom = 13;
+
+export const LiveMap: React.FC<LiveMapProps> = ({
+  center = defaultCenter,
+  zoom = defaultZoom,
+  busPosition,
+  stations = [],
+  onBusSelect,
   selectedBusId,
-  onSelectBus 
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const googleMapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<{[key: string]: google.maps.Marker}>({});
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [isConnected, setIsConnected] = useState(true);
-  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
-  
-  // Track user's location
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      console.log("Geolocation not supported");
-      return;
-    }
-
-    let watchId: number;
-    
-    try {
-      watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          const userLoc = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          setUserLocation(userLoc);
-          
-          // Update user marker if map is already initialized
-          if (googleMapRef.current && markersRef.current['user']) {
-            markersRef.current['user'].setPosition(userLoc);
-          }
-          
-          setIsConnected(true);
-        },
-        (error) => {
-          console.error("Error watching position:", error);
-          setIsConnected(false);
-        },
-        { 
-          enableHighAccuracy: true, 
-          maximumAge: 10000,  // Accept positions that are up to 10 seconds old
-          timeout: 5000       // Wait up to 5 seconds for a position
-        }
-      );
-    } catch (error) {
-      console.error("Geolocation error:", error);
-    }
-    
-    return () => {
-      if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-      }
-    };
-  }, []);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [busMarker, setBusMarker] = useState<google.maps.Marker | null>(null);
+  const [stationMarkers, setStationMarkers] = useState<google.maps.Marker[]>([]);
+  const [busPath, setBusPath] = useState<google.maps.Polyline | null>(null);
+  const { toast } = useToast();
 
   // Initialize Google Maps
   useEffect(() => {
-    // Check if Google Maps API is loaded
-    if (!window.google || !window.google.maps) {
-      setMapError("Google Maps API not loaded properly");
-      return;
-    }
-    
-    // Initialize info window
-    if (!infoWindowRef.current) {
-      infoWindowRef.current = new window.google.maps.InfoWindow();
-    }
-    
-    // Default center - Delhi
-    const defaultCenter = { lat: 28.7041, lng: 77.1025 };
-    const mapCenter = userLocation || defaultCenter;
-    
-    // Initialize the map
-    if (mapRef.current && !googleMapRef.current) {
-      googleMapRef.current = new window.google.maps.Map(mapRef.current, {
-        center: mapCenter,
-        zoom: 14,
-        streetViewControl: false,
-        mapTypeControl: true,
-        fullscreenControl: true,
-        mapTypeId: 'roadmap', // Use string literal instead of MapTypeId enum
-        styles: [
-          {
-            featureType: "transit",
-            elementType: "labels.icon",
-            stylers: [{ visibility: "on" }],
-          },
-          {
-            featureType: "poi",
-            elementType: "labels",
-            stylers: [{ visibility: "off" }],
-          },
-        ],
-      });
-      
-      // Add user location button
-      const locationButton = document.createElement("button");
-      locationButton.textContent = "📍";
-      locationButton.classList.add("bg-white", "p-2", "rounded-full", "shadow-md", "hover:bg-gray-100");
-      locationButton.title = "Go to your location";
-      
-      locationButton.addEventListener("click", () => {
-        if (userLocation && googleMapRef.current) {
-          googleMapRef.current.panTo(userLocation);
-          googleMapRef.current.setZoom(16);
+    const initMap = async () => {
+      try {
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+        if (!apiKey) {
+          console.error("Google Maps API key is missing");
+          toast({
+            title: "Map Error",
+            description: "Unable to load map. API key missing.",
+            variant: "destructive",
+          });
+          return;
         }
-      });
-      
-      googleMapRef.current.controls[google.maps.ControlPosition.TOP_RIGHT].push(locationButton);
-    }
-    
-    // Add user marker if location is available
-    if (userLocation && googleMapRef.current) {
-      if (markersRef.current['user']) {
-        markersRef.current['user'].setPosition(userLocation);
-      } else {
-        const userMarkerOptions: google.maps.MarkerOptions = {
-          position: userLocation,
-          map: googleMapRef.current,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: "#4285F4",
-            fillOpacity: 1,
-            strokeColor: "#FFFFFF",
-            strokeWeight: 2,
-          },
-          title: "Your Location"
-        };
+
+        const loader = new Loader({
+          apiKey,
+          version: "weekly",
+        });
+
+        const google = await loader.load();
         
-        markersRef.current['user'] = new window.google.maps.Marker(userMarkerOptions);
+        if (!mapRef.current) return;
         
-        // Add accuracy circle
-        new window.google.maps.Circle({
-          map: googleMapRef.current,
-          center: userLocation,
-          radius: 50, // in meters
-          strokeColor: "#4285F4",
-          strokeOpacity: 0.2,
-          strokeWeight: 1,
-          fillColor: "#4285F4",
-          fillOpacity: 0.1,
+        const mapInstance = new google.maps.Map(mapRef.current, {
+          center,
+          zoom,
+          disableDefaultUI: false,
+          zoomControl: true,
+          mapTypeControl: false,
+          streetViewControl: false,
+          styles: [
+            {
+              featureType: "transit",
+              elementType: "all",
+              stylers: [{ visibility: "on" }],
+            },
+            {
+              featureType: "transit.station.bus",
+              elementType: "labels.icon",
+              stylers: [{ visibility: "on" }],
+            },
+          ],
+        });
+        
+        setMap(mapInstance);
+      } catch (error) {
+        console.error("Error initializing Google Maps:", error);
+        toast({
+          title: "Map Error",
+          description: "Failed to load the map. Please try again.",
+          variant: "destructive",
         });
       }
-    }
-  }, [userLocation]);
+    };
 
-  // Update bus markers whenever bus locations change
+    initMap();
+  }, [toast]);
+
+  // Create or update bus marker
   useEffect(() => {
-    if (!googleMapRef.current) return;
+    if (!map || !busPosition) return;
     
-    // Update existing markers and create new ones
-    Object.keys(busLocations).forEach((busId) => {
-      const location = busLocations[busId];
-      const bus = buses.find(b => b._id === busId);
-      const isSelected = selectedBusId === busId;
-      
-      if (!location) return;
-      
-      const position = { lat: location.lat, lng: location.lng };
-      const heading = location.heading || 0;
-      
-      // Icon for bus with direction
-      const createBusIcon = (isSelected: boolean, heading: number) => {
-        const scale = isSelected ? 0.08 : 0.06;
-        return {
-          path: "M12.5,0 L21.125,19.25 L13.5,17.5 L12.5,21 L11.5,17.5 L3.875,19.25 L12.5,0 Z",
-          fillColor: isSelected ? "#FF5F05" : "#F97316",
+    if (busMarker) {
+      busMarker.setPosition(busPosition);
+    } else {
+      const newBusMarker = new google.maps.Marker({
+        position: busPosition,
+        map,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: "#FF5722",
           fillOpacity: 1,
-          scale: scale,
-          strokeColor: 'white',
-          strokeWeight: 1,
-          rotation: heading,
-          anchor: new window.google.maps.Point(12.5, 12.5),
-        };
-      };
-      
-      // Check if marker already exists
-      if (markersRef.current[busId]) {
-        // Update marker position
-        markersRef.current[busId].setPosition(position);
-        
-        // Update icon with new heading and selected status
-        markersRef.current[busId].setIcon(createBusIcon(isSelected, heading));
-      } else {
-        // Create new marker
-        const busMarkerOptions: google.maps.MarkerOptions = {
-          position,
-          map: googleMapRef.current,
-          icon: createBusIcon(isSelected, heading),
-          title: bus?.name || `Bus ${busId}`,
-          optimized: true
-        };
-        
-        const marker = new window.google.maps.Marker(busMarkerOptions);
-        
-        // Add click handler
-        marker.addListener("click", () => {
-          if (infoWindowRef.current) {
-            const speed = location.speed ? `${Math.round(location.speed)} km/h` : 'N/A';
-            const timeSinceUpdate = Math.round((new Date().getTime() - new Date(location.updatedAt).getTime()) / 1000);
-            const timeText = timeSinceUpdate < 60 ? `${timeSinceUpdate} seconds ago` : `${Math.floor(timeSinceUpdate / 60)} minutes ago`;
-            
-            infoWindowRef.current.setContent(`
-              <div style="padding: 8px;">
-                <h3 style="margin: 0; color: #F97316; font-weight: bold;">${bus?.name || `Bus ${busId}`}</h3>
-                <p style="margin: 4px 0;">Speed: ${speed}</p>
-                <p style="margin: 4px 0;">Updated: ${timeText}</p>
-              </div>
-            `);
-            infoWindowRef.current.open(googleMapRef.current, marker);
-          }
-          onSelectBus(busId);
-        });
-        
-        // Store reference to marker
-        markersRef.current[busId] = marker;
-      }
-    });
-    
-    // Remove markers for buses that are no longer tracked
-    Object.keys(markersRef.current).forEach((markerId) => {
-      if (markerId !== 'user' && !busLocations[markerId]) {
-        markersRef.current[markerId].setMap(null);
-        delete markersRef.current[markerId];
-      }
-    });
-    
-    // Center on selected bus if available
-    if (selectedBusId && busLocations[selectedBusId]) {
-      const selectedLocation = busLocations[selectedBusId];
-      googleMapRef.current.panTo({ 
-        lat: selectedLocation.lat, 
-        lng: selectedLocation.lng 
+          strokeWeight: 2,
+          strokeColor: "#FFFFFF",
+        },
+        title: "Bus Location",
       });
       
-      // Zoom in a bit
-      if (googleMapRef.current.getZoom() < 15) {
-        googleMapRef.current.setZoom(15);
-      }
+      newBusMarker.addListener("click", () => {
+        if (onBusSelect) {
+          onBusSelect("bus-1");
+        }
+        
+        map.panTo(busPosition);
+        map.setZoom(15);
+      });
+      
+      setBusMarker(newBusMarker);
+    }
+  }, [map, busPosition, busMarker, onBusSelect]);
+
+  // Create or update station markers
+  useEffect(() => {
+    if (!map) return;
+    
+    // Clear old markers
+    stationMarkers.forEach(marker => marker.setMap(null));
+    setStationMarkers([]);
+    
+    // Create new markers
+    const newMarkers = stations.map(station => {
+      const marker = new google.maps.Marker({
+        position: station.position,
+        map,
+        title: station.name,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 6,
+          fillColor: "#6E59A5",
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: "#FFFFFF",
+        },
+      });
+      
+      // Add info window
+      const infoWindow = new google.maps.InfoWindow({
+        content: `<div><strong>${station.name}</strong></div>`,
+      });
+      
+      marker.addListener("click", () => {
+        infoWindow.open(map, marker);
+      });
+      
+      return marker;
+    });
+    
+    setStationMarkers(newMarkers);
+  }, [map, stations]);
+
+  // Create or update the bus path
+  useEffect(() => {
+    if (!map || !busPosition || stations.length === 0) return;
+    
+    if (busPath) {
+      busPath.setMap(null);
     }
     
-  }, [busLocations, buses, selectedBusId, onSelectBus]);
+    const path = [
+      busPosition,
+      ...stations.map(station => station.position),
+    ];
+    
+    const newPath = new google.maps.Polyline({
+      path,
+      geodesic: true,
+      strokeColor: "#FF5722",
+      strokeOpacity: 0.8,
+      strokeWeight: 3,
+    });
+    
+    newPath.setMap(map);
+    setBusPath(newPath);
+  }, [map, busPosition, stations]);
 
-  if (mapError) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full bg-orange-50">
-        <AlertCircle className="h-12 w-12 text-transit-orange mb-4" />
-        <h3 className="text-lg font-semibold">Map Error</h3>
-        <p className="text-muted-foreground">{mapError}</p>
-      </div>
-    );
-  }
+  const centerOnBus = () => {
+    if (!map || !busPosition) return;
+    
+    map.panTo(busPosition);
+    map.setZoom(15);
+  };
 
   return (
-    <div className="h-full w-full relative overflow-hidden">
-      {/* Google Map Container */}
-      <div ref={mapRef} className="h-full w-full"></div>
+    <div className="relative w-full h-full min-h-[400px]">
+      <div ref={mapRef} className="w-full h-full rounded-lg shadow-md" />
       
-      {/* Connection status indicator */}
-      <div className="absolute top-2 left-2 z-20 bg-white/80 px-2 py-1 rounded-md shadow-md flex items-center">
-        {isConnected ? (
-          <>
-            <Wifi className="h-4 w-4 text-transit-orange mr-2" />
-            <span className="text-xs font-medium text-transit-orange">Live Tracking Active</span>
-          </>
-        ) : (
-          <>
-            <WifiOff className="h-4 w-4 text-transit-red mr-2" />
-            <span className="text-xs font-medium text-transit-red">Connection Lost</span>
-          </>
-        )}
-      </div>
-      
-      {/* Map legend */}
-      <div className="absolute bottom-2 left-2 z-20 bg-white/90 px-3 py-2 rounded-md shadow-md">
-        <div className="text-xs font-medium mb-1 text-muted-foreground">Map Legend</div>
-        <div className="flex items-center my-1">
-          <div className="w-3 h-3 rounded-full bg-[#4285F4] border border-white mr-2"></div>
-          <span className="text-xs">Your location</span>
-        </div>
-        <div className="flex items-center my-1">
-          <div className="w-3 h-3 bg-transit-orange mr-2" style={{clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)'}}></div>
-          <span className="text-xs">Bus location</span>
-        </div>
-        <div className="flex items-center my-1">
-          <div className="w-3 h-3 bg-[#FF5F05] mr-2" style={{clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)'}}></div>
-          <span className="text-xs">Selected bus</span>
-        </div>
+      <div className="absolute bottom-4 right-4 z-10">
+        <Button 
+          variant="default"
+          className="bg-white text-transit-orange hover:bg-transit-orange hover:text-white"
+          onClick={centerOnBus}
+        >
+          <Navigation className="mr-2 h-4 w-4" />
+          Center on Bus
+        </Button>
       </div>
     </div>
   );
 };
-
-export default LiveMap;

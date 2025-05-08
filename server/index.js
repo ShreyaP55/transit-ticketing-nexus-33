@@ -10,6 +10,7 @@ import passesRouter from './routes/passesRouter.js';
 import passUsageRouter from './routes/passUsageRouter.js';
 import paymentsRouter from './routes/paymentsRouter.js';
 import usersRouter from './routes/usersRouter.js';
+import tripsRouter from './routes/tripsRouter.js';
 import { connect } from './utils/mongoConnect.js';
 
 dotenv.config();
@@ -35,6 +36,7 @@ app.use('/api/passes', passesRouter);
 app.use('/api/pass-usage', passUsageRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/trips', tripsRouter);
 
 // Root route
 app.get('/', (req, res) => {
