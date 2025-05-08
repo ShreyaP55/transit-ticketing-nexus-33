@@ -1,39 +1,42 @@
 
-declare global {
-  interface Window {
-    google: typeof google;
-  }
-}
-
-// Google Maps JavaScript API type definitions
 declare namespace google {
   namespace maps {
     class Map {
-      constructor(mapDiv: Element, options?: MapOptions);
+      constructor(mapDiv: Element, opts?: MapOptions);
       setCenter(latLng: LatLng | LatLngLiteral): void;
+      getCenter(): LatLng;
       setZoom(zoom: number): void;
+      getZoom(): number;
       panTo(latLng: LatLng | LatLngLiteral): void;
-      addListener(eventName: string, handler: (...args: any[]) => void): MapsEventListener;
-    }
-
-    interface MapsEventListener {
-      remove(): void;
+      controls: any[];
     }
 
     class Marker {
       constructor(opts?: MarkerOptions);
       setPosition(latLng: LatLng | LatLngLiteral): void;
+      getPosition(): LatLng;
       setMap(map: Map | null): void;
-      setIcon(icon: string | Icon | Symbol): void;
-      setRotation(rotation: number): void;
-      addListener(eventName: string, handler: (...args: any[]) => void): MapsEventListener;
+      addListener(eventName: string, handler: Function): MapsEventListener;
+    }
+
+    class InfoWindow {
+      constructor(opts?: InfoWindowOptions);
+      open(map?: Map, anchor?: MVCObject): void;
+      close(): void;
+      setContent(content: string | Node): void;
+    }
+
+    class Circle {
+      constructor(opts?: CircleOptions);
+      setMap(map: Map | null): void;
+      setCenter(latLng: LatLng | LatLngLiteral): void;
+      setRadius(radius: number): void;
     }
 
     class LatLng {
-      constructor(lat: number, lng: number);
+      constructor(lat: number, lng: number, noWrap?: boolean);
       lat(): number;
       lng(): number;
-      toJSON(): { lat: number; lng: number };
     }
 
     interface LatLngLiteral {
@@ -44,115 +47,103 @@ declare namespace google {
     interface MapOptions {
       center?: LatLng | LatLngLiteral;
       zoom?: number;
-      disableDefaultUI?: boolean;
-      zoomControl?: boolean;
+      streetViewControl?: boolean;
+      mapTypeControl?: boolean;
+      fullscreenControl?: boolean;
       mapTypeId?: string;
-      styles?: any[];
+      styles?: Array<any>;
     }
 
     interface MarkerOptions {
       position: LatLng | LatLngLiteral;
       map?: Map;
-      title?: string;
       icon?: string | Icon | Symbol;
-      draggable?: boolean;
+      title?: string;
+      optimized?: boolean;
+    }
+
+    interface InfoWindowOptions {
+      content?: string | Node;
+      position?: LatLng | LatLngLiteral;
+    }
+
+    interface CircleOptions {
+      center?: LatLng | LatLngLiteral;
+      radius?: number;
+      strokeColor?: string;
+      strokeOpacity?: number;
+      strokeWeight?: number;
+      fillColor?: string;
+      fillOpacity?: number;
+      map?: Map;
+    }
+
+    interface Size {
+      width: number;
+      height: number;
     }
 
     interface Icon {
       url: string;
-      size?: Size;
       scaledSize?: Size;
-      origin?: Point;
+      size?: Size;
       anchor?: Point;
     }
 
-    class Size {
-      constructor(width: number, height: number);
-    }
-
-    class Point {
-      constructor(x: number, y: number);
-    }
-
-    class Symbol {
-      constructor(opts: SymbolOptions);
-    }
-
-    interface SymbolOptions {
-      path: string | SymbolPath;
+    interface Symbol {
+      path: SymbolPath | string;
       fillColor?: string;
       fillOpacity?: number;
       scale?: number;
       strokeColor?: string;
       strokeOpacity?: number;
       strokeWeight?: number;
-    }
-
-    class Circle {
-      constructor(opts?: CircleOptions);
-      setCenter(center: LatLng | LatLngLiteral): void;
-      setRadius(radius: number): void;
-      setMap(map: Map | null): void;
-    }
-
-    interface CircleOptions {
-      center: LatLng | LatLngLiteral;
-      radius: number;
-      strokeColor?: string;
-      strokeOpacity?: number;
-      strokeWeight?: number;
-      fillColor?: string;
-      fillOpacity?: number;
-      map?: Map;
-    }
-
-    class InfoWindow {
-      constructor(opts?: InfoWindowOptions);
-      open(map: Map, anchor?: Marker): void;
-      close(): void;
-      setContent(content: string | Element): void;
-    }
-
-    interface InfoWindowOptions {
-      content?: string | Element;
-      position?: LatLng | LatLngLiteral;
+      rotation?: number;
+      anchor?: Point;
     }
 
     enum SymbolPath {
-      BACKWARD_CLOSED_ARROW,
-      BACKWARD_OPEN_ARROW,
       CIRCLE,
       FORWARD_CLOSED_ARROW,
-      FORWARD_OPEN_ARROW
+      FORWARD_OPEN_ARROW,
+      BACKWARD_CLOSED_ARROW,
+      BACKWARD_OPEN_ARROW,
     }
 
-    enum MapTypeId {
-      HYBRID,
-      ROADMAP,
-      SATELLITE,
-      TERRAIN
+    class Point {
+      constructor(x: number, y: number);
+      x: number;
+      y: number;
     }
 
-    enum Animation {
-      BOUNCE,
-      DROP
+    interface MapsEventListener {
+      remove(): void;
+    }
+
+    interface MVCObject {
+      addListener(eventName: string, handler: Function): MapsEventListener;
     }
 
     enum ControlPosition {
-      BOTTOM_CENTER,
-      BOTTOM_LEFT,
-      BOTTOM_RIGHT,
-      LEFT_BOTTOM,
-      LEFT_CENTER,
-      LEFT_TOP,
-      RIGHT_BOTTOM,
-      RIGHT_CENTER,
-      RIGHT_TOP,
-      TOP_CENTER,
       TOP_LEFT,
-      TOP_RIGHT
+      TOP_CENTER,
+      TOP_RIGHT,
+      LEFT_TOP,
+      LEFT_CENTER,
+      LEFT_BOTTOM,
+      RIGHT_TOP,
+      RIGHT_CENTER,
+      RIGHT_BOTTOM,
+      BOTTOM_LEFT,
+      BOTTOM_CENTER,
+      BOTTOM_RIGHT
+    }
+
+    enum MapTypeId {
+      ROADMAP,
+      SATELLITE,
+      HYBRID,
+      TERRAIN
     }
   }
 }
-
-export {};
