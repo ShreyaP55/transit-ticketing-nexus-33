@@ -7,4 +7,7 @@ const RouteSchema = new mongoose.Schema({
   fare: { type: Number, required: true }
 });
 
-export default mongoose.models.Route || mongoose.model("Route", RouteSchema);
+// Check if the model exists before creating a new one
+const Route = mongoose.models.Route || mongoose.model("Route", RouteSchema);
+
+export default Route;

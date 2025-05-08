@@ -11,4 +11,7 @@ const BusSchema = new mongoose.Schema({
   capacity: { type: Number, required: true },
 });
 
-export default mongoose.models.Bus || mongoose.model("Bus", BusSchema);
+// Check if the model exists before creating a new one
+const Bus = mongoose.models.Bus || mongoose.model("Bus", BusSchema);
+
+export default Bus;

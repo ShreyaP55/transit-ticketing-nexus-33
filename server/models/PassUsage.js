@@ -8,4 +8,7 @@ const PassUsageSchema = new mongoose.Schema({
   location: { type: String }, // Optional: Store bus stop/location
 });
 
-export default mongoose.models.PassUsage || mongoose.model("PassUsage", PassUsageSchema);
+// Check if the model exists before creating a new one
+const PassUsage = mongoose.models.PassUsage || mongoose.model("PassUsage", PassUsageSchema);
+
+export default PassUsage;

@@ -12,4 +12,7 @@ const PaymentSchema = new mongoose.Schema({
   status: { type: String, enum: ["pending", "completed"], default: "pending" },
 });
 
-export default mongoose.models.Payment || mongoose.model("Payment", PaymentSchema);
+// Check if the model exists before creating a new one
+const Payment = mongoose.models.Payment || mongoose.model("Payment", PaymentSchema);
+
+export default Payment;

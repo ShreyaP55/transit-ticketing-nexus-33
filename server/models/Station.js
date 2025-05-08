@@ -19,4 +19,7 @@ const StationSchema = new mongoose.Schema({
   location: { type: String }
 });
 
-export default mongoose.models.Station || mongoose.model("Station", StationSchema);
+// Check if the model exists before creating a new one
+const Station = mongoose.models.Station || mongoose.model("Station", StationSchema);
+
+export default Station;

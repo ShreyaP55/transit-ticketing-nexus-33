@@ -1,38 +1,45 @@
 
-# Transit App Backend Server
+# Transit Ticketing API Server
 
-This is the backend server for the Transit Application.
+This is the backend server for the Transit Ticketing Nexus application.
 
-## Getting Started
+## Setup Instructions
+
+### Prerequisites
+- Node.js v14+ installed
+- MongoDB account (using MongoDB Atlas or local MongoDB)
+
+### Installation
 
 1. Install dependencies:
-   ```
-   npm install
-   ```
+```
+npm install
+```
 
-2. Create a `.env` file with the following variables:
-   ```
-   PORT=3000
-   MONGODB_URI=your_mongodb_connection_string
-   ```
+2. Configure environment variables:
+Create a `.env` file in the root directory with the following variables:
+```
+MONGODB_URI=your_mongodb_connection_string
+PORT=3000
+```
 
 3. Start the development server:
-   ```
-   npm run dev
-   ```
+```
+npm run dev
+```
 
-4. Start the production server:
-   ```
-   npm start
-   ```
+4. For production:
+```
+npm start
+```
 
 ## API Endpoints
 
-### Buses
-- GET `/api/buses` - Get all buses
-- GET `/api/buses?routeId=123` - Get buses by route ID
-- POST `/api/buses` - Create a new bus
-- PUT `/api/buses/:id` - Update a bus
-- DELETE `/api/buses/:id` - Delete a bus
-
-More endpoints will be added for other resources.
+- `/api/buses` - Bus management
+- `/api/routes` - Routes management
+- `/api/stations` - Station management
+- `/api/tickets` - Ticket management
+- `/api/passes` - Pass management
+- `/api/pass-usage` - Pass usage management
+- `/api/payments` - Payment management
+- `/api/users` - User management

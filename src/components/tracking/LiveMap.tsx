@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { MapPin, Navigation, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { IBus } from '@/types';
@@ -96,7 +95,7 @@ const LiveMap: React.FC<LiveMapProps> = ({
         streetViewControl: false,
         mapTypeControl: true,
         fullscreenControl: true,
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeId: 'roadmap', // Use string literal instead of MapTypeId enum
         styles: [
           {
             featureType: "transit",
