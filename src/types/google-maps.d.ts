@@ -1,149 +1,46 @@
 
-declare namespace google {
-  namespace maps {
-    class Map {
-      constructor(mapDiv: Element, opts?: MapOptions);
-      setCenter(latLng: LatLng | LatLngLiteral): void;
-      getCenter(): LatLng;
-      setZoom(zoom: number): void;
-      getZoom(): number;
-      panTo(latLng: LatLng | LatLngLiteral): void;
-      controls: any[];
-    }
+declare namespace google.maps {
+  interface MapOptions {
+    center?: LatLng | LatLngLiteral;
+    zoom?: number;
+    mapTypeId?: MapTypeId;
+    fullscreenControl?: boolean;
+    mapTypeControl?: boolean;
+    streetViewControl?: boolean;
+    disableDefaultUI?: boolean;
+    zoomControl?: boolean;
+    styles?: MapTypeStyle[];
+  }
 
-    class Marker {
-      constructor(opts?: MarkerOptions);
-      setPosition(latLng: LatLng | LatLngLiteral): void;
-      getPosition(): LatLng;
-      setMap(map: Map | null): void;
-      addListener(eventName: string, handler: Function): MapsEventListener;
-    }
+  type MapTypeId = 'roadmap' | 'satellite' | 'hybrid' | 'terrain';
 
-    class InfoWindow {
-      constructor(opts?: InfoWindowOptions);
-      open(map?: Map, anchor?: MVCObject): void;
-      close(): void;
-      setContent(content: string | Node): void;
-    }
+  interface MapTypeStyle {
+    elementType?: string;
+    featureType?: string;
+    stylers?: Array<{ [key: string]: any }>;
+  }
+}
 
-    class Circle {
-      constructor(opts?: CircleOptions);
-      setMap(map: Map | null): void;
-      setCenter(latLng: LatLng | LatLngLiteral): void;
-      setRadius(radius: number): void;
-    }
-
-    class LatLng {
-      constructor(lat: number, lng: number, noWrap?: boolean);
-      lat(): number;
-      lng(): number;
-    }
-
-    interface LatLngLiteral {
-      lat: number;
-      lng: number;
-    }
-
-    interface MapOptions {
-      center?: LatLng | LatLngLiteral;
-      zoom?: number;
-      streetViewControl?: boolean;
-      mapTypeControl?: boolean;
-      fullscreenControl?: boolean;
-      mapTypeId?: string;
-      styles?: Array<any>;
-    }
-
-    interface MarkerOptions {
-      position: LatLng | LatLngLiteral;
-      map?: Map;
-      icon?: string | Icon | Symbol;
-      title?: string;
-      optimized?: boolean;
-    }
-
-    interface InfoWindowOptions {
-      content?: string | Node;
-      position?: LatLng | LatLngLiteral;
-    }
-
-    interface CircleOptions {
-      center?: LatLng | LatLngLiteral;
-      radius?: number;
-      strokeColor?: string;
-      strokeOpacity?: number;
-      strokeWeight?: number;
-      fillColor?: string;
-      fillOpacity?: number;
-      map?: Map;
-    }
-
-    interface Size {
-      width: number;
-      height: number;
-    }
-
-    interface Icon {
-      url: string;
-      scaledSize?: Size;
-      size?: Size;
-      anchor?: Point;
-    }
-
-    interface Symbol {
-      path: SymbolPath | string;
-      fillColor?: string;
-      fillOpacity?: number;
-      scale?: number;
-      strokeColor?: string;
-      strokeOpacity?: number;
-      strokeWeight?: number;
-      rotation?: number;
-      anchor?: Point;
-    }
-
-    enum SymbolPath {
-      CIRCLE,
-      FORWARD_CLOSED_ARROW,
-      FORWARD_OPEN_ARROW,
-      BACKWARD_CLOSED_ARROW,
-      BACKWARD_OPEN_ARROW,
-    }
-
-    class Point {
-      constructor(x: number, y: number);
-      x: number;
-      y: number;
-    }
-
-    interface MapsEventListener {
-      remove(): void;
-    }
-
-    interface MVCObject {
-      addListener(eventName: string, handler: Function): MapsEventListener;
-    }
-
-    enum ControlPosition {
-      TOP_LEFT,
-      TOP_CENTER,
-      TOP_RIGHT,
-      LEFT_TOP,
-      LEFT_CENTER,
-      LEFT_BOTTOM,
-      RIGHT_TOP,
-      RIGHT_CENTER,
-      RIGHT_BOTTOM,
-      BOTTOM_LEFT,
-      BOTTOM_CENTER,
-      BOTTOM_RIGHT
-    }
-
-    enum MapTypeId {
-      ROADMAP,
-      SATELLITE,
-      HYBRID,
-      TERRAIN
-    }
+// Add custom marker type definition to handle setIcon
+declare module '@react-google-maps/api' {
+  export interface MarkerProps {
+    position: google.maps.LatLng | google.maps.LatLngLiteral;
+    icon?: string | google.maps.Icon | google.maps.Symbol;
+    label?: string | google.maps.MarkerLabel;
+    clickable?: boolean;
+    draggable?: boolean;
+    visible?: boolean;
+    zIndex?: number;
+    animation?: google.maps.Animation;
+    onClick?: (e: google.maps.MapMouseEvent) => void;
+    onDblClick?: (e: google.maps.MapMouseEvent) => void;
+    onDrag?: (e: google.maps.MapMouseEvent) => void;
+    onDragStart?: (e: google.maps.MapMouseEvent) => void;
+    onDragEnd?: (e: google.maps.MapMouseEvent) => void;
+    onMouseOut?: (e: google.maps.MapMouseEvent) => void;
+    onMouseOver?: (e: google.maps.MapMouseEvent) => void;
+    onRightClick?: (e: google.maps.MapMouseEvent) => void;
+    onLoad?: (marker: google.maps.Marker) => void;
+    onUnmount?: (marker: google.maps.Marker) => void;
   }
 }
