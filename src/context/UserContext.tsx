@@ -7,7 +7,7 @@ type UserRole = "user" | "admin";
 type UserContextType = {
   isAuthenticated: boolean;
   userId: string | null;
-  userDetails: any; // Replace with proper type
+  userDetails: any;
   isAdmin: boolean;
   userRole: UserRole;
   logout: () => void;
@@ -29,27 +29,24 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userDetails, setUserDetails] = useState<any>(null);
   const [userRole, setUserRole] = useState<UserRole>("user");
 
-  // Update userId from Clerk when authentication state changes
   useEffect(() => {
     if (isSignedIn && user) {
       setUserId(user.id);
       
-      // Check for admin role - this would typically come from user metadata or a database
-      // For demo purposes, let's use a fixed email for admin
-      const isAdmin = user.primaryEmailAddress?.emailAddress === "parkarshreya45@gmail.com";
-      setUserRole(isAdmin ? "admin" : "user");
+      // Get role from user metadata (secure way)
+      const role = (user.publicMetadata?.role as UserRole) || "user";
+      setUserRole(role);
       
-      // Store the basic user info
       setUserDetails({
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.primaryEmailAddress?.emailAddress,
         imageUrl: user.imageUrl,
-        role: isAdmin ? "admin" : "user"
+        role: role
       });
       
-      // Store userId in localStorage for API calls
+      // Store only user ID for API calls (not sensitive data)
       localStorage.setItem("userId", user.id);
     } else {
       setUserId(null);
