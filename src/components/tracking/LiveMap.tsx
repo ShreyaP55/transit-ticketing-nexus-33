@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,7 @@ interface LiveMapProps {
   className?: string;
 }
 
-export const LiveMap: React.FC<LiveMapProps> = ({
+const LiveMap: React.FC<LiveMapProps> = ({
   center = defaultCenter,
   zoom = defaultZoom,
   busPosition,
@@ -330,3 +329,5 @@ export const LiveMap: React.FC<LiveMapProps> = ({
     </div>
   );
 };
+
+export default LiveMap;

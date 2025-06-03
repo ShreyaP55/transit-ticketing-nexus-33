@@ -3,6 +3,7 @@ import React from "react";
 import { QrCode } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IBus } from "@/types";
+import { isRoute } from "@/utils/typeGuards";
 
 interface BusQRCodeProps {
   bus: IBus;
@@ -10,13 +11,15 @@ interface BusQRCodeProps {
 
 const BusQRCode: React.FC<BusQRCodeProps> = ({ bus }) => {
   // Generate a QR code that contains bus details
+  const routeInfo = isRoute(bus.route) ? bus.route : { start: "Unknown", end: "Unknown" };
+  
   const qrValue = JSON.stringify({
     id: bus._id,
     name: bus.name,
     capacity: bus.capacity,
     route: {
-      start: bus.route.start,
-      end: bus.route.end
+      start: routeInfo.start,
+      end: routeInfo.end
     }
   });
 
@@ -46,7 +49,7 @@ const BusQRCode: React.FC<BusQRCodeProps> = ({ bus }) => {
           </div>
         </div>
         <div className="text-xs text-center mt-2 text-muted-foreground">
-          Bus {bus.name} • Route: {bus.route.start}-{bus.route.end}
+          Bus {bus.name} • Route: {routeInfo.start}-{routeInfo.end}
         </div>
       </CardContent>
     </Card>

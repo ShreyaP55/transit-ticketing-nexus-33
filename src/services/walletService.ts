@@ -1,91 +1,116 @@
 
-import { IWallet } from "@/types";
-import { useUser } from "@/context/UserContext";
+import { IWallet, ITransaction } from "@/types";
 
-// In-memory wallet store (would be a database in production)
-let walletStore: { [userId: string]: IWallet } = {};
-
-// Get default wallet for a user
-const getDefaultWallet = (userId: string): IWallet => ({
-  _id: `wallet_${userId}`,
-  userId,
-  balance: 0,
-  updatedAt: new Date().toISOString()
-});
-
-// Get wallet balance
-export const getWallet = async (userId: string): Promise<IWallet> => {
-  try {
-    // In a real app, this would be a database query
-    if (!walletStore[userId]) {
-      walletStore[userId] = getDefaultWallet(userId);
+export const walletService = {
+  getBalance: async (userId: string): Promise<IWallet> => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/wallet/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('userId') || 'guest'}`,
+        },
+      });
+      
+      if (!response.ok) {
+        // Return default wallet structure if not found
+        return {
+          _id: `wallet_${userId}`,
+          userId,
+          balance: 0,
+          transactions: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      
+      const wallet = await response.json();
+      return {
+        ...wallet,
+        transactions: wallet.transactions || [],
+        createdAt: wallet.createdAt || new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
+      return {
+        _id: `wallet_${userId}`,
+        userId,
+        balance: 0,
+        transactions: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
     }
-    
-    return walletStore[userId];
-  } catch (error) {
-    console.error("Error fetching wallet:", error);
-    return getDefaultWallet(userId);
-  }
-};
+  },
 
-// Add funds to wallet
-export const addFunds = async (userId: string, amount: number): Promise<IWallet> => {
-  try {
-    // Get current wallet or create new one
-    const wallet = await getWallet(userId);
-    
-    // Update balance and timestamp
-    wallet.balance += amount;
-    wallet.updatedAt = new Date().toISOString();
-    
-    // Save updated wallet
-    walletStore[userId] = wallet;
-    
-    console.log(`Added ${amount} to wallet for user ${userId}`);
-    
-    return wallet;
-  } catch (error) {
-    console.error("Error adding funds to wallet:", error);
-    throw new Error("Failed to add funds to wallet");
-  }
-};
-
-// Deduct funds from wallet
-export const deductFunds = async (userId: string, amount: number): Promise<IWallet> => {
-  try {
-    // Get current wallet
-    const wallet = await getWallet(userId);
-    
-    // Check if wallet has sufficient balance
-    if (wallet.balance < amount) {
-      throw new Error("Insufficient funds");
+  addFunds: async (userId: string, amount: number): Promise<IWallet> => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/wallet/${userId}/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('userId') || 'guest'}`,
+        },
+        body: JSON.stringify({ amount }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to add funds');
+      }
+      
+      const wallet = await response.json();
+      return {
+        ...wallet,
+        transactions: wallet.transactions || [],
+        createdAt: wallet.createdAt || new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error adding funds:', error);
+      throw error;
     }
-    
-    // Update balance and timestamp
-    wallet.balance -= amount;
-    wallet.updatedAt = new Date().toISOString();
-    
-    // Save updated wallet
-    walletStore[userId] = wallet;
-    
-    console.log(`Deducted ${amount} from wallet for user ${userId}`);
-    
-    return wallet;
-  } catch (error) {
-    console.error("Error deducting funds from wallet:", error);
-    throw error;
-  }
-};
+  },
 
-// React hook for wallet
-export const useWallet = () => {
-  const { userId } = useUser();
-  
-  const getBalance = async (): Promise<number> => {
-    if (!userId) return 0;
-    const wallet = await getWallet(userId);
-    return wallet.balance;
-  };
-  
-  return { getBalance, addFunds, deductFunds };
+  deductFunds: async (userId: string, amount: number, description: string): Promise<IWallet> => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/wallet/${userId}/deduct`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('userId') || 'guest'}`,
+        },
+        body: JSON.stringify({ amount, description }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to deduct funds');
+      }
+      
+      const wallet = await response.json();
+      return {
+        ...wallet,
+        transactions: wallet.transactions || [],
+        createdAt: wallet.createdAt || new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error deducting funds:', error);
+      throw error;
+    }
+  },
+
+  getTransactions: async (userId: string): Promise<ITransaction[]> => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/wallet/${userId}/transactions`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('userId') || 'guest'}`,
+        },
+      });
+      
+      if (!response.ok) {
+        return [];
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      return [];
+    }
+  }
 };
