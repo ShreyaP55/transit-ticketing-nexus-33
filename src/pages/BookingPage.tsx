@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Map, Bus, Navigation, AlertCircle } from "lucide-react";
+import { MapPin, Bus, Navigation, AlertCircle, CreditCard } from "lucide-react";
 import { routesAPI, busesAPI, stationsAPI } from "@/services/api";
 import { stripeService } from "@/services/stripeService";
 import { toast } from "sonner";
@@ -15,12 +15,25 @@ import { toast } from "sonner";
 const BookingPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // Handle payment status from URL params
+  useEffect(() => {
+    const status = searchParams.get("status");
+    if (status === "success") {
+      toast.success("Payment successful! Your ticket has been generated.");
+      // Redirect to tickets page after a short delay
+      setTimeout(() => navigate("/tickets"), 2000);
+    } else if (status === "cancel") {
+      toast.error("Payment was cancelled.");
+    }
+  }, [searchParams, navigate]);
+  
   // Get query parameters from URL
-  const searchParams = new URLSearchParams(location.search);
-  const routeIdParam = searchParams.get("routeId");
-  const busIdParam = searchParams.get("busId");
+  const urlParams = new URLSearchParams(location.search);
+  const routeIdParam = urlParams.get("routeId");
+  const busIdParam = urlParams.get("busId");
   
   const [selectedRouteId, setSelectedRouteId] = useState(routeIdParam || "");
   const [selectedBusId, setSelectedBusId] = useState(busIdParam || "");
@@ -94,10 +107,7 @@ const BookingPage = () => {
     
     try {
       setIsProcessing(true);
-      toast.info("Processing your payment...");
-      
-      // Get userId from localStorage or context
-      const userId = localStorage.getItem("userId") || "guest-user";
+      toast.info("Redirecting to payment...");
       
       // Create a checkout session
       const response = await stripeService.createTicketCheckoutSession(
@@ -108,7 +118,7 @@ const BookingPage = () => {
       
       if (response && response.url) {
         // Redirect to Stripe checkout
-        window.location.href = response.url;
+        await stripeService.redirectToCheckout(response.url);
       } else {
         throw new Error("Failed to create checkout session");
       }
@@ -121,169 +131,128 @@ const BookingPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar - similar to Index page */}
-      <div className="w-64 bg-[#FF5722] text-white">
-        <div className="p-4 flex items-center">
-          <Bus className="mr-2" />
-          <h1 className="text-2xl font-bold">TransitNexus</h1>
-        </div>
-        
-        <nav className="mt-8">
-          <ul className="space-y-2">
-            <li>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-white hover:bg-white/20"
-                onClick={() => navigate('/')}
-              >
-                <Map className="mr-2 h-5 w-5" />
-                Home
-              </Button>
-            </li>
-            <li>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-white hover:bg-white/20"
-                onClick={() => navigate('/tickets')}
-              >
-                <Bus className="mr-2 h-5 w-5" />
-                My Tickets
-              </Button>
-            </li>
-            <li>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-white hover:bg-white/20"
-                onClick={() => navigate('/pass')}
-              >
-                <Calendar className="mr-2 h-5 w-5" />
-                Monthly Pass
-              </Button>
-            </li>
-            {/* Additional nav items */}
-          </ul>
-        </nav>
-      </div>
-      
-      {/* Main Content */}
-      <div className="flex-1 p-6 bg-[#FFF9F4]">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <Card className="border-[#FF5722]/20 bg-white shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Map className="mr-2 text-[#FF5722]" />
-                Book Your Ticket
-              </CardTitle>
-              <CardDescription>
-                Select your route, bus and station to book a ticket
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
+    <MainLayout title="Book Ticket">
+      <div className="container mx-auto py-4 space-y-6">
+        <Card className="border-primary/20 bg-white shadow-md">
+          <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent">
+            <CardTitle className="flex items-center text-lg sm:text-xl">
+              <MapPin className="mr-2 text-primary h-5 w-5" />
+              Book Your Ticket
+            </CardTitle>
+            <CardDescription>
+              Select your route, bus and station to book a ticket
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-base sm:text-lg font-medium mb-2">Selected Route</h3>
+                {isLoadingRoutes ? (
+                  <Skeleton className="h-12 w-full" />
+                ) : !selectedRoute ? (
+                  <div className="p-3 border rounded-md bg-yellow-50 border-yellow-200 flex items-center">
+                    <AlertCircle className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0" />
+                    <span className="text-sm">No route selected. Please <Button variant="link" className="p-0 h-auto text-primary" onClick={() => navigate('/')}>go back</Button> and select a route.</span>
+                  </div>
+                ) : (
+                  <div className="p-3 border rounded-md border-primary bg-primary/5">
+                    <div className="flex justify-between items-center flex-wrap gap-2">
+                      <span className="font-medium text-sm sm:text-base">{selectedRoute.start} - {selectedRoute.end}</span>
+                      <Badge variant="outline" className="border-primary text-primary">₹{selectedRoute.fare}</Badge>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {selectedRouteId && (
                 <div>
-                  <h3 className="text-lg font-medium mb-2">Selected Route</h3>
-                  {isLoadingRoutes ? (
+                  <h3 className="text-base sm:text-lg font-medium mb-2">Selected Bus</h3>
+                  {isLoadingBuses ? (
                     <Skeleton className="h-12 w-full" />
-                  ) : !selectedRoute ? (
+                  ) : !selectedBus ? (
                     <div className="p-3 border rounded-md bg-yellow-50 border-yellow-200 flex items-center">
-                      <AlertCircle className="h-5 w-5 text-yellow-500 mr-2" />
-                      <span>No route selected. Please <Button variant="link" className="p-0 h-auto text-[#FF5722]" onClick={() => navigate('/')}>go back</Button> and select a route.</span>
+                      <AlertCircle className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0" />
+                      <span className="text-sm">No bus selected. Please <Button variant="link" className="p-0 h-auto text-primary" onClick={() => navigate('/')}>go back</Button> and select a bus.</span>
                     </div>
                   ) : (
-                    <div className="p-3 border rounded-md border-[#FF5722] bg-[#FF5722]/5">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">{selectedRoute.start} - {selectedRoute.end}</span>
-                        <Badge variant="outline" className="border-[#FF5722] text-[#FF5722]">₹{selectedRoute.fare}</Badge>
+                    <div className="p-3 border rounded-md border-primary bg-primary/5">
+                      <div className="flex justify-between items-center flex-wrap gap-2">
+                        <span className="font-medium text-sm sm:text-base">{selectedBus.name}</span>
+                        <Badge variant="outline" className="border-primary text-primary">Capacity: {selectedBus.capacity}</Badge>
                       </div>
                     </div>
                   )}
                 </div>
+              )}
 
-                {selectedRouteId && (
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Selected Bus</h3>
-                    {isLoadingBuses ? (
+              {selectedBusId && selectedRouteId && (
+                <div>
+                  <h3 className="text-base sm:text-lg font-medium mb-2">Select Station</h3>
+                  {isLoadingStations ? (
+                    <div className="space-y-2">
                       <Skeleton className="h-12 w-full" />
-                    ) : !selectedBus ? (
-                      <div className="p-3 border rounded-md bg-yellow-50 border-yellow-200 flex items-center">
-                        <AlertCircle className="h-5 w-5 text-yellow-500 mr-2" />
-                        <span>No bus selected. Please <Button variant="link" className="p-0 h-auto text-[#FF5722]" onClick={() => navigate('/')}>go back</Button> and select a bus.</span>
-                      </div>
-                    ) : (
-                      <div className="p-3 border rounded-md border-[#FF5722] bg-[#FF5722]/5">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">{selectedBus.name}</span>
-                          <Badge variant="outline" className="border-[#FF5722] text-[#FF5722]">Capacity: {selectedBus.capacity}</Badge>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {selectedBusId && selectedRouteId && (
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Select Station</h3>
-                    {isLoadingStations ? (
-                      <div className="space-y-2">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                      </div>
-                    ) : stations.length === 0 ? (
-                      <div className="p-3 border rounded-md bg-yellow-50 border-yellow-200 flex items-center">
-                        <AlertCircle className="h-5 w-5 text-yellow-500 mr-2" />
-                        <span>No stations available for this route and bus.</span>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {stations.map(station => (
-                          <div
-                            key={station._id}
-                            className={`p-3 border rounded-md cursor-pointer transition-all ${
-                              selectedStationId === station._id 
-                                ? "border-[#FF5722] bg-[#FF5722]/10" 
-                                : "hover:border-[#FF5722] border-gray-200"
-                            }`}
-                            onClick={() => setSelectedStationId(station._id)}
-                          >
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <p className="font-medium">{station.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {station.latitude.toFixed(6)}, {station.longitude.toFixed(6)}
-                                </p>
-                              </div>
-                              <Badge variant={selectedStationId === station._id ? "default" : "outline"} className={selectedStationId === station._id ? "bg-[#FF5722]" : "border-[#FF5722] text-[#FF5722]"}>₹{station.fare}</Badge>
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : stations.length === 0 ? (
+                    <div className="p-3 border rounded-md bg-yellow-50 border-yellow-200 flex items-center">
+                      <AlertCircle className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0" />
+                      <span className="text-sm">No stations available for this route and bus.</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {stations.map(station => (
+                        <div
+                          key={station._id}
+                          className={`p-3 border rounded-md cursor-pointer transition-all ${
+                            selectedStationId === station._id 
+                              ? "border-primary bg-primary/10" 
+                              : "hover:border-primary border-gray-200"
+                          }`}
+                          onClick={() => setSelectedStationId(station._id)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{station.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {station.latitude.toFixed(6)}, {station.longitude.toFixed(6)}
+                              </p>
                             </div>
+                            <Badge 
+                              variant={selectedStationId === station._id ? "default" : "outline"} 
+                              className={selectedStationId === station._id ? "bg-primary" : "border-primary text-primary"}
+                            >
+                              ₹{station.fare}
+                            </Badge>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate(-1)}
-                disabled={isProcessing}
-              >
-                Back
-              </Button>
-              <Button 
-                onClick={handleBookTicket} 
-                disabled={!selectedStationId || isProcessing}
-                className="bg-[#FF5722] hover:bg-[#E64A19]"
-              >
-                <Bus className="mr-2 h-4 w-4" />
-                {isProcessing ? "Processing..." : "Book Ticket"}
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 p-4 sm:p-6">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(-1)}
+              disabled={isProcessing}
+              className="w-full sm:w-auto"
+            >
+              Back
+            </Button>
+            <Button 
+              onClick={handleBookTicket} 
+              disabled={!selectedStationId || isProcessing}
+              className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              {isProcessing ? "Processing..." : "Pay with Stripe"}
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

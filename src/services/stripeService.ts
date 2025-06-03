@@ -1,49 +1,36 @@
 
 import { loadStripe } from '@stripe/stripe-js';
 
-// Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 export const stripeService = {
   // Create a checkout session for ticket purchase
   createTicketCheckoutSession: async (stationId: string, busId: string, amount: number) => {
     try {
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe failed to load');
-      
-      const response = await fetch('/api/create-checkout-session', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('userId') || 'guest'}`,
         },
         body: JSON.stringify({
-          items: [
-            {
-              name: 'Bus Ticket',
-              amount: amount,
-              quantity: 1,
-            },
-          ],
+          type: 'ticket',
           stationId,
           busId,
-          mode: 'payment',
+          amount: amount * 100, // Convert to cents
+          successUrl: `${window.location.origin}/tickets?status=success`,
+          cancelUrl: `${window.location.origin}/booking?status=cancel`,
         }),
       });
       
-      const session = await response.json();
-      
-      // Redirect to Stripe Checkout
-      const result = await stripe.redirectToCheckout({
-        sessionId: session.id,
-      });
-      
-      if (result.error) {
-        throw new Error(result.error.message);
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
       }
       
-      return result;
+      const session = await response.json();
+      return session;
     } catch (error) {
-      console.error('Error creating checkout session:', error);
+      console.error('Error creating ticket checkout session:', error);
       throw error;
     }
   },
@@ -51,42 +38,68 @@ export const stripeService = {
   // Create a checkout session for pass purchase
   createPassCheckoutSession: async (routeId: string, amount: number) => {
     try {
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe failed to load');
-      
-      const response = await fetch('/api/create-checkout-session', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('userId') || 'guest'}`,
         },
         body: JSON.stringify({
-          items: [
-            {
-              name: 'Transit Pass',
-              amount: amount,
-              quantity: 1,
-            },
-          ],
+          type: 'pass',
           routeId,
-          mode: 'subscription',
+          amount: amount * 100, // Convert to cents
+          successUrl: `${window.location.origin}/pass?status=success`,
+          cancelUrl: `${window.location.origin}/pass?status=cancel`,
         }),
       });
       
-      const session = await response.json();
-      
-      // Redirect to Stripe Checkout
-      const result = await stripe.redirectToCheckout({
-        sessionId: session.id,
-      });
-      
-      if (result.error) {
-        throw new Error(result.error.message);
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
       }
       
-      return result;
+      const session = await response.json();
+      return session;
     } catch (error) {
-      console.error('Error creating checkout session:', error);
+      console.error('Error creating pass checkout session:', error);
       throw error;
     }
   },
+
+  // Create a checkout session for wallet recharge
+  createWalletCheckoutSession: async (amount: number) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('userId') || 'guest'}`,
+        },
+        body: JSON.stringify({
+          type: 'wallet',
+          amount: amount * 100, // Convert to cents
+          successUrl: `${window.location.origin}/wallet?status=success&amount=${amount}`,
+          cancelUrl: `${window.location.origin}/wallet?status=cancel`,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create wallet checkout session');
+      }
+      
+      const session = await response.json();
+      return session;
+    } catch (error) {
+      console.error('Error creating wallet checkout session:', error);
+      throw error;
+    }
+  },
+
+  // Redirect to Stripe checkout
+  redirectToCheckout: async (sessionUrl: string) => {
+    if (sessionUrl) {
+      window.location.href = sessionUrl;
+    } else {
+      throw new Error('Invalid session URL');
+    }
+  }
 };
