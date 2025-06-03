@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,6 +13,7 @@ import BusForm from "@/components/buses/BusForm";
 import BusQRCode from "@/components/buses/BusQRCode";
 import { useUser } from "@/context/UserContext";
 import { IBus, IRoute } from "@/types";
+import { getRouteDisplay } from "@/utils/typeGuards";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -212,7 +212,7 @@ const BusesPage = () => {
                           <TableCell>
                             <div className="flex items-center">
                               <Route className="h-4 w-4 mr-1 text-transit-orange" />
-                              <span>{bus.route.start} - {bus.route.end}</span>
+                              <span>{getRouteDisplay(bus.route)}</span>
                             </div>
                           </TableCell>
                           <TableCell>

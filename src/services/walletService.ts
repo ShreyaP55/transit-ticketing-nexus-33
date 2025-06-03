@@ -1,5 +1,6 @@
 
 import { IWallet, ITransaction } from "@/types";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const walletService = {
   getBalance: async (userId: string): Promise<IWallet> => {
@@ -114,3 +115,40 @@ export const walletService = {
     }
   }
 };
+
+export const useWallet = (userId: string) => {
+  const queryClient = useQueryClient();
+
+  const { data: wallet, isLoading, error } = useQuery({
+    queryKey: ['wallet', userId],
+    queryFn: () => walletService.getBalance(userId),
+    enabled: !!userId,
+  });
+
+  const addFundsMutation = useMutation({
+    mutationFn: (amount: number) => walletService.addFunds(userId, amount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet', userId] });
+    },
+  });
+
+  const deductFundsMutation = useMutation({
+    mutationFn: ({ amount, description }: { amount: number; description: string }) => 
+      walletService.deductFunds(userId, amount, description),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet', userId] });
+    },
+  });
+
+  return {
+    wallet,
+    isLoading,
+    error,
+    addFunds: addFundsMutation.mutate,
+    deductFunds: deductFundsMutation.mutate,
+    isAddingFunds: addFundsMutation.isPending,
+    isDeductingFunds: deductFundsMutation.isPending,
+  };
+};
+
+export const deductFunds = walletService.deductFunds;

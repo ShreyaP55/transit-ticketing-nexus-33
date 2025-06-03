@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Navigation, MapPin } from "lucide-react";
 import { locationService, LocationData } from "@/services/locationService";
+import { IBus } from "@/types";
 
 const defaultCenter = {
   lat: 15.4909,
@@ -12,9 +13,19 @@ const defaultCenter = {
 
 const defaultZoom = 13;
 
+interface BusLocations {
+  [busId: string]: {
+    latitude: number;
+    longitude: number;
+    updatedAt: string;
+  };
+}
+
 interface LiveMapProps {
   center?: { lat: number; lng: number };
   zoom?: number;
+  buses?: IBus[];
+  busLocations?: BusLocations;
   busPosition?: { lat: number; lng: number };
   stations?: Array<{
     _id: string;
@@ -22,6 +33,7 @@ interface LiveMapProps {
     position: { lat: number; lng: number };
   }>;
   onBusSelect?: (busId: string) => void;
+  onSelectBus?: (busId: string) => void;
   selectedBusId?: string;
   className?: string;
 }
@@ -29,20 +41,25 @@ interface LiveMapProps {
 const LiveMap: React.FC<LiveMapProps> = ({
   center = defaultCenter,
   zoom = defaultZoom,
+  buses = [],
+  busLocations = {},
   busPosition,
   stations = [],
   onBusSelect,
+  onSelectBus,
   selectedBusId,
   className = ""
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [busMarker, setBusMarker] = useState<google.maps.Marker | null>(null);
+  const [busMarkers, setBusMarkers] = useState<{ [busId: string]: google.maps.Marker }>({});
   const [userMarker, setUserMarker] = useState<google.maps.Marker | null>(null);
   const [stationMarkers, setStationMarkers] = useState<google.maps.Marker[]>([]);
   const [busPath, setBusPath] = useState<google.maps.Polyline | null>(null);
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   const [isTracking, setIsTracking] = useState(false);
+
+  const handleBusSelect = onBusSelect || onSelectBus;
 
   // Initialize Google Maps
   useEffect(() => {
@@ -159,38 +176,84 @@ const LiveMap: React.FC<LiveMapProps> = ({
     }
   }, [map, userLocation, userMarker]);
 
-  // Create or update bus marker
+  // Create or update bus markers for multiple buses
   useEffect(() => {
-    if (!map || !busPosition) return;
+    if (!map) return;
 
-    if (busMarker) {
-      busMarker.setPosition(busPosition);
-    } else {
-      const newBusMarker = new google.maps.Marker({
-        position: busPosition,
-        map,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: "#FF5722",
-          fillOpacity: 1,
-          strokeWeight: 2,
-          strokeColor: "#FFFFFF"
-        },
-        title: "Bus Location"
-      });
+    // Clear old markers that are no longer needed
+    Object.keys(busMarkers).forEach(busId => {
+      if (!busLocations[busId]) {
+        busMarkers[busId].setMap(null);
+        delete busMarkers[busId];
+      }
+    });
 
-      newBusMarker.addListener("click", () => {
-        if (onBusSelect) {
-          onBusSelect("bus-1");
-        }
-        map.panTo(busPosition);
-        map.setZoom(15);
-      });
+    // Create or update markers for active buses
+    Object.entries(busLocations).forEach(([busId, location]) => {
+      const position = { lat: location.latitude, lng: location.longitude };
+      
+      if (busMarkers[busId]) {
+        busMarkers[busId].setPosition(position);
+      } else {
+        const bus = buses.find(b => b._id === busId);
+        const newBusMarker = new google.maps.Marker({
+          position,
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: selectedBusId === busId ? "#4CAF50" : "#FF5722",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "#FFFFFF"
+          },
+          title: bus ? `Bus ${bus.name}` : `Bus ${busId}`
+        });
 
-      setBusMarker(newBusMarker);
-    }
-  }, [map, busPosition, busMarker, onBusSelect]);
+        newBusMarker.addListener("click", () => {
+          if (handleBusSelect) {
+            handleBusSelect(busId);
+          }
+          map.panTo(position);
+          map.setZoom(15);
+        });
+
+        setBusMarkers(prev => ({ ...prev, [busId]: newBusMarker }));
+      }
+    });
+  }, [map, buses, busLocations, selectedBusId, handleBusSelect]);
+
+  // Handle legacy single bus position
+  useEffect(() => {
+    if (!map || !busPosition || Object.keys(busLocations).length > 0) return;
+
+    // This is for backward compatibility with single bus position
+    const legacyBusMarker = new google.maps.Marker({
+      position: busPosition,
+      map,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 8,
+        fillColor: "#FF5722",
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: "#FFFFFF"
+      },
+      title: "Bus Location"
+    });
+
+    legacyBusMarker.addListener("click", () => {
+      if (handleBusSelect) {
+        handleBusSelect("legacy-bus");
+      }
+      map.panTo(busPosition);
+      map.setZoom(15);
+    });
+
+    return () => {
+      legacyBusMarker.setMap(null);
+    };
+  }, [map, busPosition, busLocations, handleBusSelect]);
 
   // Create or update station markers
   useEffect(() => {
@@ -230,31 +293,6 @@ const LiveMap: React.FC<LiveMapProps> = ({
     setStationMarkers(newMarkers);
   }, [map, stations]);
 
-  // Create or update the bus path
-  useEffect(() => {
-    if (!map || !busPosition || stations.length === 0) return;
-
-    if (busPath) {
-      busPath.setMap(null);
-    }
-
-    const path = [
-      busPosition,
-      ...stations.map(station => station.position)
-    ];
-
-    const newPath = new google.maps.Polyline({
-      path,
-      geodesic: true,
-      strokeColor: "#FF5722",
-      strokeOpacity: 0.8,
-      strokeWeight: 3
-    });
-
-    newPath.setMap(map);
-    setBusPath(newPath);
-  }, [map, busPosition, stations]);
-
   const centerOnUser = () => {
     if (!map || !userLocation) {
       toast.error("Current location not available");
@@ -268,12 +306,21 @@ const LiveMap: React.FC<LiveMapProps> = ({
   };
 
   const centerOnBus = () => {
-    if (!map || !busPosition) {
-      toast.error("Bus location not available");
+    if (!map) {
+      toast.error("Map not available");
       return;
     }
-    map.panTo(busPosition);
-    map.setZoom(15);
+
+    if (selectedBusId && busLocations[selectedBusId]) {
+      const location = busLocations[selectedBusId];
+      map.panTo({ lat: location.latitude, lng: location.longitude });
+      map.setZoom(15);
+    } else if (busPosition) {
+      map.panTo(busPosition);
+      map.setZoom(15);
+    } else {
+      toast.error("Bus location not available");
+    }
   };
 
   return (
@@ -307,7 +354,7 @@ const LiveMap: React.FC<LiveMapProps> = ({
           </Button>
         )}
         
-        {busPosition && (
+        {(busPosition || (selectedBusId && busLocations[selectedBusId])) && (
           <Button
             variant="default" 
             size="sm"

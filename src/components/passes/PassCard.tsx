@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { IPass } from "@/types";
 import { Calendar, Clock, MapPin, Ticket, Bus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getRouteDisplay } from "@/utils/typeGuards";
 
 interface PassCardProps {
   pass: IPass;
@@ -18,6 +19,7 @@ export const PassCard = ({ pass, className }: PassCardProps) => {
       (1000 * 3600 * 24)
     )
   );
+  const routeDisplay = getRouteDisplay(pass.routeId);
 
   return (
     <div className={cn(
@@ -47,7 +49,7 @@ export const PassCard = ({ pass, className }: PassCardProps) => {
           <div className="flex items-center gap-2">
             <Bus size={18} className="text-white opacity-90" />
             <span className="text-lg">
-              {pass.routeId.start} — {pass.routeId.end}
+              {routeDisplay}
             </span>
           </div>
           

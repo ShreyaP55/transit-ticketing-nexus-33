@@ -25,3 +25,15 @@ export const getPassId = (pass: string | IPass): string => {
   if (typeof pass === 'string') return pass;
   return pass._id;
 };
+
+export const isRoute = (route: string | IRoute): route is IRoute => {
+  return typeof route === 'object' && route !== null && '_id' in route;
+};
+
+export const isBus = (bus: string | IBus): bus is IBus => {
+  return typeof bus === 'object' && bus !== null && '_id' in bus;
+};
+
+export const isPass = (pass: string | IPass): pass is IPass => {
+  return typeof pass === 'object' && pass !== null && '_id' in pass;
+};

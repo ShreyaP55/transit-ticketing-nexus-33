@@ -5,6 +5,7 @@ import { MapPin, Clock, Calendar } from "lucide-react";
 import { IPass, IPassUsage } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getRouteDisplay } from "@/utils/typeGuards";
 
 interface PassUsageListProps {
   usageHistory: IPassUsage[];
@@ -17,6 +18,8 @@ export const PassUsageList: React.FC<PassUsageListProps> = ({
   isLoading, 
   activePass 
 }) => {
+  const routeDisplay = getRouteDisplay(activePass.routeId);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -70,7 +73,7 @@ export const PassUsageList: React.FC<PassUsageListProps> = ({
                 </div>
                 
                 <div className="bg-transit-light-blue/10 px-3 py-1 rounded-full text-xs font-medium text-transit-blue">
-                  {activePass.routeId.start} - {activePass.routeId.end}
+                  {routeDisplay}
                 </div>
               </div>
             </CardContent>

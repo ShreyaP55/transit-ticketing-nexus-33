@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useUser } from "@/context/UserContext";
 import { PassUsageList } from "@/components/passes/PassUsageList";
+import { getRouteDisplay } from "@/utils/typeGuards";
 
 const PassPage = () => {
   const navigate = useNavigate();
@@ -162,7 +162,7 @@ const PassPage = () => {
                     <ul className="space-y-3">
                       <li className="flex">
                         <Check className="mr-2 h-4 w-4 text-transit-green mt-1" />
-                        <span>Unlimited rides on the {activePass.routeId.start} - {activePass.routeId.end} route</span>
+                        <span>Unlimited rides on the {getRouteDisplay(activePass.routeId)} route</span>
                       </li>
                       <li className="flex">
                         <Check className="mr-2 h-4 w-4 text-transit-green mt-1" />
