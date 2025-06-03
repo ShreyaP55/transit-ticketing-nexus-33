@@ -78,3 +78,12 @@ export const getTripHistory = async (userId: string): Promise<ITrip[]> => {
     throw error;
   }
 };
+
+export const getUserTrips = async (userId: string): Promise<ITrip[]> => {
+  try {
+    return fetchAPI<ITrip[]>(`/trips/user/${userId}`);
+  } catch (error) {
+    console.error('Error getting user trips:', error);
+    throw error;
+  }
+};

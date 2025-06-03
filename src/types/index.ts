@@ -44,8 +44,11 @@ export interface IPass {
   routeId: string | IRoute;
   startDate: string;
   endDate: string;
+  expiryDate: string;
+  purchaseDate: string;
   active: boolean;
   price: number;
+  fare: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -99,4 +102,21 @@ export interface ITrip {
   duration?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface IWallet {
+  _id: string;
+  userId: string;
+  balance: number;
+  transactions: ITransaction[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ITransaction {
+  _id: string;
+  type: 'credit' | 'debit';
+  amount: number;
+  description: string;
+  createdAt: string;
 }
