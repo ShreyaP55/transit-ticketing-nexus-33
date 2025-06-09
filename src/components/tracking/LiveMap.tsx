@@ -9,7 +9,7 @@ import { IBus } from "@/types";
 const defaultCenter = {
   lat: 15.4909,
   lng: 73.8278
-}; // Goa
+}; // Goa, India
 
 const defaultZoom = 13;
 
@@ -61,17 +61,12 @@ const LiveMap: React.FC<LiveMapProps> = ({
 
   const handleBusSelect = onBusSelect || onSelectBus;
 
-  // Initialize Google Maps
+  // Initialize Google Maps with the updated API key for Goa
   useEffect(() => {
     const initMap = async () => {
       try {
-        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-        if (!apiKey) {
-          console.error("Google Maps API key is missing");
-          toast.error("Unable to load map. API key missing.");
-          return;
-        }
-
+        const apiKey = "AIzaSyB9gPRoHHM4h67lmaKZzFpxY74RT4a82XU";
+        
         const loader = new Loader({
           apiKey,
           version: "weekly"

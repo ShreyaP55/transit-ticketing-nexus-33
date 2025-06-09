@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import MainLayout from "@/components/layout/MainLayout";
@@ -22,7 +21,7 @@ const LiveTrackingPage = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
   
-  // Google Maps script loader
+  // Google Maps script loader with Goa API key
   useEffect(() => {
     // Check if Google Maps is already loaded
     if (window.google && window.google.maps) {
@@ -32,7 +31,7 @@ const LiveTrackingPage = () => {
     
     // Create script element
     const googleMapScript = document.createElement('script');
-    googleMapScript.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAFSdBkOwNVSZenjRSAFuPZynGbsNLeBgM&libraries=places`;
+    googleMapScript.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyB9gPRoHHM4h67lmaKZzFpxY74RT4a82XU&libraries=places`;
     googleMapScript.async = true;
     googleMapScript.defer = true;
     
@@ -60,7 +59,7 @@ const LiveTrackingPage = () => {
       document.body.removeChild(googleMapScript);
     };
   }, []);
-  
+
   // Fetch routes
   const { 
     data: routes, 
@@ -251,7 +250,7 @@ const LiveTrackingPage = () => {
             )}
           </div>
 
-          {/* Map Area */}
+          {/* Map Area - Center on Goa, India */}
           <Card className="md:col-span-3 overflow-hidden border-none shadow-xl rounded-xl">
             <CardContent className="p-0 h-[75vh]">
               {!googleMapsLoaded ? (
@@ -263,6 +262,8 @@ const LiveTrackingPage = () => {
                 </div>
               ) : (
                 <LiveMap 
+                  center={{ lat: 15.4909, lng: 73.8278 }}
+                  zoom={13}
                   buses={buses || []} 
                   busLocations={busLocations} 
                   selectedBusId={selectedBus?._id} 
