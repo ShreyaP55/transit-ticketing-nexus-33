@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 export interface BusLocation {
   latitude: number;
   longitude: number;
+  lat: number;  // Add lat property for compatibility
+  lng: number;  // Add lng property for compatibility
+  speed?: number;  // Add speed property
+  heading?: number;  // Add heading property
   updatedAt: string;
 }
 
@@ -31,6 +35,10 @@ export const useTrackBuses = (busIds: string[]): BusLocations => {
         newLocations[busId] = {
           latitude: randomLat,
           longitude: randomLng,
+          lat: randomLat,  // For compatibility
+          lng: randomLng,  // For compatibility
+          speed: Math.random() * 60 + 10,  // Random speed between 10-70 km/h
+          heading: Math.random() * 360,  // Random heading 0-360 degrees
           updatedAt: new Date().toISOString()
         };
       });

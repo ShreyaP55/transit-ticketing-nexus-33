@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { routesAPI, busesAPI, stationsAPI } from "@/services/api";
 import { IStation, IRoute, IBus } from "@/types";
-import { getRouteId, getBusId } from "@/utils/typeGuards";
+import { getBusId } from "@/utils/typeGuards";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin } from "lucide-react";
@@ -32,7 +33,7 @@ const StationForm: React.FC<StationFormProps> = ({
   const [formValues, setFormValues] = useState({
     id: station?._id || "",
     name: station?.name || "",
-    busId: station?.busId._id || "",
+    busId: station ? getBusId(station.busId) : "",
     latitude: station?.latitude || 0,
     longitude: station?.longitude || 0,
     fare: station?.fare || 0,
@@ -70,7 +71,7 @@ const StationForm: React.FC<StationFormProps> = ({
       setFormValues({
         id: station._id,
         name: station.name,
-        busId: typeof station.busId === 'string' ? station.busId : station.busId._id,
+        busId: getBusId(station.busId),
         latitude: station.latitude,
         longitude: station.longitude,
         fare: station.fare,
