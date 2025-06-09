@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings, QrCode, Wallet, Route, ScanLine } from "lucide-react";
@@ -17,19 +18,21 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
 
   const publicNavItems = [
     { name: "Home", icon: <Map size={20} />, path: "/" },
+    { name: "Dashboard", icon: <Settings size={20} />, path: "/dashboard" },
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
-    { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
-    { name: "QR", icon: <QrCode size={20} />, path: "/qr-scan/:userId" },
-    { name: "wallet", icon: <Wallet size={20} />, path: "/wallet" },
+    { name: "My Rides", icon: <QrCode size={20} />, path: "/rides" },
+    { name: "Live Tracking", icon: <Navigation size={20} />, path: "/live-tracking" },
+    { name: "Wallet", icon: <Wallet size={20} />, path: "/wallet" },
   ];
 
   const adminNavItems = [
     { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin" },
+    { name: "Ride Management", icon: <Navigation size={20} />, path: "/admin/rides" },
     { name: "Routes", icon: <Route size={20} />, path: "/routes" },
     { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
     { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
-    { name: "Scanner", icon: <ScanLine size={20} />, path: "/qr-scanner" },
+    { name: "QR Scanner", icon: <ScanLine size={20} />, path: "/qr-scanner" },
   ];
 
   const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
