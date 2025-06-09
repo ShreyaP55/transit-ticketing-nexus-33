@@ -11,10 +11,8 @@ import { useSearchParams } from 'react-router-dom';
 
 const WalletCard = () => {
   const { userId } = useUser();
-  const { getBalance, addFunds } = useWallet();
+  const { wallet, addFunds, isLoading } = useWallet(userId || 'guest');
   const [searchParams] = useSearchParams();
-  const [balance, setBalance] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
@@ -24,38 +22,14 @@ const WalletCard = () => {
     
     if (status === 'success' && amount) {
       const rechargeAmount = parseFloat(amount);
-      addFunds(userId || 'guest', rechargeAmount).then(() => {
+      if (userId) {
+        addFunds(rechargeAmount);
         toast.success(`₹${rechargeAmount} added to your wallet successfully!`);
-        fetchBalance();
-      });
+      }
     } else if (status === 'cancel') {
       toast.error('Wallet recharge was cancelled.');
     }
   }, [searchParams, userId, addFunds]);
-
-  const fetchBalance = async () => {
-    if (!userId) return;
-    
-    try {
-      setIsLoading(true);
-      const currentBalance = await getBalance();
-      setBalance(currentBalance);
-    } catch (error) {
-      console.error("Error fetching balance:", error);
-      toast.error("Failed to fetch wallet balance");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBalance();
-    
-    // Set up polling to refresh balance every 30 seconds
-    const intervalId = setInterval(fetchBalance, 30000);
-    
-    return () => clearInterval(intervalId);
-  }, [userId]);
 
   const handleAddFunds = async (amount: number) => {
     if (!userId) {
@@ -82,6 +56,8 @@ const WalletCard = () => {
     }
   };
 
+  const currentBalance = wallet?.balance || 0;
+
   return (
     <Card className="w-full bg-white shadow-md border-primary/20 overflow-hidden">
       <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-white">
@@ -105,7 +81,7 @@ const WalletCard = () => {
           {isLoading ? (
             <div className="h-8 w-28 bg-muted animate-pulse rounded mx-auto"></div>
           ) : (
-            <h2 className="text-2xl sm:text-3xl font-bold text-primary">₹{balance.toFixed(2)}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-primary">₹{currentBalance.toFixed(2)}</h2>
           )}
         </div>
         
@@ -148,7 +124,6 @@ const WalletCard = () => {
           variant="ghost"
           size="sm"
           className="text-primary hover:text-primary/80 text-xs"
-          onClick={fetchBalance}
           disabled={isLoading}
         >
           <Check className="h-3 w-3 mr-1" />

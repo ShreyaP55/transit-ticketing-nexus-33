@@ -111,7 +111,7 @@ const QRScanPage = () => {
       // Deduct fare from wallet
       if (trip.fare) {
         try {
-          await deductFunds(userId, trip.fare);
+          await deductFunds(userId, trip.fare, "Bus ride fare");
           toast({
             title: "Fare Deducted",
             description: `₹${trip.fare} has been deducted from your wallet`,
@@ -135,7 +135,7 @@ const QRScanPage = () => {
         variant: "default",
       });
       
-      // Navigate to receipt page after a delay
+      // Navigate to wallet page after a delay
       setTimeout(() => {
         navigate(`/wallet`);
       }, 2000);
@@ -159,8 +159,8 @@ const QRScanPage = () => {
   return (
     <MainLayout title={activeTrip ? "Trip in Progress" : "Start Your Trip"}>
       <div className="max-w-lg mx-auto p-4">
-        <Card className="bg-white shadow-md border-transit-orange overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
+        <Card className="bg-white shadow-md border-primary overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-white">
             <CardTitle className="flex items-center">
               {activeTrip ? (
                 <Navigation className="mr-2 h-5 w-5" />
@@ -185,13 +185,13 @@ const QRScanPage = () => {
             
             {isLoading ? (
               <div className="py-8 text-center">
-                <div className="animate-spin h-8 w-8 border-4 border-transit-orange border-t-transparent rounded-full mx-auto"></div>
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
                 <p className="mt-4 text-muted-foreground">Getting your location...</p>
               </div>
             ) : error ? (
               <div className="py-8 text-center">
-                <X className="h-12 w-12 text-transit-red mx-auto" />
-                <p className="mt-2 text-transit-red">{error}</p>
+                <X className="h-12 w-12 text-red-500 mx-auto" />
+                <p className="mt-2 text-red-500">{error}</p>
                 <Button 
                   variant="outline" 
                   className="mt-4"
@@ -205,9 +205,9 @@ const QRScanPage = () => {
                 <div className="text-center mb-6">
                   <div className="inline-block p-3 bg-muted rounded-full">
                     {activeTrip ? (
-                      <Navigation className="h-8 w-8 text-transit-orange" />
+                      <Navigation className="h-8 w-8 text-primary" />
                     ) : (
-                      <MapPin className="h-8 w-8 text-transit-orange" />
+                      <MapPin className="h-8 w-8 text-primary" />
                     )}
                   </div>
                   
@@ -251,7 +251,7 @@ const QRScanPage = () => {
             
             <Button
               variant={activeTrip ? "destructive" : "default"}
-              className={activeTrip ? "" : "bg-transit-orange hover:bg-transit-orange-dark"}
+              className={activeTrip ? "" : "bg-primary hover:bg-primary/90"}
               onClick={activeTrip ? handleCheckOut : handleCheckIn}
               disabled={isLoading || !!error || isProcessing || !isAuthenticated}
             >
