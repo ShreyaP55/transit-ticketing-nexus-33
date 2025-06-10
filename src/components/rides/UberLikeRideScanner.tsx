@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +21,7 @@ const UberLikeRideScanner: React.FC<UberLikeRideScannerProps> = ({
   isAdmin = false 
 }) => {
   const { toast } = useToast();
-  const { user } = useUser();
+  const { userDetails } = useUser();
   const [scanned, setScanned] = useState(false);
   const [scannedUserId, setScannedUserId] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{lat: number; lng: number} | null>(null);
@@ -91,7 +90,7 @@ const UberLikeRideScanner: React.FC<UberLikeRideScannerProps> = ({
                 speed: position.coords.speed ? position.coords.speed * 3.6 : 0, // Convert m/s to km/h
                 heading: position.coords.heading || 0,
                 accuracy: position.coords.accuracy,
-                driverId: user?.id
+                driverId: userDetails?.id
               });
             } catch (error) {
               console.error('Failed to update bus location:', error);
@@ -199,7 +198,7 @@ const UberLikeRideScanner: React.FC<UberLikeRideScannerProps> = ({
       
       toast({
         title: "Ride Completed",
-        description: `Distance: ${endedRide.distance}km, Fare: ₹${endedRide.totalFare}`,
+        description: `Distance: ${endedRide.totalDistance}km, Fare: ₹${endedRide.totalFare}`,
         variant: "default",
       });
 
