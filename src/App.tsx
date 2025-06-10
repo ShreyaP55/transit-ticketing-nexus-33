@@ -7,24 +7,17 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserProvider } from "@/context/UserContext";
 import { ClerkProvider } from "@clerk/clerk-react";
 import Index from "./pages/Index";
-import TicketsPage from "./pages/TicketsPage";
-import PassPage from "./pages/PassPage";
-import BookingPage from "./pages/BookingPage";
-import RoutesPage from "./pages/RoutesPage";
-import BusesPage from "./pages/BusesPage";
-import NotFound from "./pages/NotFound";
-import StationManagementPage from "./pages/StationManagementPage";
-import LiveTrackingPage from "./pages/LiveTrackingPage";
-import { LoginPage, SignupPage } from "./pages/AuthPages";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
 import UserDashboardPage from "./pages/UserDashboardPage";
 import RidesPage from "./pages/RidesPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminRidesPage from "./pages/AdminRidesPage";
+import LiveTrackingPage from "./pages/LiveTrackingPage";
+import { LoginPage, SignupPage } from "./pages/AuthPages";
 import NotAuthorizedPage from "./pages/NotAuthorizedPage";
 import AdminRoute from "./components/auth/AdminRoute";
 import WalletPage from "./pages/WalletPage";
-import QRScanPage from "./pages/QRScanPage";
 import QRScannerPage from "./pages/QRScannerPage";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -41,28 +34,18 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<UserDashboardPage />} />
-              <Route path="/tickets" element={<TicketsPage />} />
-              <Route path="/pass" element={<PassPage />} />
-              <Route path="/booking" element={<BookingPage />} />
               <Route path="/rides" element={<RidesPage />} />
               <Route path="/live-tracking" element={<LiveTrackingPage />} />
+              <Route path="/wallet" element={<WalletPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/unauthorized" element={<NotAuthorizedPage />} />
-              <Route path="/wallet" element={<WalletPage />} />
-              <Route path="/qr-scan/:userId" element={<QRScanPage />} />
-              <Route path="/qr-scanner" element={<QRScannerPage />} />
               
               {/* Admin Routes */}
               <Route element={<AdminRoute />}>
                 <Route path="/admin" element={<AdminDashboardPage />} />
                 <Route path="/admin/rides" element={<AdminRidesPage />} />
-                <Route path="/admin/users" element={<AdminDashboardPage />} />
-                <Route path="/admin/analytics" element={<AdminDashboardPage />} />
-                <Route path="/routes" element={<RoutesPage />} />
-                <Route path="/buses" element={<BusesPage />} />
-                <Route path="/stations" element={<StationManagementPage />} />
-                <Route path="/settings" element={<AdminDashboardPage />} />
+                <Route path="/qr-scanner" element={<QRScannerPage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

@@ -11,8 +11,9 @@ import passUsageRouter from './routes/passUsageRouter.js';
 import paymentsRouter from './routes/paymentsRouter.js';
 import usersRouter from './routes/usersRouter.js';
 import tripsRouter from './routes/tripsRouter.js';
-import ridesRouter from './routes/ridesRouter.js';
 import walletRouter from './routes/walletRouter.js';
+import rideSessionRouter from './routes/rideSessionRouter.js';
+import busLocationRouter from './routes/busLocationRouter.js';
 import { connect } from './utils/mongoConnect.js';
 
 dotenv.config();
@@ -39,15 +40,25 @@ app.use('/api/pass-usage', passUsageRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/trips', tripsRouter);
-app.use('/api/rides', ridesRouter);
 app.use('/api/wallet', walletRouter);
+app.use('/api/ride-sessions', rideSessionRouter);
+app.use('/api/bus-location', busLocationRouter);
 
 // Root route
 app.get('/', (req, res) => {
-  res.send('Transit API Server is running');
+  res.send('Uber-like Bus Transit API Server is running');
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
 });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Uber-like Bus Transit Server running on port ${PORT}`);
 });

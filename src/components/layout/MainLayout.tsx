@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings, QrCode, Wallet, Route, ScanLine } from "lucide-react";
+import { Menu, X, User, Map, Bus, Navigation, Settings, QrCode, Wallet, ScanLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
@@ -19,8 +19,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
   const publicNavItems = [
     { name: "Home", icon: <Map size={20} />, path: "/" },
     { name: "Dashboard", icon: <Settings size={20} />, path: "/dashboard" },
-    { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
-    { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
     { name: "My Rides", icon: <QrCode size={20} />, path: "/rides" },
     { name: "Live Tracking", icon: <Navigation size={20} />, path: "/live-tracking" },
     { name: "Wallet", icon: <Wallet size={20} />, path: "/wallet" },
@@ -29,9 +27,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
   const adminNavItems = [
     { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin" },
     { name: "Ride Management", icon: <Navigation size={20} />, path: "/admin/rides" },
-    { name: "Routes", icon: <Route size={20} />, path: "/routes" },
-    { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
-    { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
     { name: "QR Scanner", icon: <ScanLine size={20} />, path: "/qr-scanner" },
   ];
 
@@ -70,7 +65,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
             onClick={() => setSidebarOpen(false)}
           >
             <Bus className="h-6 w-6" />
-            <span>BusInn</span>
+            <span>UberBus</span>
           </Link>
         </div>
 
@@ -113,7 +108,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
       {/* Main content */}
       <div className="flex flex-col w-full lg:pl-64">
         <header className="h-16 bg-white shadow-md flex items-center justify-between px-6">
-          <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "TransitNexus"}</h1>
+          <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "UberBus"}</h1>
           
           {isAdmin && (
             <div className="flex items-center">
@@ -129,7 +124,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
         </main>
 
         <footer className="bg-white p-4 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} TransitNexus. All rights reserved.
+          &copy; {new Date().getFullYear()} UberBus. All rights reserved.
         </footer>
       </div>
     </div>
