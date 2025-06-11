@@ -9,7 +9,7 @@ const getAuthToken = () => {
   return localStorage.getItem("userId"); // Simplified for demo
 };
 
-// Helper function for API calls
+// Helper function for API calls with better error handling
 async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -23,19 +23,38 @@ async function fetchAPI<T>(
   };
 
   try {
+    console.log(`Making API call to: ${API_URL}${endpoint}`);
+    
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
       headers
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "An error occurred with status " + response.status);
+      const errorText = await response.text();
+      let errorMessage;
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error || errorData.message || `HTTP ${response.status}`;
+      } catch {
+        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+      }
+      
+      throw new Error(errorMessage);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log(`API response for ${endpoint}:`, data);
+    return data;
   } catch (error) {
     console.error(`API Error (${endpoint}):`, error);
+    
+    // If it's a network error, provide a more helpful message
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('Unable to connect to server. Please make sure the backend server is running on http://localhost:3000');
+    }
+    
     throw error;
   }
 }

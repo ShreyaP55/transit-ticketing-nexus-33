@@ -5,6 +5,7 @@ import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
+import ServerStatus from "@/components/common/ServerStatus";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -88,6 +89,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
           ))}
         </nav>
 
+        <div className="absolute bottom-20 left-0 w-full px-4">
+          <div className="flex justify-center mb-4">
+            <ServerStatus />
+          </div>
+        </div>
+
         <div className="absolute bottom-10 left-0 w-full px-4">
           {isAuthenticated ? (
             <Button 
@@ -115,13 +122,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
         <header className="h-16 bg-white shadow-md flex items-center justify-between px-6">
           <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "TransitNexus"}</h1>
           
-          {isAdmin && (
-            <div className="flex items-center">
-              <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-medium">
-                Admin Access
-              </span>
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            <ServerStatus />
+            {isAdmin && (
+              <div className="flex items-center">
+                <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-medium">
+                  Admin Access
+                </span>
+              </div>
+            )}
+          </div>
         </header>
 
         <main className="flex-1 p-6">

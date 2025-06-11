@@ -1,20 +1,22 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import MainLayout from "@/components/layout/MainLayout";
 import { routesAPI, busesAPI } from "@/services/api";
+import { healthCheck } from "@/services/healthCheck";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash, Bus as BusIcon } from "lucide-react";
+import { Plus, Edit, Trash, Bus as BusIcon, AlertTriangle, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import RouteForm from "@/components/routes/RouteForm";
 import BusForm from "@/components/buses/BusForm";
 import { useUser } from "@/context/UserContext";
 import { IRoute } from "@/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const RoutesPage = () => {
   const { isAdmin } = useUser();
@@ -24,11 +26,31 @@ const RoutesPage = () => {
   const [selectedRoute, setSelectedRoute] = useState<IRoute | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingRouteId, setDeletingRouteId] = useState<string>("");
+  const [connectionStatus, setConnectionStatus] = useState<{ status: string; message: string } | null>(null);
+
+  // Check backend connection on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      const status = await healthCheck.checkBackendConnection();
+      setConnectionStatus(status);
+      
+      if (status.status === 'error') {
+        toast.error(status.message);
+      }
+    };
+    
+    checkConnection();
+  }, []);
 
   // Fetch routes data
-  const { data: routes, isLoading } = useQuery({
+  const { data: routes, isLoading, error, refetch } = useQuery({
     queryKey: ['routes'],
-    queryFn: routesAPI.getAll
+    queryFn: routesAPI.getAll,
+    retry: false,
+    onError: (error: Error) => {
+      console.error('Routes fetch error:', error);
+      toast.error(`Failed to load routes: ${error.message}`);
+    }
   });
 
   // Delete mutation
@@ -87,17 +109,44 @@ const RoutesPage = () => {
     toast.success(`Bus added successfully`);
   };
 
+  const handleRetry = () => {
+    refetch();
+  };
+
   return (
     <MainLayout title="Routes Management">
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-white neonText">Routes Management</h1>
           {isAdmin && (
-            <Button onClick={() => setIsRouteFormOpen(true)} className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)]">
+            <Button 
+              onClick={() => setIsRouteFormOpen(true)} 
+              className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)]"
+              disabled={connectionStatus?.status === 'error'}
+            >
               <Plus className="mr-2 h-4 w-4" /> Add Route
             </Button>
           )}
         </div>
+
+        {/* Connection Status Alert */}
+        {connectionStatus?.status === 'error' && (
+          <Alert className="mb-6 border-destructive/50 bg-destructive/10">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>{connectionStatus.message}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetry}
+                className="ml-4"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Card className="bg-card border-transit-orange/20">
           <CardHeader className="pb-2 border-b border-border">
@@ -110,10 +159,19 @@ const RoutesPage = () => {
                   <Skeleton key={i} className="h-16 w-full" />
                 ))}
               </div>
+            ) : error ? (
+              <div className="text-center p-8 border rounded-lg border-dashed border-border">
+                <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
+                <p className="text-muted-foreground mb-4">Failed to load routes</p>
+                <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
+                <Button variant="outline" onClick={handleRetry}>
+                  <RefreshCw className="mr-2 h-4 w-4" /> Try Again
+                </Button>
+              </div>
             ) : routes?.length === 0 ? (
               <div className="text-center p-8 border rounded-lg border-dashed border-border">
                 <p className="text-muted-foreground">No routes found</p>
-                {isAdmin && (
+                {isAdmin && connectionStatus?.status === 'connected' && (
                   <Button variant="outline" className="mt-4 border-transit-orange/40 hover:border-transit-orange hover:bg-transit-orange/10" onClick={() => setIsRouteFormOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" /> Add First Route
                   </Button>
@@ -143,15 +201,28 @@ const RoutesPage = () => {
                               size="sm"
                               onClick={() => handleAddBus(route)}
                               className="h-8 px-3 bg-transit-orange hover:bg-transit-orange-dark text-white"
+                              disabled={connectionStatus?.status === 'error'}
                             >
                               <BusIcon className="mr-1 h-3.5 w-3.5" /> Add Bus
                             </Button>
                             {isAdmin && (
                               <>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-transit-orange" onClick={() => handleEdit(route)}>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-8 w-8 p-0 text-transit-orange" 
+                                  onClick={() => handleEdit(route)}
+                                  disabled={connectionStatus?.status === 'error'}
+                                >
                                   <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteClick(route._id)}>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-8 w-8 p-0 text-destructive" 
+                                  onClick={() => handleDeleteClick(route._id)}
+                                  disabled={connectionStatus?.status === 'error'}
+                                >
                                   <Trash className="h-4 w-4" />
                                 </Button>
                               </>
