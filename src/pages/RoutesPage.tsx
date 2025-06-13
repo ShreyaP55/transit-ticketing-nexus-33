@@ -181,16 +181,12 @@ const RoutesPage = () => {
         )}
 
         {/* Route Form Modal */}
-        {isFormOpen && (
-          <RouteForm
-            route={editingRoute}
-            onClose={handleFormClose}
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ['routes'] });
-              handleFormClose();
-            }}
-          />
-        )}
+        <RouteForm
+          isOpen={isFormOpen}
+          route={editingRoute}
+          onClose={handleFormClose}
+          onSuccess={handleFormClose}
+        />
       </div>
     </MainLayout>
   );
