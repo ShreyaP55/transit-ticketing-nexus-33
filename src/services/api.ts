@@ -216,8 +216,53 @@ export const adminAPI = {
   
   getSystemStats: (): Promise<{ 
     userCount: number, 
+    activeRideCount: number,
     activePassCount: number, 
     routeCount: number,
     totalRevenue: number 
   }> => fetchAPI("/admin/stats"),
+
+  getUsers: (page: number = 1, limit: number = 20): Promise<{
+    users: Array<{
+      _id: string;
+      clerkId: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      walletBalance: number;
+      createdAt: string;
+    }>;
+    totalPages: number;
+    currentPage: number;
+    total: number;
+  }> => fetchAPI(`/admin/users?page=${page}&limit=${limit}`),
+
+  getTransactions: (page: number = 1, limit: number = 50): Promise<{
+    transactions: Array<{
+      _id: string;
+      userId: {
+        firstName: string;
+        lastName: string;
+        email: string;
+      };
+      amount: number;
+      type: string;
+      status: string;
+      timestamp: string;
+    }>;
+    totalPages: number;
+    currentPage: number;
+    total: number;
+  }> => fetchAPI(`/admin/transactions?page=${page}&limit=${limit}`),
+
+  getRevenueData: (days: number = 30): Promise<{
+    revenueData: Array<{
+      _id: {
+        date: string;
+        type: string;
+      };
+      amount: number;
+      count: number;
+    }>;
+  }> => fetchAPI(`/admin/revenue?days=${days}`),
 };

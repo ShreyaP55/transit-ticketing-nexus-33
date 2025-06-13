@@ -13,6 +13,10 @@ import usersRouter from './routes/usersRouter.js';
 import tripsRouter from './routes/tripsRouter.js';
 import ridesRouter from './routes/ridesRouter.js';
 import walletRouter from './routes/walletRouter.js';
+import busLocationRouter from './routes/busLocationRouter.js';
+import rideSessionRouter from './routes/rideSessionRouter.js';
+import notificationRouter from './routes/notificationRouter.js';
+import adminRouter from './routes/adminRouter.js';
 import { connect } from './utils/mongoConnect.js';
 
 dotenv.config();
@@ -41,13 +45,41 @@ app.use('/api/users', usersRouter);
 app.use('/api/trips', tripsRouter);
 app.use('/api/rides', ridesRouter);
 app.use('/api/wallet', walletRouter);
+app.use('/api/bus-locations', busLocationRouter);
+app.use('/api/ride-sessions', rideSessionRouter);
+app.use('/api/notifications', notificationRouter);
+app.use('/api/admin', adminRouter);
 
 // Root route
 app.get('/', (req, res) => {
-  res.send('Transit API Server is running');
+  res.json({ 
+    message: 'Transit API Server is running',
+    version: '2.0.0',
+    endpoints: {
+      routes: '/api/routes',
+      buses: '/api/buses',
+      stations: '/api/stations',
+      tickets: '/api/tickets',
+      passes: '/api/passes',
+      rides: '/api/ride-sessions',
+      locations: '/api/bus-locations',
+      admin: '/api/admin',
+      notifications: '/api/notifications'
+    }
+  });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
 });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📍 API Base URL: http://localhost:${PORT}/api`);
 });
