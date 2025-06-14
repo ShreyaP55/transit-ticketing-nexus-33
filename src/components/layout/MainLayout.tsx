@@ -1,11 +1,9 @@
-
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings, QrCode, Wallet, Route, ScanLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
-import ServerStatus from "@/components/common/ServerStatus";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -19,21 +17,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
 
   const publicNavItems = [
     { name: "Home", icon: <Map size={20} />, path: "/" },
-    { name: "Dashboard", icon: <Settings size={20} />, path: "/dashboard" },
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
-    { name: "My Rides", icon: <QrCode size={20} />, path: "/rides" },
-    { name: "Live Tracking", icon: <Navigation size={20} />, path: "/live-tracking" },
-    { name: "Wallet", icon: <Wallet size={20} />, path: "/wallet" },
+    { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
+    { name: "QR", icon: <QrCode size={20} />, path: "/qr-scan/:userId" },
+    { name: "wallet", icon: <Wallet size={20} />, path: "/wallet" },
   ];
 
   const adminNavItems = [
     { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin" },
-    { name: "Ride Management", icon: <Navigation size={20} />, path: "/admin/rides" },
     { name: "Routes", icon: <Route size={20} />, path: "/routes" },
     { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
     { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
-    { name: "QR Scanner", icon: <ScanLine size={20} />, path: "/qr-scanner" },
+    { name: "Scanner", icon: <ScanLine size={20} />, path: "/qr-scanner" },
   ];
 
   const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
@@ -89,12 +85,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
           ))}
         </nav>
 
-        <div className="absolute bottom-20 left-0 w-full px-4">
-          <div className="flex justify-center mb-4">
-            <ServerStatus />
-          </div>
-        </div>
-
         <div className="absolute bottom-10 left-0 w-full px-4">
           {isAuthenticated ? (
             <Button 
@@ -122,16 +112,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
         <header className="h-16 bg-white shadow-md flex items-center justify-between px-6">
           <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "TransitNexus"}</h1>
           
-          <div className="flex items-center gap-4">
-            <ServerStatus />
-            {isAdmin && (
-              <div className="flex items-center">
-                <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-medium">
-                  Admin Access
-                </span>
-              </div>
-            )}
-          </div>
+          {isAdmin && (
+            <div className="flex items-center">
+              <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-medium">
+                Admin Access
+              </span>
+            </div>
+          )}
         </header>
 
         <main className="flex-1 p-6">

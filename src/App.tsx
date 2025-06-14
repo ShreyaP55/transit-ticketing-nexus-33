@@ -17,9 +17,6 @@ import StationManagementPage from "./pages/StationManagementPage";
 import LiveTrackingPage from "./pages/LiveTrackingPage";
 import { LoginPage, SignupPage } from "./pages/AuthPages";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
-import UserDashboardPage from "./pages/UserDashboardPage";
-import RidesPage from "./pages/RidesPage";
-import AdminRidesPage from "./pages/AdminRidesPage";
 import NotAuthorizedPage from "./pages/NotAuthorizedPage";
 import AdminRoute from "./components/auth/AdminRoute";
 import WalletPage from "./pages/WalletPage";
@@ -40,12 +37,10 @@ const App = () => (
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<UserDashboardPage />} />
               <Route path="/tickets" element={<TicketsPage />} />
               <Route path="/pass" element={<PassPage />} />
               <Route path="/booking" element={<BookingPage />} />
-              <Route path="/rides" element={<RidesPage />} />
-              <Route path="/live-tracking" element={<LiveTrackingPage />} />
+              <Route path="/tracking" element={<LiveTrackingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/unauthorized" element={<NotAuthorizedPage />} />
@@ -56,13 +51,9 @@ const App = () => (
               {/* Admin Routes */}
               <Route element={<AdminRoute />}>
                 <Route path="/admin" element={<AdminDashboardPage />} />
-                <Route path="/admin/rides" element={<AdminRidesPage />} />
-                <Route path="/admin/users" element={<AdminDashboardPage />} />
-                <Route path="/admin/analytics" element={<AdminDashboardPage />} />
                 <Route path="/routes" element={<RoutesPage />} />
                 <Route path="/buses" element={<BusesPage />} />
                 <Route path="/stations" element={<StationManagementPage />} />
-                <Route path="/settings" element={<AdminDashboardPage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

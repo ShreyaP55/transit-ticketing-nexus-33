@@ -9,7 +9,7 @@ const getAuthToken = () => {
   return localStorage.getItem("userId"); // Simplified for demo
 };
 
-// Helper function for API calls with better error handling
+// Helper function for API calls
 async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -23,38 +23,19 @@ async function fetchAPI<T>(
   };
 
   try {
-    console.log(`Making API call to: ${API_URL}${endpoint}`);
-    
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
       headers
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage;
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.error || errorData.message || `HTTP ${response.status}`;
-      } catch {
-        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
-      }
-      
-      throw new Error(errorMessage);
+      const error = await response.json();
+      throw new Error(error.error || "An error occurred with status " + response.status);
     }
 
-    const data = await response.json();
-    console.log(`API response for ${endpoint}:`, data);
-    return data;
+    return response.json();
   } catch (error) {
     console.error(`API Error (${endpoint}):`, error);
-    
-    // If it's a network error, provide a more helpful message
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new Error('Unable to connect to server. Please make sure the backend server is running on http://localhost:3000');
-    }
-    
     throw error;
   }
 }
@@ -216,53 +197,8 @@ export const adminAPI = {
   
   getSystemStats: (): Promise<{ 
     userCount: number, 
-    activeRideCount: number,
     activePassCount: number, 
     routeCount: number,
     totalRevenue: number 
   }> => fetchAPI("/admin/stats"),
-
-  getUsers: (page: number = 1, limit: number = 20): Promise<{
-    users: Array<{
-      _id: string;
-      clerkId: string;
-      firstName: string;
-      lastName: string;
-      email: string;
-      walletBalance: number;
-      createdAt: string;
-    }>;
-    totalPages: number;
-    currentPage: number;
-    total: number;
-  }> => fetchAPI(`/admin/users?page=${page}&limit=${limit}`),
-
-  getTransactions: (page: number = 1, limit: number = 50): Promise<{
-    transactions: Array<{
-      _id: string;
-      userId: {
-        firstName: string;
-        lastName: string;
-        email: string;
-      };
-      amount: number;
-      type: string;
-      status: string;
-      timestamp: string;
-    }>;
-    totalPages: number;
-    currentPage: number;
-    total: number;
-  }> => fetchAPI(`/admin/transactions?page=${page}&limit=${limit}`),
-
-  getRevenueData: (days: number = 30): Promise<{
-    revenueData: Array<{
-      _id: {
-        date: string;
-        type: string;
-      };
-      amount: number;
-      count: number;
-    }>;
-  }> => fetchAPI(`/admin/revenue?days=${days}`),
 };

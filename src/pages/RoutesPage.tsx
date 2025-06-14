@@ -3,190 +3,209 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import MainLayout from "@/components/layout/MainLayout";
+import { routesAPI, busesAPI } from "@/services/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Route, MapPin, AlertCircle, Loader2 } from "lucide-react";
-import { routesAPI } from "@/services/api";
+import { Plus, Edit, Trash, Bus as BusIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import RouteForm from "@/components/routes/RouteForm";
+import BusForm from "@/components/buses/BusForm";
+import { useUser } from "@/context/UserContext";
 import { IRoute } from "@/types";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const RoutesPage = () => {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingRoute, setEditingRoute] = useState<IRoute | null>(null);
+  const { isAdmin } = useUser();
   const queryClient = useQueryClient();
+  const [isRouteFormOpen, setIsRouteFormOpen] = useState(false);
+  const [isBusFormOpen, setIsBusFormOpen] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<IRoute | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingRouteId, setDeletingRouteId] = useState<string>("");
 
-  // Fetch routes with improved error handling
-  const { 
-    data: routes = [], 
-    isLoading, 
-    error,
-    refetch 
-  } = useQuery({
+  // Fetch routes data
+  const { data: routes, isLoading } = useQuery({
     queryKey: ['routes'],
-    queryFn: routesAPI.getAll,
-    retry: 3,
-    retryDelay: 1000
+    queryFn: routesAPI.getAll
   });
-
-  // Handle error display
-  React.useEffect(() => {
-    if (error) {
-      console.error("Routes fetch error:", error);
-      toast.error(`Failed to load routes: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }, [error]);
 
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: routesAPI.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routes'] });
       toast.success("Route deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['routes'] });
     },
-    onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete route';
-      toast.error(errorMessage);
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     }
   });
 
+  const handleDeleteClick = (id: string) => {
+    setDeletingRouteId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(deletingRouteId);
+    setDeleteDialogOpen(false);
+  };
+
   const handleEdit = (route: IRoute) => {
-    setEditingRoute(route);
-    setIsFormOpen(true);
+    setSelectedRoute(route);
+    setIsRouteFormOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this route?")) {
-      deleteMutation.mutate(id);
-    }
+  const handleRouteFormClose = () => {
+    setIsRouteFormOpen(false);
+    setSelectedRoute(null);
   };
 
-  const handleFormClose = () => {
-    setIsFormOpen(false);
-    setEditingRoute(null);
+  const handleAddBus = (route: IRoute) => {
+    setSelectedRoute(route);
+    setIsBusFormOpen(true);
   };
 
-  if (isLoading) {
-    return (
-      <MainLayout title="Route Management">
-        <div className="flex items-center justify-center min-h-64">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <p className="text-muted-foreground">Loading routes...</p>
-          </div>
-        </div>
-      </MainLayout>
-    );
-  }
+  const handleBusFormClose = () => {
+    setIsBusFormOpen(false);
+    setSelectedRoute(null);
+  };
 
-  if (error) {
-    return (
-      <MainLayout title="Route Management">
-        <div className="flex items-center justify-center min-h-64">
-          <Card className="w-full max-w-md">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-4">
-                <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
-                <div>
-                  <h3 className="text-lg font-semibold">Connection Error</h3>
-                  <p className="text-muted-foreground">
-                    Unable to connect to the server. Please ensure your backend is running.
-                  </p>
-                </div>
-                <Button onClick={() => refetch()} variant="outline">
-                  Try Again
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </MainLayout>
-    );
-  }
+  const handleFormSuccess = () => {
+    setIsRouteFormOpen(false);
+    setSelectedRoute(null);
+    queryClient.invalidateQueries({ queryKey: ['routes'] });
+    toast.success(`Route ${selectedRoute ? 'updated' : 'created'} successfully`);
+  };
+
+  const handleBusFormSuccess = () => {
+    setIsBusFormOpen(false);
+    setSelectedRoute(null);
+    queryClient.invalidateQueries({ queryKey: ['buses'] });
+    toast.success(`Bus added successfully`);
+  };
 
   return (
-    <MainLayout title="Route Management">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
+    <MainLayout title="Routes Management">
+      <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-white neonText mb-2">Route Management</h1>
-            <p className="text-muted-foreground">Manage bus routes and their fares</p>
-          </div>
-          <Button 
-            onClick={() => setIsFormOpen(true)}
-            className="bg-transit-orange hover:bg-transit-orange-dark"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Route
-          </Button>
+          <h1 className="text-2xl font-bold text-white neonText">Routes Management</h1>
+          {isAdmin && (
+            <Button onClick={() => setIsRouteFormOpen(true)} className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)]">
+              <Plus className="mr-2 h-4 w-4" /> Add Route
+            </Button>
+          )}
         </div>
 
-        {/* Routes Grid */}
-        {routes.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Route className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Routes Found</h3>
-              <p className="text-muted-foreground mb-4">Get started by creating your first route</p>
-              <Button onClick={() => setIsFormOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Route
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {routes.map((route) => (
-              <Card key={route._id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center space-x-2">
-                      <Route className="h-5 w-5 text-transit-orange" />
-                      <CardTitle className="text-lg">{route.start} → {route.end}</CardTitle>
-                    </div>
-                    <Badge variant="secondary">₹{route.fare}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-muted-foreground mb-4">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span>From {route.start} to {route.end}</span>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(route)}
-                      className="flex-1"
-                    >
-                      <Edit className="mr-1 h-3 w-3" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(route._id)}
-                      className="flex-1 text-red-600 hover:text-red-700"
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="mr-1 h-3 w-3" />
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        <Card className="bg-card border-transit-orange/20">
+          <CardHeader className="pb-2 border-b border-border">
+            <CardTitle className="text-white">Transit Routes</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {isLoading ? (
+              <div className="space-y-2">
+                {Array(3).fill(0).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : routes?.length === 0 ? (
+              <div className="text-center p-8 border rounded-lg border-dashed border-border">
+                <p className="text-muted-foreground">No routes found</p>
+                {isAdmin && (
+                  <Button variant="outline" className="mt-4 border-transit-orange/40 hover:border-transit-orange hover:bg-transit-orange/10" onClick={() => setIsRouteFormOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add First Route
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-md border border-border overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow>
+                      <TableHead>Route Name</TableHead>
+                      <TableHead>Fare</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {routes?.map(route => (
+                      <TableRow key={route._id} className="hover:bg-transit-orange/5">
+                        <TableCell className="font-medium">{route.start} - {route.end}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-transit-orange/20">₹{route.fare}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={() => handleAddBus(route)}
+                              className="h-8 px-3 bg-transit-orange hover:bg-transit-orange-dark text-white"
+                            >
+                              <BusIcon className="mr-1 h-3.5 w-3.5" /> Add Bus
+                            </Button>
+                            {isAdmin && (
+                              <>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-transit-orange" onClick={() => handleEdit(route)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteClick(route._id)}>
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {isRouteFormOpen && (
+          <RouteForm
+            isOpen={isRouteFormOpen}
+            onClose={handleRouteFormClose}
+            onSuccess={handleFormSuccess}
+            route={selectedRoute}
+          />
         )}
 
-        {/* Route Form Modal */}
-        <RouteForm
-          isOpen={isFormOpen}
-          route={editingRoute}
-          onClose={handleFormClose}
-          onSuccess={handleFormClose}
-        />
+        {isBusFormOpen && selectedRoute && (
+          <BusForm
+            isOpen={isBusFormOpen}
+            onClose={handleBusFormClose}
+            onSuccess={handleBusFormSuccess}
+            bus={null}
+            selectedRouteId={selectedRoute._id}
+          />
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent className="bg-card border-destructive/30">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the route. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleConfirmDelete}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   );
