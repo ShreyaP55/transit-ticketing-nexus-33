@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/context/UserContext";
 import MainLayout from "@/components/layout/MainLayout";
@@ -51,7 +50,6 @@ const Index = () => {
   return (
     <MainLayout title="Home">
       <div className="relative w-full max-w-5xl mx-auto my-8 px-2 sm:px-4">
-
         {/* Decorative BG */}
         <div className="absolute -top-10 -right-10 w-48 h-48 bg-primary/30 rounded-full blur-3xl z-0 animate-fade-in" />
         <div className="absolute top-1/2 -left-24 w-64 h-32 bg-secondary/50 rounded-full blur-3xl z-0 animate-fade-in" />
@@ -130,33 +128,9 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Admin Panel */}
-        {isAdmin && (
-          <div className="mt-10 mb-4 animate-fade-in">
-            <h2 className="text-xl font-semibold mb-4 text-center text-primary">Admin Panel</h2>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Button className="bg-primary hover:bg-primary/80 text-white" onClick={() => navigate("/admin")}>
-                Admin Dashboard
-              </Button>
-              <Button className="bg-primary hover:bg-primary/80 text-white" onClick={() => navigate("/routes")}>
-                Manage Routes
-              </Button>
-              <Button className="bg-primary hover:bg-primary/80 text-white" onClick={() => navigate("/buses")}>
-                Manage Buses
-              </Button>
-              <Button className="bg-primary hover:bg-primary/80 text-white" onClick={() => navigate("/stations")}>
-                Manage Stations
-              </Button>
-              <Button className="bg-primary hover:bg-primary/80 text-white" onClick={() => navigate("/admin/live-tracking")}>
-                Admin Live Bus Tracking
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* Footer */}
         <div className="mt-16 text-center text-muted-foreground text-xs">
-          &copy; {new Date().getFullYear()} TransitNexus. All rights reserved.
+          &copy; {new Date().getFullYear()} BusInn. All rights reserved.
         </div>
       </div>
     </MainLayout>
