@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navigation, Clock, MapPin, Users, Wifi, AlertTriangle } from 'lucide-react';
 import { IBus, IRoute } from '@/types';
-import { BusLocation } from '@/services/liveTrackingService';
+import { BusLocation } from '@/types/tracking';
 
 interface BusInfoPanelProps {
   bus: IBus;
