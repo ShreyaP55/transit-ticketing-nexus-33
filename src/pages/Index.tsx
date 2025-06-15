@@ -8,19 +8,19 @@ import { Calendar, Navigation, MapPin } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isAdmin, user } = useUser();
+  const { isAuthenticated, isAdmin, userDetails } = useUser();
 
   return (
     <MainLayout title="Home">
       <div className="max-w-5xl mx-auto my-8 px-2 sm:px-4">
         <div className="text-center mb-10">
           <h1 className="text-3xl md:text-4xl font-bold mb-3 text-primary">
-            {isAuthenticated && user?.name
-              ? `Welcome, ${user.name}!`
+            {isAuthenticated && userDetails?.firstName
+              ? `Welcome, ${userDetails.firstName}!`
               : "Welcome to TransitNexus"}
           </h1>
           <p className="text-muted-foreground text-lg">
-            {isAuthenticated && user?.name
+            {isAuthenticated && userDetails?.firstName
               ? "The modern way to travel. Discover routes, track buses, and manage tickets all in one place."
               : "The modern way to travel. Discover routes, track buses, and manage tickets all in one place."}
           </p>
