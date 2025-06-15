@@ -135,11 +135,6 @@ const PassPage = () => {
   return (
     <MainLayout title="Monthly Pass">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-transit-blue">Monthly Travel Pass</h1>
-          <p className="text-muted-foreground">Unlimited travel on your selected route for 30 days</p>
-        </div>
-        
         {isLoadingPass ? (
           <div className="space-y-4">
             <Skeleton className="h-64 w-full" />
@@ -211,13 +206,6 @@ const PassPage = () => {
           </div>
         ) : (
           <div className="animate-fade-in">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-2">Get Your Monthly Pass</h2>
-              <p className="text-muted-foreground">
-                Purchase a monthly pass for unlimited travel on your selected route
-              </p>
-            </div>
-            
             <Card>
               <CardHeader>
                 <CardTitle>Purchase Monthly Pass</CardTitle>
