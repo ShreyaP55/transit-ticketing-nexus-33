@@ -1,6 +1,9 @@
 
 import express from 'express';
+import mongoose from 'mongoose';
 import Ticket from '../models/Ticket.js';
+import Route from '../models/Route.js';
+import Bus from '../models/Bus.js';
 
 const router = express.Router();
 
@@ -32,6 +35,27 @@ router.post('/', async (req, res) => {
     if (!userId || !routeId || !busId || !startStation || !endStation || !price || !paymentIntentId) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(routeId)) {
+      return res.status(400).json({ error: 'Invalid route ID format' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(busId)) {
+      return res.status(400).json({ error: 'Invalid bus ID format' });
+    }
+
+    // Check if documents exist
+    const [existingRoute, existingBus] = await Promise.all([
+      Route.findById(routeId),
+      Bus.findById(busId)
+    ]);
+
+    if (!existingRoute) {
+      return res.status(400).json({ error: 'Route not found' });
+    }
+    if (!existingBus) {
+      return res.status(400).json({ error: 'Bus not found' });
+    }
     
     const newTicket = new Ticket({
       userId,
@@ -45,13 +69,19 @@ router.post('/', async (req, res) => {
     });
     
     await newTicket.save();
+
+    const populatedTicket = await Ticket.findById(newTicket._id).populate('routeId').populate('busId');
     
     res.status(201).json({
       success: true,
-      ticket: newTicket
+      ticket: populatedTicket
     });
   } catch (error) {
     console.error('Error creating ticket:', error);
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ error: `Validation failed: ${validationErrors.join(', ')}` });
+    }
     res.status(500).json({ error: 'Failed to create ticket' });
   }
 });

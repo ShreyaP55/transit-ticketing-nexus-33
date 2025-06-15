@@ -1,6 +1,8 @@
 
 import express from 'express';
+import mongoose from 'mongoose';
 import PassUsage from '../models/PassUsage.js';
+import Pass from '../models/Pass.js';
 
 const router = express.Router();
 
@@ -32,6 +34,27 @@ router.post('/', async (req, res) => {
     if (!userId || !passId) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
+    // Validate passId
+    if (!mongoose.Types.ObjectId.isValid(passId)) {
+      return res.status(400).json({ error: 'Invalid pass ID format' });
+    }
+
+    // Check if pass exists
+    const existingPass = await Pass.findById(passId);
+    if (!existingPass) {
+      return res.status(400).json({ error: 'Pass not found' });
+    }
+
+    // Optional: check if pass belongs to the user
+    if (existingPass.userId !== userId) {
+        return res.status(403).json({ error: 'Pass does not belong to this user' });
+    }
+
+    // Optional: check if pass is expired
+    if (new Date(existingPass.expiryDate) < new Date()) {
+        return res.status(400).json({ error: 'Pass has expired' });
+    }
     
     const newUsage = new PassUsage({
       userId,
@@ -40,11 +63,12 @@ router.post('/', async (req, res) => {
       scannedAt: new Date()
     });
     
-    await newUsage.save();
+    const savedUsage = await newUsage.save();
+    const populatedUsage = await PassUsage.findById(savedUsage._id).populate('passId');
     
     res.status(201).json({
       message: 'Pass usage recorded successfully',
-      usage: newUsage
+      usage: populatedUsage
     });
   } catch (error) {
     console.error('Error recording pass usage:', error);

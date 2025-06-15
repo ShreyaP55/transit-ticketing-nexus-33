@@ -1,6 +1,8 @@
 
 import express from 'express';
+import mongoose from 'mongoose';
 import Pass from '../models/Pass.js';
+import Route from '../models/Route.js';
 
 const router = express.Router();
 
@@ -39,6 +41,17 @@ router.post('/', async (req, res) => {
     if (!userId || !routeId || !fare) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
+    // Validate routeId
+    if (!mongoose.Types.ObjectId.isValid(routeId)) {
+      return res.status(400).json({ error: 'Invalid route ID format' });
+    }
+    
+    // Check if route exists
+    const existingRoute = await Route.findById(routeId);
+    if (!existingRoute) {
+      return res.status(400).json({ error: 'Route not found' });
+    }
     
     // Set expiry to 1 month from now
     const expiryDate = new Date();
@@ -53,9 +66,11 @@ router.post('/', async (req, res) => {
     
     await newPass.save();
     
+    const populatedPass = await Pass.findById(newPass._id).populate('routeId');
+    
     res.status(201).json({
       success: true,
-      pass: newPass
+      pass: populatedPass
     });
   } catch (error) {
     console.error('Error creating pass:', error);
