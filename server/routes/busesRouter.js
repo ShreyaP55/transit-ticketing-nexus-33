@@ -76,7 +76,8 @@ router.post('/', async (req, res) => {
     
     // Handle duplicate key errors
     if (error.code === 11000) {
-      return res.status(400).json({ error: 'Bus with this name already exists' });
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ error: `A bus with this ${field} already exists.` });
     }
     
     res.status(500).json({ error: 'Failed to create bus' });
@@ -140,6 +141,12 @@ router.put('/:id', async (req, res) => {
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ error: `Validation failed: ${validationErrors.join(', ')}` });
+    }
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ error: `A bus with this ${field} already exists.` });
     }
     
     res.status(500).json({ error: 'Failed to update bus' });
