@@ -70,17 +70,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
             </div>
             <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 flex-shrink-0">
               {isAdmin && (
-                <span className="bg-amber-100 text-amber-800 px-1 sm:px-2 lg:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium">
-                  <span className="hidden sm:inline">Admin</span>
-                  <span className="sm:hidden">A</span>
-                </span>
+                <div className="bg-red-100 border border-red-300 text-red-800 px-2 py-1 rounded-md flex items-center justify-center min-w-[50px] sm:min-w-[60px] lg:min-w-[80px]">
+                  <span className="text-xs sm:text-sm lg:text-base font-semibold">
+                    <span className="hidden sm:inline">Admin</span>
+                    <span className="sm:hidden">A</span>
+                  </span>
+                </div>
               )}
               {isAuthenticated && (
-                <div className="flex items-center h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10">
+                <div className="flex items-center h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10">
                   <UserButton 
                     appearance={{
                       elements: {
-                        avatarBox: "h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 border border-primary shadow"
+                        avatarBox: "h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 border border-primary shadow-sm"
                       }
                     }}
                     userProfileMode="modal"
