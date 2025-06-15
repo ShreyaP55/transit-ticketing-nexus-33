@@ -9,32 +9,36 @@ import MainLayout from "@/components/layout/MainLayout";
 import { TicketCard } from "@/components/tickets/TicketCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NewTicketModal } from "@/components/tickets/NewTicketModal"; // <-- ADD
 
 const TicketsPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("active");
-  
+
+  // New state for modal open/close
+  const [open, setOpen] = useState(false); // <-- ADD
+
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["tickets"],
     queryFn: ticketsAPI.getByUserId,
   });
-  
+
   const activeTickets = tickets.filter(
     (ticket) => new Date(ticket.expiryDate) > new Date()
   );
-  
+
   const expiredTickets = tickets.filter(
     (ticket) => new Date(ticket.expiryDate) <= new Date()
   );
-  
+
   const handleNewTicket = () => {
-    // Updated: go directly to /booking page
-    navigate("/booking");
+    setOpen(true); // open modal
   };
 
   return (
     <MainLayout title="My Tickets">
       <div className="max-w-3xl mx-auto">
+        {/* Updated: Button is in top right */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">My Tickets</h1>
           <Button onClick={handleNewTicket}>
@@ -42,7 +46,6 @@ const TicketsPage = () => {
             New Ticket
           </Button>
         </div>
-        
         <Tabs defaultValue="active" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="active">
@@ -99,9 +102,10 @@ const TicketsPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+      {/* NewTicketModal with state */}
+      <NewTicketModal open={open} onOpenChange={setOpen} />
     </MainLayout>
   );
 };
 
 export default TicketsPage;
-

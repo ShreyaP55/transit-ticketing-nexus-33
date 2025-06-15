@@ -8,7 +8,6 @@ import { ClerkProvider } from "@clerk/clerk-react";
 import Index from "./pages/Index";
 import TicketsPage from "./pages/TicketsPage";
 import PassPage from "./pages/PassPage";
-import BookingPage from "./pages/BookingPage";
 import RoutesPage from "./pages/RoutesPage";
 import BusesPage from "./pages/BusesPage";
 import NotFound from "./pages/NotFound";
@@ -17,7 +16,7 @@ import LiveTrackingPage from "./pages/LiveTrackingPage";
 import AdminLiveTrackingPage from "./pages/AdminLiveTrackingPage";
 import { LoginPage, SignupPage } from "./pages/AuthPages";
 import NotAuthorizedPage from "./pages/NotAuthorizedPage";
-import AdminRoute from "./components/auth/AdminRoute";
+import AdminRoute from "@/components/auth/AdminRoute";
 import WalletPage from "./pages/WalletPage";
 import QRScanPage from "./pages/QRScanPage";
 import QRScannerPage from "./pages/QRScannerPage";
@@ -53,7 +52,6 @@ const AppContent = () => {
       <Route path="/" element={<Index />} />
       <Route path="/tickets" element={<TicketsPage />} />
       <Route path="/pass" element={<PassPage />} />
-      <Route path="/booking" element={<BookingPage />} />
       <Route path="/tracking" element={<LiveTrackingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
