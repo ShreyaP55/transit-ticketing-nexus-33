@@ -40,7 +40,7 @@ const PassPage = () => {
         queryClient.invalidateQueries({ queryKey: ["activePass"] });
         navigate("/pass"); // Remove query params
       } else {
-        toast.error(result.error || "Failed to create pass after payment");
+        toast.error("Failed to create pass after payment");
       }
     } catch (error) {
       toast.error("Failed to process payment confirmation");
