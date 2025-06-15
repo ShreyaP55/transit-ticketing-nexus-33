@@ -42,7 +42,7 @@ const steps = [
 ];
 
 const heroImg =
-  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=80"; // Forest, green, peaceful
+  "https://images.unsplash.com/photo-1570125909232-eb263c186902?auto=format&fit=crop&w=900&q=80"; // Modern city bus
 
 const Index = () => {
   const navigate = useNavigate();
