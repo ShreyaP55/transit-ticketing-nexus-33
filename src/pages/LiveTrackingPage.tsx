@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +44,7 @@ const LiveTrackingPage = () => {
   const busIds = buses ? buses.map(bus => bus._id) : [];
   
   // Use our custom hook for real-time bus tracking
-  const busLocations = useTrackBuses(busIds);
+  const busLocations = useTrackBuses(busIds, selectedRouteId);
   
   // Notify when new buses are detected
   useEffect(() => {
@@ -68,9 +69,9 @@ const LiveTrackingPage = () => {
   return (
     <MainLayout title="Live Bus Tracking">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-wrap gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Sidebar */}
-          <div className="flex-1 space-y-6 min-w-[300px]">
+          <div className="md:col-span-1 space-y-6">
             {/* Route Selection */}
             <Card className="bg-gradient-to-br from-white to-blue-50 overflow-hidden shadow-lg border-none">
               <CardHeader className="pb-3 bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
@@ -211,7 +212,7 @@ const LiveTrackingPage = () => {
           </div>
 
           {/* Map Area */}
-          <Card className="flex-[3] min-w-[300px] overflow-hidden border-none shadow-xl rounded-xl">
+          <Card className="md:col-span-3 overflow-hidden border-none shadow-xl rounded-xl">
             <CardContent className="p-0 h-[75vh]">
               <LeafletMap 
                 buses={buses || []} 

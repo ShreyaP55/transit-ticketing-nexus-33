@@ -37,16 +37,17 @@ const BUS_ROUTES = {
   ]
 };
 
-export const useTrackBuses = (busIds: string[]): BusLocations => {
+export const useTrackBuses = (busIds: string[], routeId: string | null): BusLocations => {
   const [busLocations, setBusLocations] = useState<BusLocations>({});
   const [busRouteProgress, setBusRouteProgress] = useState<{ [busId: string]: number }>({});
 
   useEffect(() => {
     console.log('=== LIVE TRACKING INITIALIZED ===');
-    console.log('Bus IDs to track:', busIds);
+    console.log('Bus IDs to track:', busIds, 'on route:', routeId);
     
     if (busIds.length === 0) {
       console.log('No bus IDs provided for tracking');
+      setBusLocations({});
       return;
     }
 
@@ -54,7 +55,7 @@ export const useTrackBuses = (busIds: string[]): BusLocations => {
 
     // Initialize route progress for each bus
     const initialProgress: { [busId: string]: number } = {};
-    busIds.forEach((busId, index) => {
+    busIds.forEach((busId) => {
       initialProgress[busId] = Math.random() * 0.5; // Start buses at different points
     });
     setBusRouteProgress(initialProgress);
@@ -69,7 +70,17 @@ export const useTrackBuses = (busIds: string[]): BusLocations => {
         
         busIds.forEach((busId, index) => {
           const routeKeys = Object.keys(BUS_ROUTES);
-          const routeKey = routeKeys[index % routeKeys.length] as keyof typeof BUS_ROUTES;
+          let routeKey: keyof typeof BUS_ROUTES;
+
+          if (routeId) {
+            // Deterministically select a route based on routeId
+            const hash = Array.from(routeId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            routeKey = routeKeys[hash % routeKeys.length] as keyof typeof BUS_ROUTES;
+          } else {
+            // Fallback for when no route is selected
+            routeKey = routeKeys[index % routeKeys.length] as keyof typeof BUS_ROUTES;
+          }
+          
           const route = BUS_ROUTES[routeKey];
           
           // Get current progress for this bus
@@ -150,7 +161,7 @@ export const useTrackBuses = (busIds: string[]): BusLocations => {
       console.log('Clearing tracking interval for buses:', busIds);
       clearInterval(interval);
     };
-  }, [busIds]);
+  }, [busIds, routeId]);
 
   return busLocations;
 };
