@@ -39,7 +39,6 @@ const LoadingScreen = () => (
 );
 
 import { useUser } from "@/context/UserContext"; // <-- Add import
-import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 const AppContent = () => {
   const { isLoading } = useUser(); // <-- Use hook here
