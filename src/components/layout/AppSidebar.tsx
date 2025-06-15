@@ -73,8 +73,8 @@ export const AppSidebar: React.FC = () => {
       <SidebarFooter>
         {isAuthenticated ? (
           <Button
-            variant="destructive"
-            className="w-full mt-2 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
+            variant="outline"
+            className="w-full mt-2 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2 bg-transparent text-primary border-primary hover:bg-primary hover:text-primary-foreground"
             onClick={() => {
               logout();
               navigate("/login");
