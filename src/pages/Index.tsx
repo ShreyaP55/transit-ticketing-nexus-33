@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -57,7 +56,7 @@ const Index = () => {
   const { isAuthenticated, userDetails } = useUser();
 
   // State to hold selected route
-  const [selectedRouteId, setSelectedRouteId] = useState<string>("");
+  const [selectedRouteId, setSelectedRouteId] = useState<string>("all");
 
   // Fetch all routes
   const { data: routes, isLoading: isLoadingRoutes } = useQuery({
@@ -69,9 +68,9 @@ const Index = () => {
   // Fetch buses for selected route (or all if none selected)
   const { data: buses, isLoading: isLoadingBuses } = useQuery({
     queryKey: ["buses", selectedRouteId],
-    queryFn: () => busesAPI.getAll(selectedRouteId || undefined),
+    queryFn: () => busesAPI.getAll(selectedRouteId === "all" ? undefined : selectedRouteId),
     staleTime: 1000 * 60,
-    enabled: true, // always enabled so we see all buses if not filtered
+    enabled: true,
   });
 
   return (
@@ -153,7 +152,7 @@ const Index = () => {
                   <SelectValue placeholder="Select a route" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Show All Buses</SelectItem>
+                  <SelectItem value="all">Show All Buses</SelectItem>
                   {isLoadingRoutes ? (
                     <SelectItem value="loading" disabled>
                       Loading routes...
@@ -194,7 +193,7 @@ const Index = () => {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <RouteIcon className="h-4 w-4" />
-                      Route: {typeof bus.route === "object" && bus.route ? `${bus.route.start} - ${bus.route.end}` : bus.route || 'Unknown'}
+                      Route: {typeof bus.route === "object" && bus.route ? `${bus.route.start} - ${bus.route.end}` : 'Unassigned'}
                     </div>
                     <Badge variant="outline" className="mt-2 bg-accent/20 text-primary border-transit-orange/20">
                       {bus.capacity} seats
