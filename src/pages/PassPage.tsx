@@ -181,13 +181,14 @@ const PassPage = () => {
                       </li>
                     </ul>
                   </CardContent>
-                  <CardFooter className="flex justify-between">
+                  <CardFooter className="flex flex-col sm:flex-row sm:justify-between items-stretch sm:items-center gap-2">
                     <Button variant="outline" onClick={() => navigate("/")}>
                       Explore Routes
                     </Button>
                     <Button 
                       onClick={() => refetchPass()}
                       variant="ghost" 
+                      className="w-full sm:w-auto"
                     >
                       Refresh Pass Status
                     </Button>
@@ -256,19 +257,19 @@ const PassPage = () => {
                       </h3>
                       
                       <div className="space-y-2 text-sm">
-                        <div className="grid grid-cols-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2">
                           <span className="text-muted-foreground">Route:</span>
                           <span className="font-medium">{selectedRoute.start} - {selectedRoute.end}</span>
                         </div>
-                        <div className="grid grid-cols-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2">
                           <span className="text-muted-foreground">Regular fare:</span>
                           <span>₹{selectedRoute.fare.toFixed(2)} per trip</span>
                         </div>
-                        <div className="grid grid-cols-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2">
                           <span className="text-muted-foreground">Monthly pass price:</span>
                           <span className="font-medium">₹{(selectedRoute.fare * 20).toFixed(2)}</span>
                         </div>
-                        <div className="grid grid-cols-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2">
                           <span className="text-muted-foreground">Validity:</span>
                           <span>30 days from purchase</span>
                         </div>
