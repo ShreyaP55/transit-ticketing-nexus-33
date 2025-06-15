@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from 'react';
+import { IBus } from '@/types';
 
 export interface BusLocation {
   latitude: number;
@@ -37,7 +37,7 @@ const BUS_ROUTES = {
   ]
 };
 
-export const useTrackBuses = (busIds: string[], routeId: string | null): BusLocations => {
+export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses?: IBus[] | null): BusLocations => {
   const [busLocations, setBusLocations] = useState<BusLocations>({});
   const [busRouteProgress, setBusRouteProgress] = useState<{ [busId: string]: number }>({});
 
@@ -71,13 +71,21 @@ export const useTrackBuses = (busIds: string[], routeId: string | null): BusLoca
         busIds.forEach((busId, index) => {
           const routeKeys = Object.keys(BUS_ROUTES);
           let routeKey: keyof typeof BUS_ROUTES;
+          
+          const bus = allBuses?.find(b => b._id === busId);
+          const busRouteId = bus?.route ? (typeof bus.route === 'string' ? bus.route : bus.route._id) : null;
 
           if (routeId) {
-            // Deterministically select a route based on routeId
+            // Deterministically select a route based on routeId (for user-facing page)
             const hash = Array.from(routeId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
             routeKey = routeKeys[hash % routeKeys.length] as keyof typeof BUS_ROUTES;
-          } else {
-            // Fallback for when no route is selected
+          } else if (allBuses && busRouteId) {
+            // Deterministically select a route based on the bus's own routeId (for admin page)
+            const hash = Array.from(busRouteId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            routeKey = routeKeys[hash % routeKeys.length] as keyof typeof BUS_ROUTES;
+          }
+          else {
+            // Fallback for when no route is selected, or for admin page if allBuses is not provided
             routeKey = routeKeys[index % routeKeys.length] as keyof typeof BUS_ROUTES;
           }
           
@@ -161,7 +169,7 @@ export const useTrackBuses = (busIds: string[], routeId: string | null): BusLoca
       console.log('Clearing tracking interval for buses:', busIds);
       clearInterval(interval);
     };
-  }, [busIds, routeId]);
+  }, [busIds, routeId, allBuses]);
 
   return busLocations;
 };
