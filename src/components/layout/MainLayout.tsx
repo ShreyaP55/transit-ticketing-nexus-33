@@ -70,22 +70,34 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
             </div>
             <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 flex-shrink-0">
               {isAdmin && (
-                <span className="bg-amber-100 text-amber-800 px-1 sm:px-2 lg:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium">
-                  <span className="hidden sm:inline">Admin</span>
-                  <span className="sm:hidden">A</span>
-                </span>
-              )}
-              {isAuthenticated && (
-                <div className="flex items-center h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10">
-                  <UserButton 
-                    appearance={{
-                      elements: {
-                        avatarBox: "h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 border border-primary shadow"
-                      }
-                    }}
-                    userProfileMode="modal"
-                  />
+                <div className="bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 px-1 sm:px-2 lg:px-3 py-0.5 sm:py-1 rounded-full flex items-center shadow-sm border border-orange-300">
+                  <span className="text-[10px] sm:text-xs lg:text-sm font-bold tracking-wide">
+                    <span className="hidden sm:inline">ADMIN</span>
+                    <span className="sm:hidden">A</span>
+                  </span>
                 </div>
+              )}
+              {isAuthenticated ? (
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10">
+                    <UserButton 
+                      appearance={{
+                        elements: {
+                          avatarBox: "h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 border border-primary shadow"
+                        }
+                      }}
+                      userProfileMode="modal"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  className="text-xs px-2 py-1 sm:px-3 sm:py-2"
+                  onClick={() => navigate("/login")}
+                >
+                  Login
+                </Button>
               )}
             </div>
           </header>
