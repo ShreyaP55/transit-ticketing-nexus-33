@@ -1,13 +1,25 @@
 
 import express from 'express';
 import Trip from '../models/Trip.js';
+import { authenticateUser, requireOwnership } from '../middleware/auth.js';
+import { tripRateLimit, validateTrip, sanitizeInput, securityLogger } from '../middleware/security.js';
 
 const router = express.Router();
 
+// Apply security middleware to all routes
+router.use(securityLogger);
+router.use(sanitizeInput);
+router.use(tripRateLimit);
+
 // Start a new trip
-router.post('/start', async (req, res) => {
+router.post('/start', authenticateUser, validateTrip, async (req, res) => {
   try {
     const { userId, latitude, longitude } = req.body;
+
+    // Verify user owns this request
+    if (req.user.id !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
     if (!userId || latitude === undefined || longitude === undefined) {
       return res.status(400).json({ error: 'userId, latitude, and longitude are required' });
@@ -17,6 +29,11 @@ router.post('/start', async (req, res) => {
     const existingTrip = await Trip.findOne({ userId, active: true });
     if (existingTrip) {
       return res.status(400).json({ error: 'User already has an active trip' });
+    }
+
+    // Validate coordinates are reasonable
+    if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      return res.status(400).json({ error: 'Invalid coordinates' });
     }
 
     const trip = new Trip({
@@ -29,6 +46,8 @@ router.post('/start', async (req, res) => {
     });
 
     await trip.save();
+    console.log('Trip started:', { userId, tripId: trip._id, timestamp: new Date().toISOString() });
+    
     res.json({ success: true, trip });
   } catch (error) {
     console.error('Error starting trip:', error);
@@ -37,7 +56,7 @@ router.post('/start', async (req, res) => {
 });
 
 // End a trip
-router.put('/:tripId/end', async (req, res) => {
+router.put('/:tripId/end', authenticateUser, validateTrip, async (req, res) => {
   try {
     const { tripId } = req.params;
     const { latitude, longitude } = req.body;
@@ -51,8 +70,18 @@ router.put('/:tripId/end', async (req, res) => {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
+    // Verify user owns this trip
+    if (req.user.id !== trip.userId && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     if (!trip.active) {
       return res.status(400).json({ error: 'Trip is already completed' });
+    }
+
+    // Validate coordinates
+    if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      return res.status(400).json({ error: 'Invalid coordinates' });
     }
 
     // Set end location
@@ -69,6 +98,8 @@ router.put('/:tripId/end', async (req, res) => {
     trip.calculateDuration();
 
     await trip.save();
+    console.log('Trip ended:', { userId: trip.userId, tripId: trip._id, fare: trip.fare, timestamp: new Date().toISOString() });
+    
     res.json({ success: true, trip });
   } catch (error) {
     console.error('Error ending trip:', error);
@@ -77,7 +108,7 @@ router.put('/:tripId/end', async (req, res) => {
 });
 
 // Get active trip for a user
-router.get('/active/:userId', async (req, res) => {
+router.get('/active/:userId', authenticateUser, requireOwnership('userId'), async (req, res) => {
   try {
     const { userId } = req.params;
     
@@ -95,7 +126,7 @@ router.get('/active/:userId', async (req, res) => {
 });
 
 // Get all trips for a user
-router.get('/user/:userId', async (req, res) => {
+router.get('/user/:userId', authenticateUser, requireOwnership('userId'), async (req, res) => {
   try {
     const { userId } = req.params;
     

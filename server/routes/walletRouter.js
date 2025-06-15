@@ -1,11 +1,17 @@
 
 import express from 'express';
 import Wallet from '../models/Wallet.js';
+import { authenticateUser, requireOwnership } from '../middleware/auth.js';
+import { paymentRateLimit, validateWallet, sanitizeInput, securityLogger } from '../middleware/security.js';
 
 const router = express.Router();
 
+// Apply security middleware
+router.use(securityLogger);
+router.use(sanitizeInput);
+
 // Get wallet balance
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', authenticateUser, requireOwnership('userId'), async (req, res) => {
   try {
     const { userId } = req.params;
     
@@ -25,12 +31,12 @@ router.get('/:userId', async (req, res) => {
 });
 
 // Add funds to wallet
-router.post('/:userId/add', async (req, res) => {
+router.post('/:userId/add', authenticateUser, requireOwnership('userId'), paymentRateLimit, validateWallet, async (req, res) => {
   try {
     const { userId } = req.params;
     const { amount } = req.body;
     
-    if (!amount || amount <= 0) {
+    if (!amount || amount <= 0 || amount > 10000) {
       return res.status(400).json({ error: 'Invalid amount' });
     }
     
@@ -41,6 +47,8 @@ router.post('/:userId/add', async (req, res) => {
     }
     
     await wallet.addFunds(amount, 'Wallet top-up via Stripe');
+    
+    console.log('Funds added:', { userId, amount, timestamp: new Date().toISOString() });
     
     res.json({ 
       success: true, 
@@ -54,7 +62,7 @@ router.post('/:userId/add', async (req, res) => {
 });
 
 // Deduct funds from wallet
-router.post('/:userId/deduct', async (req, res) => {
+router.post('/:userId/deduct', authenticateUser, requireOwnership('userId'), validateWallet, async (req, res) => {
   try {
     const { userId } = req.params;
     const { amount, description, rideId } = req.body;
@@ -70,6 +78,8 @@ router.post('/:userId/deduct', async (req, res) => {
     }
     
     await wallet.deductFunds(amount, description || 'Payment', rideId);
+    
+    console.log('Funds deducted:', { userId, amount, description, timestamp: new Date().toISOString() });
     
     res.json({ 
       success: true, 
@@ -87,7 +97,7 @@ router.post('/:userId/deduct', async (req, res) => {
 });
 
 // Get transaction history
-router.get('/:userId/transactions', async (req, res) => {
+router.get('/:userId/transactions', authenticateUser, requireOwnership('userId'), async (req, res) => {
   try {
     const { userId } = req.params;
     
