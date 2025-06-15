@@ -140,7 +140,7 @@ const BusesPage = () => {
               onRouteFilter={handleRouteFilter}
             />
           </div>
-          <div className="flex-[3] min-w-[350px]">
+          <div className="flex-[3] min-w-[300px]">
             <BusTable
               buses={buses}
               isLoading={isLoading}

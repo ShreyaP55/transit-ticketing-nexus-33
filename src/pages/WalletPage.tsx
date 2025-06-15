@@ -86,7 +86,7 @@ const WalletPage = () => {
             </div>
             
             {/* Ride History */}
-            <div className="flex-[2] min-w-[400px]">
+            <div className="flex-[2] min-w-[280px]">
               <Card className="bg-white shadow-md h-full">
                 <CardHeader className="bg-gradient-to-r from-transit-orange/10 to-transparent">
                   <CardTitle className="flex items-center">

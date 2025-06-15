@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import MainLayout from "@/components/layout/MainLayout";
@@ -212,7 +211,7 @@ const LiveTrackingPage = () => {
           </div>
 
           {/* Map Area */}
-          <Card className="flex-[3] min-w-[500px] overflow-hidden border-none shadow-xl rounded-xl">
+          <Card className="flex-[3] min-w-[300px] overflow-hidden border-none shadow-xl rounded-xl">
             <CardContent className="p-0 h-[75vh]">
               <LeafletMap 
                 buses={buses || []} 

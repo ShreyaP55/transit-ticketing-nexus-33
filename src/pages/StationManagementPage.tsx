@@ -142,7 +142,7 @@ const StationManagementPage = () => {
           </Card>
 
           {/* Station Listing */}
-          <Card className="flex-[2] min-w-[400px] h-fit border-transit-orange/20 bg-card">
+          <Card className="flex-[2] min-w-[280px] h-fit border-transit-orange/20 bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border">
               <div>
                 <CardTitle className="text-xl font-bold text-white">Stations</CardTitle>
@@ -176,7 +176,7 @@ const StationManagementPage = () => {
                   )}
                 </div>
               ) : (
-                <div className="rounded-md border border-border overflow-hidden">
+                <div className="rounded-md border border-border overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-muted/30">
                       <TableRow>
