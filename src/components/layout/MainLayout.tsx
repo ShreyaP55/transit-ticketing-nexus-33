@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; // <-- import
+// Remove explicit Avatar import, we'll use Clerk's UserButton instead
+// import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserButton } from "@clerk/clerk-react";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -62,14 +64,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
                   Admin Access
                 </span>
               )}
-              {isAuthenticated && userDetails && (
-                <Avatar className="h-10 w-10 border-2 border-primary shadow">
-                  <AvatarImage src={userDetails.imageUrl} alt={userDetails.firstName || "Avatar"} />
-                  <AvatarFallback>
-                    {userDetails.firstName?.[0]}
-                    {userDetails.lastName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
+              {isAuthenticated && (
+                // Clerk UserButton (shows avatar, and clicking it opens the profile/settings dropdown)
+                <div className="flex items-center h-10">
+                  <UserButton 
+                    appearance={{
+                      elements: {
+                        avatarBox: "h-10 w-10 border-2 border-primary shadow"
+                      }
+                    }}
+                    userProfileMode="modal"
+                  />
+                </div>
               )}
             </div>
           </header>
@@ -84,4 +90,3 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
 };
 
 export default MainLayout;
-
