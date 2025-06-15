@@ -55,7 +55,7 @@ const Index = () => {
         <div className="absolute -top-10 -right-10 w-48 h-48 bg-primary/30 rounded-full blur-3xl z-0 animate-fade-in" />
         <div className="absolute top-1/2 -left-24 w-64 h-32 bg-secondary/50 rounded-full blur-3xl z-0 animate-fade-in" />
         {/* Hero Section */}
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 py-8 mb-12">
+        <div className="relative z-20 flex flex-col md:flex-row items-center justify-between gap-8 py-8 mb-12 sticky top-12 sm:top-14 lg:top-16 bg-white/90 backdrop-blur-sm rounded-b-xl shadow-md">
           {/* Hero Text */}
           <div className="flex-1 text-center md:text-left space-y-4 animate-fade-in">
             <h1 className="text-4xl sm:text-5xl font-extrabold mb-2 gradient-heading">
