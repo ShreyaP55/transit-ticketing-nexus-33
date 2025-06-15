@@ -1,11 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { IBus } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Navigation, MapPin } from 'lucide-react';
+import { Navigation, MapPin, RefreshCw } from 'lucide-react';
 
 // Fix for default markers in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -111,20 +110,57 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([15.4909, 73.8278]); // Goa
   const [mapZoom, setMapZoom] = useState(13);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
-  // Get user location
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const userPos: [number, number] = [position.coords.latitude, position.coords.longitude];
-          setUserLocation(userPos);
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-        }
-      );
+  // Get user location with better error handling
+  const getUserLocation = async () => {
+    setIsGettingLocation(true);
+    setLocationError(null);
+    
+    try {
+      if (!navigator.geolocation) {
+        throw new Error('Geolocation is not supported by this browser');
+      }
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          reject,
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 60000
+          }
+        );
+      });
+
+      const userPos: [number, number] = [position.coords.latitude, position.coords.longitude];
+      setUserLocation(userPos);
+      console.log('User location obtained:', userPos, 'Accuracy:', position.coords.accuracy + 'm');
+    } catch (error: any) {
+      console.error('Error getting location:', error);
+      let errorMessage = 'Failed to get your location. ';
+      
+      if (error.code === 1) {
+        errorMessage += 'Please allow location access in your browser settings.';
+      } else if (error.code === 2) {
+        errorMessage += 'Location information is unavailable.';
+      } else if (error.code === 3) {
+        errorMessage += 'Location request timed out.';
+      } else {
+        errorMessage += error.message || 'Unknown error occurred.';
+      }
+      
+      setLocationError(errorMessage);
+    } finally {
+      setIsGettingLocation(false);
     }
+  };
+
+  // Get user location on mount
+  useEffect(() => {
+    getUserLocation();
   }, []);
 
   // Center on user location
@@ -132,6 +168,8 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
     if (userLocation) {
       setMapCenter(userLocation);
       setMapZoom(15);
+    } else {
+      getUserLocation();
     }
   };
 
@@ -143,6 +181,16 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
       setMapZoom(15);
     }
   };
+
+  // Auto-center on first bus when tracking starts
+  useEffect(() => {
+    if (Object.keys(busLocations).length > 0 && !selectedBusId) {
+      const firstBusId = Object.keys(busLocations)[0];
+      const firstBus = busLocations[firstBusId];
+      setMapCenter([firstBus.latitude, firstBus.longitude]);
+      setMapZoom(14);
+    }
+  }, [busLocations, selectedBusId]);
 
   return (
     <div className={`relative w-full h-full ${className}`}>
@@ -201,6 +249,11 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
                       Speed: {Math.round(location.speed)} km/h
                     </div>
                   )}
+                  {location.heading !== undefined && (
+                    <div className="text-xs text-gray-600">
+                      Heading: {Math.round(location.heading)}°
+                    </div>
+                  )}
                 </div>
               </Popup>
             </Marker>
@@ -210,17 +263,20 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
 
       {/* Control buttons */}
       <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2">
-        {userLocation && (
-          <Button
-            variant="default"
-            size="sm"
-            className="bg-white text-primary hover:bg-primary hover:text-white shadow-lg"
-            onClick={centerOnUser}
-          >
+        <Button
+          variant="default"
+          size="sm"
+          className="bg-white text-primary hover:bg-primary hover:text-white shadow-lg"
+          onClick={centerOnUser}
+          disabled={isGettingLocation}
+        >
+          {isGettingLocation ? (
+            <RefreshCw className="mr-1 h-4 w-4 animate-spin" />
+          ) : (
             <MapPin className="mr-1 h-4 w-4" />
-            My Location
-          </Button>
-        )}
+          )}
+          {userLocation ? 'My Location' : 'Get Location'}
+        </Button>
         
         {selectedBusId && busLocations[selectedBusId] && (
           <Button
@@ -235,12 +291,26 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
         )}
       </div>
 
-      {/* Live tracking indicator */}
-      {Object.keys(busLocations).length > 0 && (
-        <div className="absolute top-4 left-4 z-[1000] bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-          📍 {Object.keys(busLocations).length} Bus(es) Live
-        </div>
-      )}
+      {/* Status indicators */}
+      <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
+        {Object.keys(busLocations).length > 0 && (
+          <div className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+            📍 {Object.keys(busLocations).length} Bus(es) Live
+          </div>
+        )}
+        
+        {locationError && (
+          <div className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs max-w-xs">
+            ⚠️ {locationError}
+          </div>
+        )}
+        
+        {userLocation && (
+          <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+            📍 Your Location Active
+          </div>
+        )}
+      </div>
     </div>
   );
 };

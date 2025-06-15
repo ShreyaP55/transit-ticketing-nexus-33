@@ -15,8 +15,31 @@ export interface BusLocations {
   [busId: string]: BusLocation;
 }
 
+// Predefined bus routes with realistic waypoints in Goa
+const BUS_ROUTES = {
+  'route1': [
+    { lat: 15.4909, lng: 73.8278, name: 'Panaji Bus Stand' },
+    { lat: 15.4985, lng: 73.8242, name: 'Panaji Market' },
+    { lat: 15.5150, lng: 73.8050, name: 'Dona Paula' },
+    { lat: 15.5500, lng: 73.7500, name: 'Calangute' },
+  ],
+  'route2': [
+    { lat: 15.2993, lng: 74.1240, name: 'Margao Bus Stand' },
+    { lat: 15.3200, lng: 74.1100, name: 'Margao Market' },
+    { lat: 15.4000, lng: 73.9500, name: 'Ponda Junction' },
+    { lat: 15.4909, lng: 73.8278, name: 'Panaji' },
+  ],
+  'route3': [
+    { lat: 15.5937, lng: 73.7515, name: 'Mapusa Bus Stand' },
+    { lat: 15.5800, lng: 73.7600, name: 'Mapusa Market' },
+    { lat: 15.5500, lng: 73.7500, name: 'Calangute Beach' },
+    { lat: 15.5200, lng: 73.7300, name: 'Baga Beach' },
+  ]
+};
+
 export const useTrackBuses = (busIds: string[]): BusLocations => {
   const [busLocations, setBusLocations] = useState<BusLocations>({});
+  const [busRouteProgress, setBusRouteProgress] = useState<{ [busId: string]: number }>({});
 
   useEffect(() => {
     console.log('=== LIVE TRACKING INITIALIZED ===');
@@ -27,85 +50,100 @@ export const useTrackBuses = (busIds: string[]): BusLocations => {
       return;
     }
 
-    console.log('Starting live bus tracking for IDs:', busIds);
+    console.log('Starting realistic bus tracking for IDs:', busIds);
 
-    // Simulate real-time bus tracking with more realistic movement
+    // Initialize route progress for each bus
+    const initialProgress: { [busId: string]: number } = {};
+    busIds.forEach((busId, index) => {
+      initialProgress[busId] = Math.random() * 0.5; // Start buses at different points
+    });
+    setBusRouteProgress(initialProgress);
+
     const interval = setInterval(() => {
       console.log('=== UPDATING BUS LOCATIONS ===');
       const timestamp = new Date().toISOString();
       const newLocations: BusLocations = {};
       
-      busIds.forEach((busId, index) => {
-        // Generate coordinates around different areas in Goa
-        const baseLocations = [
-          { lat: 15.4909, lng: 73.8278, name: 'Panaji' },
-          { lat: 15.5937, lng: 73.7515, name: 'Mapusa' },
-          { lat: 15.2993, lng: 74.1240, name: 'Margao' },
-          { lat: 15.5500, lng: 73.7500, name: 'Calangute' },
-        ];
+      setBusRouteProgress(prevProgress => {
+        const updatedProgress = { ...prevProgress };
         
-        const baseLocation = baseLocations[index % baseLocations.length];
-        
-        // Get previous location for smooth movement
-        const prevLocation = busLocations[busId];
-        let newLat, newLng;
-        
-        if (prevLocation) {
-          // Small incremental movement for realistic tracking
-          const maxMove = 0.0008; // Approximately 80 meters
-          const direction = Math.random() * 2 * Math.PI; // Random direction
-          const distance = Math.random() * maxMove;
+        busIds.forEach((busId, index) => {
+          const routeKeys = Object.keys(BUS_ROUTES);
+          const routeKey = routeKeys[index % routeKeys.length] as keyof typeof BUS_ROUTES;
+          const route = BUS_ROUTES[routeKey];
           
-          newLat = prevLocation.latitude + Math.cos(direction) * distance;
-          newLng = prevLocation.longitude + Math.sin(direction) * distance;
+          // Get current progress for this bus
+          let progress = updatedProgress[busId] || 0;
           
-          // Ensure we don't move too far from base location
-          const distanceFromBase = Math.sqrt(
-            Math.pow(newLat - baseLocation.lat, 2) + 
-            Math.pow(newLng - baseLocation.lng, 2)
-          );
+          // Increment progress (simulate bus movement along route)
+          progress += 0.002 + (Math.random() * 0.003); // Variable speed
           
-          if (distanceFromBase > 0.05) { // If too far, move back towards base
-            newLat = baseLocation.lat + (Math.random() - 0.5) * 0.02;
-            newLng = baseLocation.lng + (Math.random() - 0.5) * 0.02;
+          // Reset progress if bus completes route
+          if (progress >= 1) {
+            progress = 0;
+            console.log(`Bus ${busId} completed route, starting new journey`);
           }
-        } else {
-          // Initial position with some randomness
-          newLat = baseLocation.lat + (Math.random() - 0.5) * 0.02;
-          newLng = baseLocation.lng + (Math.random() - 0.5) * 0.02;
-        }
-        
-        const speed = Math.random() * 30 + 15; // 15-45 km/h
-        const heading = Math.random() * 360;
-        
-        const locationUpdate = {
-          latitude: newLat,
-          longitude: newLng,
-          lat: newLat,
-          lng: newLng,
-          speed: speed,
-          heading: heading,
-          updatedAt: timestamp
-        };
-        
-        newLocations[busId] = locationUpdate;
-        
-        console.log(`Bus ${busId} location updated:`, {
-          busId,
-          area: baseLocation.name,
-          lat: newLat.toFixed(6),
-          lng: newLng.toFixed(6),
-          speed: speed.toFixed(1) + ' km/h',
-          timestamp
+          
+          updatedProgress[busId] = progress;
+          
+          // Calculate position based on progress along route
+          const segmentCount = route.length - 1;
+          const segmentProgress = progress * segmentCount;
+          const currentSegment = Math.floor(segmentProgress);
+          const segmentRatio = segmentProgress - currentSegment;
+          
+          // Interpolate between current and next waypoint
+          const startPoint = route[Math.min(currentSegment, route.length - 1)];
+          const endPoint = route[Math.min(currentSegment + 1, route.length - 1)];
+          
+          const lat = startPoint.lat + (endPoint.lat - startPoint.lat) * segmentRatio;
+          const lng = startPoint.lng + (endPoint.lng - startPoint.lng) * segmentRatio;
+          
+          // Add small random variation for realism
+          const latVariation = (Math.random() - 0.5) * 0.0005;
+          const lngVariation = (Math.random() - 0.5) * 0.0005;
+          
+          const finalLat = lat + latVariation;
+          const finalLng = lng + lngVariation;
+          
+          // Calculate realistic speed and heading
+          const speed = 20 + Math.random() * 25; // 20-45 km/h
+          const heading = Math.atan2(endPoint.lng - startPoint.lng, endPoint.lat - startPoint.lat) * 180 / Math.PI;
+          
+          const locationUpdate = {
+            latitude: finalLat,
+            longitude: finalLng,
+            lat: finalLat,
+            lng: finalLng,
+            speed: speed,
+            heading: heading < 0 ? heading + 360 : heading,
+            updatedAt: timestamp
+          };
+          
+          newLocations[busId] = locationUpdate;
+          
+          console.log(`Bus ${busId} location updated:`, {
+            busId,
+            route: routeKey,
+            progress: (progress * 100).toFixed(1) + '%',
+            currentSegment: `${startPoint.name} → ${endPoint.name}`,
+            lat: finalLat.toFixed(6),
+            lng: finalLng.toFixed(6),
+            speed: speed.toFixed(1) + ' km/h',
+            heading: heading.toFixed(0) + '°',
+            timestamp
+          });
         });
+        
+        return updatedProgress;
       });
       
       setBusLocations(prevLocations => {
-        console.log('Previous locations:', prevLocations);
-        console.log('New locations:', newLocations);
+        console.log('Previous locations count:', Object.keys(prevLocations).length);
+        console.log('New locations count:', Object.keys(newLocations).length);
         return newLocations;
       });
-    }, 3000); // Update every 3 seconds
+    }, 2000); // Update every 2 seconds for smoother tracking
 
     return () => {
       console.log('=== STOPPING LIVE TRACKING ===');
@@ -153,8 +191,8 @@ export const locationService = {
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 30000
+          timeout: 15000,
+          maximumAge: 60000
         }
       );
     });
@@ -188,8 +226,8 @@ export const locationService = {
       },
       {
         enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 10000
+        timeout: 10000,
+        maximumAge: 30000
       }
     );
   },
