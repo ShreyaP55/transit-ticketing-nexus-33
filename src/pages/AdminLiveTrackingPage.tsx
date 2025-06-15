@@ -35,7 +35,7 @@ const AdminLiveTrackingPage = () => {
   const busIds = allBuses ? allBuses.map(bus => bus._id) : [];
   
   // Use our custom hook for real-time bus tracking
-  const busLocations = useTrackBuses(busIds, null, allBuses);
+  const busLocations = useTrackBuses(busIds, null, allBuses, routes);
   
   // Get active buses
   const activeBuses = allBuses?.filter(bus => busLocations[bus._id]) || [];

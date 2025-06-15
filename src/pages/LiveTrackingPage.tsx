@@ -44,7 +44,7 @@ const LiveTrackingPage = () => {
   const busIds = buses ? buses.map(bus => bus._id) : [];
   
   // Use our custom hook for real-time bus tracking
-  const busLocations = useTrackBuses(busIds, selectedRouteId);
+  const busLocations = useTrackBuses(busIds, selectedRouteId, buses, routes);
   
   // Notify when new buses are detected
   useEffect(() => {

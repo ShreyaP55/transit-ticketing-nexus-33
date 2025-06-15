@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { IBus } from '@/types';
+import { IBus, IRoute } from '@/types';
 
 export interface BusLocation {
   latitude: number;
@@ -37,7 +37,7 @@ const BUS_ROUTES = {
   ]
 };
 
-export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses?: IBus[] | null): BusLocations => {
+export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses?: IBus[] | null, allRoutes?: IRoute[] | null): BusLocations => {
   const [busLocations, setBusLocations] = useState<BusLocations>({});
   const [busRouteProgress, setBusRouteProgress] = useState<{ [busId: string]: number }>({});
 
@@ -75,17 +75,36 @@ export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses
           const bus = allBuses?.find(b => b._id === busId);
           const busRouteId = bus?.route ? (typeof bus.route === 'string' ? bus.route : bus.route._id) : null;
 
-          if (routeId) {
-            // Deterministically select a route based on routeId (for user-facing page)
-            const hash = Array.from(routeId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const effectiveRouteId = routeId || busRouteId;
+
+          if (effectiveRouteId && allRoutes && allRoutes.length > 0) {
+            const route = allRoutes.find(r => r._id === effectiveRouteId);
+            if (route) {
+                const start = route.start.toLowerCase();
+                const end = route.end.toLowerCase();
+                
+                if (start.includes('margao') || end.includes('margao')) {
+                    routeKey = 'route2'; // Margao -> Ponda -> Panaji
+                } else if (start.includes('mapusa') || end.includes('mapusa')) {
+                    routeKey = 'route3'; // Mapusa -> Calangute -> Baga
+                } else if (start.includes('panjim') || end.includes('panjim') || start.includes('panaji') || end.includes('panaji')) {
+                    routeKey = 'route1'; // Panaji -> Dona Paula -> Calangute
+                } else {
+                    // Fallback to hashing if no keywords match
+                    const hash = Array.from(effectiveRouteId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                    routeKey = routeKeys[hash % routeKeys.length] as keyof typeof BUS_ROUTES;
+                }
+            } else {
+              // Fallback if route not found in allRoutes
+              const hash = Array.from(effectiveRouteId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              routeKey = routeKeys[hash % routeKeys.length] as keyof typeof BUS_ROUTES;
+            }
+          } else if (effectiveRouteId) {
+            // Fallback for when allRoutes is not provided
+            const hash = Array.from(effectiveRouteId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
             routeKey = routeKeys[hash % routeKeys.length] as keyof typeof BUS_ROUTES;
-          } else if (allBuses && busRouteId) {
-            // Deterministically select a route based on the bus's own routeId (for admin page)
-            const hash = Array.from(busRouteId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            routeKey = routeKeys[hash % routeKeys.length] as keyof typeof BUS_ROUTES;
-          }
-          else {
-            // Fallback for when no route is selected, or for admin page if allBuses is not provided
+          } else {
+            // Fallback for when no route is identified at all
             routeKey = routeKeys[index % routeKeys.length] as keyof typeof BUS_ROUTES;
           }
           
@@ -169,7 +188,7 @@ export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses
       console.log('Clearing tracking interval for buses:', busIds);
       clearInterval(interval);
     };
-  }, [busIds, routeId, allBuses]);
+  }, [busIds, routeId, allBuses, allRoutes]);
 
   return busLocations;
 };
