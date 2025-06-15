@@ -1,30 +1,25 @@
 
 import { useAuth } from "@clerk/clerk-react";
 
-class AuthService {
-  private static instance: AuthService;
-  
-  public static getInstance(): AuthService {
-    if (!AuthService.instance) {
-      AuthService.instance = new AuthService();
-    }
-    return AuthService.instance;
-  }
+// Hook to get authentication token and make authenticated requests
+export const useAuthService = () => {
+  const { getToken, isSignedIn, userId } = useAuth();
 
-  async getAuthToken(): Promise<string | null> {
+  const getAuthToken = async (): Promise<string | null> => {
     try {
-      // Get the session token from Clerk
-      const { getToken } = useAuth();
+      if (!isSignedIn) {
+        return null;
+      }
       const token = await getToken();
       return token;
     } catch (error) {
       console.error('Error getting auth token:', error);
       return null;
     }
-  }
+  };
 
-  async makeAuthenticatedRequest(url: string, options: RequestInit = {}): Promise<Response> {
-    const token = await this.getAuthToken();
+  const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const token = await getAuthToken();
     
     if (!token) {
       throw new Error('No authentication token available');
@@ -40,7 +35,12 @@ class AuthService {
       ...options,
       headers,
     });
-  }
-}
+  };
 
-export const authService = AuthService.getInstance();
+  return {
+    getAuthToken,
+    makeAuthenticatedRequest,
+    isAuthenticated: isSignedIn,
+    userId
+  };
+};

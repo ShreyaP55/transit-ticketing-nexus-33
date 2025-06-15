@@ -9,6 +9,8 @@ import { MapPin, Navigation, Check, X } from "lucide-react";
 import { startTrip, getActiveTrip, endTrip } from "@/services/tripService";
 import { useUser } from "@/context/UserContext";
 import { deductFunds } from "@/services/walletService";
+import { useAuthService } from "@/services/authService";
+import { validateQRCode } from "@/utils/qrSecurity";
 
 const QRScanPage = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -20,6 +22,7 @@ const QRScanPage = () => {
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const { isAuthenticated, userId: currentUserId } = useUser();
+  const { getAuthToken } = useAuthService();
 
   // Get current location
   useEffect(() => {
@@ -57,9 +60,12 @@ const QRScanPage = () => {
     // Check if there's an active trip
     const checkActiveTrip = async () => {
       try {
-        if (userId) {
-          const trip = await getActiveTrip(userId);
-          setActiveTrip(trip);
+        if (userId && isAuthenticated) {
+          const authToken = await getAuthToken();
+          if (authToken) {
+            const trip = await getActiveTrip(userId, authToken);
+            setActiveTrip(trip);
+          }
         }
       } catch (error) {
         console.error("Error checking active trip:", error);
@@ -67,19 +73,32 @@ const QRScanPage = () => {
     };
     
     checkActiveTrip();
-  }, [userId]);
+  }, [userId, isAuthenticated, getAuthToken]);
   
   // Handle check-in
   const handleCheckIn = async () => {
-    if (!userId || !location) return;
+    if (!userId || !location || !isAuthenticated) return;
     
     try {
       setIsProcessing(true);
       
-      // Start a new trip
-      const trip = await startTrip(userId, location.lat, location.lng);
+      // Validate QR code if userId is encrypted
+      if (userId.length > 50) {
+        const validation = validateQRCode(userId);
+        if (!validation.isValid) {
+          throw new Error(validation.error || 'Invalid QR code');
+        }
+      }
       
-      setActiveTrip(trip);
+      const authToken = await getAuthToken();
+      if (!authToken) {
+        throw new Error('Authentication required');
+      }
+      
+      // Start a new trip
+      const trip = await startTrip(userId, location.lat, location.lng, authToken);
+      
+      setActiveTrip(trip.trip || trip);
       
       toast({
         title: "Check-in Successful",
@@ -100,28 +119,34 @@ const QRScanPage = () => {
   
   // Handle check-out
   const handleCheckOut = async () => {
-    if (!userId || !location || !activeTrip) return;
+    if (!userId || !location || !activeTrip || !isAuthenticated) return;
     
     try {
       setIsProcessing(true);
       
-      // End the trip
-      const trip = await endTrip(activeTrip._id, location.lat, location.lng);
+      const authToken = await getAuthToken();
+      if (!authToken) {
+        throw new Error('Authentication required');
+      }
       
-      // Deduct fare from wallet
-      if (trip.fare) {
+      // End the trip
+      const result = await endTrip(activeTrip._id, location.lat, location.lng, authToken);
+      const trip = result.trip || result;
+      
+      // Deduct fare from wallet if fare exists
+      if (trip.fare && trip.fare > 0) {
         try {
-          await deductFunds(userId, trip.fare, "Bus ride fare");
+          await deductFunds(userId, trip.fare, "Bus ride fare", authToken);
           toast({
-            title: "Fare Deducted",
+            title: "Payment Successful",
             description: `₹${trip.fare} has been deducted from your wallet`,
             variant: "default",
           });
         } catch (error) {
           console.error("Error deducting funds:", error);
           toast({
-            title: "Payment Error",
-            description: "Failed to deduct fare from your wallet. Please add funds.",
+            title: "Payment Warning",
+            description: "Trip completed but payment failed. Please check your wallet balance.",
             variant: "destructive",
           });
         }
@@ -131,7 +156,7 @@ const QRScanPage = () => {
       
       toast({
         title: "Check-out Successful",
-        description: `Your trip has ended. Distance: ${trip.distance}km, Fare: ₹${trip.fare}`,
+        description: `Trip completed. Distance: ${trip.distance || 0}km, Fare: ₹${trip.fare || 0}`,
         variant: "default",
       });
       

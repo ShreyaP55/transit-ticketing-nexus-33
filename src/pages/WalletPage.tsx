@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, CreditCard, Navigation, MapPin, Clock } from 'lucide-react';
 import { useUser } from "@/context/UserContext";
@@ -10,23 +9,33 @@ import UserQRCode from "@/components/wallet/UserQRCode";
 import WalletCard from "@/components/wallet/WalletCard";
 import { getUserTrips } from "@/services/tripService";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuthService } from "@/services/authService";
 
 const WalletPage = () => {
   const { userId, isAuthenticated } = useUser();
   const { toast } = useToast();
+  const { getAuthToken } = useAuthService();
   const [trips, setTrips] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     const fetchTrips = async () => {
-      if (!userId) return;
+      if (!userId || !isAuthenticated) return;
       
       try {
         setIsLoading(true);
-        const userTrips = await getUserTrips(userId);
-        setTrips(userTrips);
+        const authToken = await getAuthToken();
+        if (authToken) {
+          const userTrips = await getUserTrips(userId, authToken);
+          setTrips(userTrips);
+        }
       } catch (error) {
         console.error("Error fetching trips:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load trip history",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -34,11 +43,11 @@ const WalletPage = () => {
     
     fetchTrips();
     
-    // Refresh trips every 10 seconds
-    const intervalId = setInterval(fetchTrips, 10000);
+    // Refresh trips every 30 seconds
+    const intervalId = setInterval(fetchTrips, 30000);
     
     return () => clearInterval(intervalId);
-  }, [userId]);
+  }, [userId, isAuthenticated, getAuthToken, toast]);
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();

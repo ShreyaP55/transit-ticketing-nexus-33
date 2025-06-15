@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { QrScanner } from "@/components/qr/QrScanner";
 import { startTrip, endTrip, getActiveTrip } from "@/services/tripService";
 import { toast } from "sonner";
+import { useAuthService } from "@/services/authService";
+import { validateQRCode } from "@/utils/qrSecurity";
 
 const QRScannerPage: React.FC = () => {
   const [scanned, setScanned] = useState(false);
@@ -15,6 +17,7 @@ const QRScannerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [connectionError, setConnectionError] = useState(false);
+  const { getAuthToken, isAuthenticated } = useAuthService();
 
   // Get current location when component mounts
   useEffect(() => {
@@ -44,17 +47,28 @@ const QRScannerPage: React.FC = () => {
       setScanned(true);
       setConnectionError(false);
       
-      // Parse the QR code data
-      let parsedData;
-      try {
-        parsedData = JSON.parse(data);
-      } catch (error) {
-        // If it's not JSON, treat it as a plain user ID
-        parsedData = { userId: data };
+      // Validate QR code if it's encrypted
+      let parsedUserId = data;
+      if (data.length > 50) {
+        const validation = validateQRCode(data);
+        if (!validation.isValid) {
+          toast.error(validation.error || "Invalid QR code");
+          setScanned(false);
+          return;
+        }
+        parsedUserId = validation.userId || data;
+      } else {
+        // Parse the QR code data if it's JSON
+        try {
+          const parsedData = JSON.parse(data);
+          parsedUserId = parsedData.userId || data;
+        } catch (error) {
+          // If it's not JSON, treat it as a plain user ID
+          parsedUserId = data;
+        }
       }
       
-      const userId = parsedData.userId || data;
-      setUserId(userId);
+      setUserId(parsedUserId);
       
       if (!location) {
         toast.error("Unable to get current location. Please try again.");
@@ -63,11 +77,23 @@ const QRScannerPage: React.FC = () => {
         return;
       }
 
+      if (!isAuthenticated) {
+        toast.error("Please log in as an admin to use the scanner.");
+        setScanned(false);
+        setUserId(null);
+        return;
+      }
+
       setIsLoading(true);
       
       try {
+        const authToken = await getAuthToken();
+        if (!authToken) {
+          throw new Error("Authentication required");
+        }
+
         // Check if user already has an active trip
-        const trip = await getActiveTrip(userId);
+        const trip = await getActiveTrip(parsedUserId, authToken);
         setActiveTrip(trip);
         
         if (trip) {
@@ -99,11 +125,16 @@ const QRScannerPage: React.FC = () => {
   };
 
   const handleCheckIn = async () => {
-    if (!userId || !location) return;
+    if (!userId || !location || !isAuthenticated) return;
     
     setIsLoading(true);
     try {
-      const result = await startTrip(userId, location.lat, location.lng);
+      const authToken = await getAuthToken();
+      if (!authToken) {
+        throw new Error("Authentication required");
+      }
+
+      const result = await startTrip(userId, location.lat, location.lng, authToken);
       
       toast.success("Check-in successful! Trip started.");
       
@@ -127,11 +158,16 @@ const QRScannerPage: React.FC = () => {
   };
 
   const handleCheckOut = async () => {
-    if (!userId || !location || !activeTrip) return;
+    if (!userId || !location || !activeTrip || !isAuthenticated) return;
     
     setIsLoading(true);
     try {
-      const result = await endTrip(activeTrip._id, location.lat, location.lng);
+      const authToken = await getAuthToken();
+      if (!authToken) {
+        throw new Error("Authentication required");
+      }
+
+      const result = await endTrip(activeTrip._id, location.lat, location.lng, authToken);
       
       if (result.success) {
         toast.success(`Check-out successful! Distance: ${result.trip?.distance || 0}km, Fare: ₹${result.trip?.fare || 0}`);
@@ -176,6 +212,14 @@ const QRScannerPage: React.FC = () => {
           </CardHeader>
           
           <CardContent className="p-4">
+            {!isAuthenticated && (
+              <div className="mb-4 p-3 bg-amber-100 border border-amber-300 rounded-md">
+                <p className="text-amber-700 text-sm">
+                  ⚠️ Please log in as an admin to use the QR scanner.
+                </p>
+              </div>
+            )}
+
             {connectionError && (
               <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
                 <p className="text-red-700 text-sm">
@@ -227,7 +271,7 @@ const QRScannerPage: React.FC = () => {
                     <Button
                       variant="destructive"
                       onClick={handleCheckOut}
-                      disabled={isLoading}
+                      disabled={isLoading || !isAuthenticated}
                     >
                       {isLoading ? "Processing..." : "Check Out"}
                     </Button>
@@ -236,7 +280,7 @@ const QRScannerPage: React.FC = () => {
                       variant="default"
                       className="bg-transit-orange hover:bg-transit-orange-dark"
                       onClick={handleCheckIn}
-                      disabled={isLoading}
+                      disabled={isLoading || !isAuthenticated}
                     >
                       {isLoading ? "Processing..." : "Check In"}
                     </Button>

@@ -1,12 +1,13 @@
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-export const startTrip = async (userId: string, latitude: number, longitude: number) => {
+export const startTrip = async (userId: string, latitude: number, longitude: number, authToken: string) => {
   try {
     const response = await fetch(`${API_URL}/trips/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify({ userId, latitude, longitude }),
     });
@@ -25,12 +26,13 @@ export const startTrip = async (userId: string, latitude: number, longitude: num
   }
 };
 
-export const endTrip = async (tripId: string, latitude: number, longitude: number) => {
+export const endTrip = async (tripId: string, latitude: number, longitude: number, authToken: string) => {
   try {
     const response = await fetch(`${API_URL}/trips/${tripId}/end`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify({ latitude, longitude }),
     });
@@ -49,11 +51,12 @@ export const endTrip = async (tripId: string, latitude: number, longitude: numbe
   }
 };
 
-export const getActiveTrip = async (userId: string) => {
+export const getActiveTrip = async (userId: string, authToken: string) => {
   try {
     const response = await fetch(`${API_URL}/trips/active/${userId}`, {
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
       },
     });
 
@@ -66,7 +69,7 @@ export const getActiveTrip = async (userId: string) => {
     }
 
     const data = await response.json();
-    return data.active ? data.trip : null;
+    return (data && typeof data === 'object' && data.active) ? data.trip : null;
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new Error("Server is not running. Please start the backend server.");
@@ -76,11 +79,12 @@ export const getActiveTrip = async (userId: string) => {
   }
 };
 
-export const getUserTrips = async (userId: string) => {
+export const getUserTrips = async (userId: string, authToken: string) => {
   try {
     const response = await fetch(`${API_URL}/trips/user/${userId}`, {
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
       },
     });
 

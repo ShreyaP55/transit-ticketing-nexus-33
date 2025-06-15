@@ -8,19 +8,33 @@ import { useUser } from '@/context/UserContext';
 import { stripeService } from '@/services/stripeService';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
+import { useAuthService } from '@/services/authService';
 
 const WalletCard = () => {
   const { userId } = useUser();
-  const { wallet, addFunds, isLoading } = useWallet(userId || 'guest');
+  const { getAuthToken } = useAuthService();
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const { wallet, addFunds, isLoading } = useWallet(userId || 'guest', authToken || '');
   const [searchParams] = useSearchParams();
   const [isAdding, setIsAdding] = useState(false);
+
+  // Get auth token on component mount
+  useEffect(() => {
+    const fetchAuthToken = async () => {
+      if (userId) {
+        const token = await getAuthToken();
+        setAuthToken(token);
+      }
+    };
+    fetchAuthToken();
+  }, [userId, getAuthToken]);
 
   useEffect(() => {
     // Handle successful wallet recharge
     const status = searchParams.get('status');
     const amount = searchParams.get('amount');
     
-    if (status === 'success' && amount) {
+    if (status === 'success' && amount && authToken) {
       const rechargeAmount = parseFloat(amount);
       if (userId) {
         addFunds(rechargeAmount);
@@ -29,10 +43,10 @@ const WalletCard = () => {
     } else if (status === 'cancel') {
       toast.error('Wallet recharge was cancelled.');
     }
-  }, [searchParams, userId, addFunds]);
+  }, [searchParams, userId, addFunds, authToken]);
 
   const handleAddFunds = async (amount: number) => {
-    if (!userId) {
+    if (!userId || !authToken) {
       toast.error("Please login to add funds");
       return;
     }
@@ -57,6 +71,16 @@ const WalletCard = () => {
   };
 
   const currentBalance = wallet?.balance || 0;
+
+  if (!authToken) {
+    return (
+      <Card className="w-full bg-white shadow-md border-primary/20 overflow-hidden">
+        <CardContent className="p-6 text-center">
+          <p className="text-muted-foreground">Please log in to view your wallet</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full bg-white shadow-md border-primary/20 overflow-hidden">
