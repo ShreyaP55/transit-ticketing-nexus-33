@@ -129,9 +129,8 @@ const Index = () => {
         </div>
 
         {/* Footer */}
-        <div className="mt-16 text-center text-muted-foreground text-xs">
-          &copy; {new Date().getFullYear()} BusInn. All rights reserved.
-        </div>
+        {/* Removed custom BusInn footer in favor of MainLayout's footer */}
+
       </div>
     </MainLayout>
   );

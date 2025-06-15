@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings, QrCode, Wallet, Route, ScanLine } from "lucide-react";
@@ -81,7 +80,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
           </header>
           <main className="flex-1 p-4 md:p-6">{children}</main>
           <footer className="bg-white p-4 text-center text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} TransitNexus. All rights reserved.
+            &copy; {new Date().getFullYear()} BusInn. All rights reserved.
           </footer>
         </div>
       </div>
