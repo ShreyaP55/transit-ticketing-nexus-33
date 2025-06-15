@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings, QrCode, Wallet, Route, ScanLine } from "lucide-react";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; // <-- import
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -15,7 +17,7 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated, logout, isAdmin } = useUser();
+  const { isAuthenticated, logout, isAdmin, userDetails } = useUser();
 
   const publicNavItems = [
     { name: "Home", icon: <Map size={20} />, path: "/" },
@@ -54,13 +56,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
               <SidebarTrigger className="lg:hidden" />
               <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "TransitNexus"}</h1>
             </div>
-            {isAdmin && (
-              <div className="flex items-center">
+            <div className="flex items-center gap-4">
+              {isAdmin && (
                 <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-medium">
                   Admin Access
                 </span>
-              </div>
-            )}
+              )}
+              {isAuthenticated && userDetails && (
+                <Avatar className="h-10 w-10 border-2 border-primary shadow">
+                  <AvatarImage src={userDetails.imageUrl} alt={userDetails.firstName || "Avatar"} />
+                  <AvatarFallback>
+                    {userDetails.firstName?.[0]}
+                    {userDetails.lastName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
           </header>
           <main className="flex-1 p-4 md:p-6">{children}</main>
           <footer className="bg-white p-4 text-center text-sm text-muted-foreground">
@@ -73,3 +84,4 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
 };
 
 export default MainLayout;
+
