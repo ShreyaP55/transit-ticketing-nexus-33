@@ -1,3 +1,4 @@
+
 import express from 'express';
 import mongoose from 'mongoose';
 import Bus from '../models/Bus.js';
@@ -15,7 +16,7 @@ router.get('/', async (req, res) => {
       query.route = routeId;
     }
     
-    const buses = await Bus.find(query);
+    const buses = await Bus.find(query).populate('route');
     res.json(buses);
   } catch (error) {
     console.error('Error fetching buses:', error);

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components
 import { Plus, Bus as BusIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import BusTableRow from "./BusTableRow";
-import { IBus, IStation, IRoute } from "@/types";
+import { IBus, IStation, IRoute, isRoute } from "@/types";
 
 interface BusTableProps {
   buses: IBus[] | undefined;
@@ -91,9 +92,12 @@ const BusTable: React.FC<BusTableProps> = ({
                 <TableBody>
                   {buses?.map(bus => {
                     // Get related route
-                    let route: IRoute | undefined = undefined;
-                    if (routes) {
-                      route = routes.find(r => (typeof bus.route === "string" ? bus.route === r._id : bus.route?._id === r._id));
+                    let route: IRoute | undefined;
+                    if (isRoute(bus.route)) {
+                      route = bus.route;
+                    } else if (routes && typeof bus.route === 'string') {
+                      // Fallback for non-populated route
+                      route = routes.find(r => r._id === bus.route);
                     }
                     // Get first related station
                     const station = stations?.find(stn => {
@@ -108,7 +112,6 @@ const BusTable: React.FC<BusTableProps> = ({
                         onDelete={onDeleteBus}
                         onGenerateQR={onGenerateQR}
                         route={route}
-                        fare={route ? route.fare : undefined}
                         stationName={station?.name}
                       />
                     );

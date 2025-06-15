@@ -1,20 +1,18 @@
+
 import React from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash, Route, QrCode } from "lucide-react";
-import { IBus } from "@/types";
-import { getRouteDisplay } from "@/utils/typeGuards";
-import { IRoute } from "@/types";
+import { IBus, IRoute } from "@/types";
 
 interface BusTableRowProps {
-  bus: import("@/types").IBus;
+  bus: IBus;
   isAdmin: boolean;
-  onEdit: (bus: import("@/types").IBus) => void;
+  onEdit: (bus: IBus) => void;
   onDelete: (id: string) => void;
-  onGenerateQR: (bus: import("@/types").IBus) => void;
+  onGenerateQR: (bus: IBus) => void;
   route?: IRoute;
-  fare?: number;
   stationName?: string;
 }
 
@@ -25,7 +23,6 @@ const BusTableRow: React.FC<BusTableRowProps> = ({
   onDelete,
   onGenerateQR,
   route,
-  fare,
   stationName
 }) => {
   return (
@@ -43,8 +40,10 @@ const BusTableRow: React.FC<BusTableRowProps> = ({
         </Badge>
       </TableCell>
       <TableCell>
-        {fare !== undefined ? (
-          <span className="font-semibold text-primary">{fare}</span>
+        {route?.fare !== undefined ? (
+          <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-transit-orange/20">
+            ₹{route.fare.toFixed(2)}
+          </Badge>
         ) : (
           <span>—</span>
         )}
