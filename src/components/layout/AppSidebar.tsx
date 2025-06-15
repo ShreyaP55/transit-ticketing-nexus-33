@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
@@ -82,14 +81,12 @@ export const AppSidebar: React.FC = () => {
             Logout
           </Button>
         ) : (
-          <button
-            className="w-full mt-2 bg-transit-orange text-white rounded-md shadow font-semibold text-base px-5 py-2 transition-colors duration-200 hover:bg-transit-orange-dark focus:outline-none focus:ring-2 focus:ring-transit-orange-dark focus:ring-offset-2"
-            type="button"
+          <Button
+            className="w-full mt-2"
             onClick={() => navigate("/login")}
-            style={{ boxShadow: "0 1.5px 8px 0 rgba(255, 126, 29, 0.08)" }}
           >
             Login
-          </button>
+          </Button>
         )}
       </SidebarFooter>
     </Sidebar>
