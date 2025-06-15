@@ -40,7 +40,15 @@ const LoadingScreen = () => (
   </div>
 );
 
+import { useUser } from "@/context/UserContext"; // <-- Add import
+
 const AppContent = () => {
+  const { isLoading } = useUser(); // <-- Use hook here
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <Routes>
       {/* Public Routes */}
@@ -55,7 +63,7 @@ const AppContent = () => {
       <Route path="/wallet" element={<WalletPage />} />
       <Route path="/qr-scan/:userId" element={<QRScanPage />} />
       <Route path="/qr-scanner" element={<QRScannerPage />} />
-      
+
       {/* Admin Routes */}
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminDashboardPage />} />
@@ -64,7 +72,7 @@ const AppContent = () => {
         <Route path="/buses" element={<BusesPage />} />
         <Route path="/stations" element={<StationManagementPage />} />
       </Route>
-      
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -95,3 +103,4 @@ const App = () => (
 );
 
 export default App;
+
