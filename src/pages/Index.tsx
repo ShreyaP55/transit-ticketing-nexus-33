@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/context/UserContext";
 import MainLayout from "@/components/layout/MainLayout";
@@ -41,7 +42,7 @@ const steps = [
 ];
 
 const heroImg =
-  "https://images.unsplash.com/photo-1570125909232-eb263c186f72?auto=format&fit=crop&w=900&q=80"; // Modern bus
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=80"; // Forest, green, peaceful
 
 const Index = () => {
   const navigate = useNavigate();
