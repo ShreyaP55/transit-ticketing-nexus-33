@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/context/UserContext";
 import MainLayout from "@/components/layout/MainLayout";
@@ -99,7 +100,7 @@ const Index = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12 animate-fade-in">
           {featureCards.map((feat, idx) => (
             <div
-              className="bg-white border border-primary/20 p-6 rounded-xl text-center shadow-lg hover:scale-105 hover:bg-primary/5 transition-all duration-300 flex flex-col items-center gap-3 hover-scale animate-scale-in"
+              className="bg-white border border-primary/20 p-6 rounded-xl text-center shadow-lg hover:scale-105 transition-all duration-300 flex flex-col items-center gap-3 animate-scale-in"
               key={idx}
               style={{ animationDelay: `${idx * 120}ms` }}
             >
@@ -116,7 +117,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
             {steps.map((step, idx) => (
               <div
-                className={`flex flex-col items-center flex-1 max-w-xs transition-all duration-200 animate-fade-in`}
+                className={`flex flex-col items-center flex-1 max-w-xs transition-all duration-200 animate-fade-in hover:scale-105`}
                 style={{ animationDelay: `${idx * 120}ms` }}
                 key={idx}
               >
