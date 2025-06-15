@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { NewTicketModal } from "@/components/tickets/NewTicketModal";
 import { useQuery } from "@tanstack/react-query";
