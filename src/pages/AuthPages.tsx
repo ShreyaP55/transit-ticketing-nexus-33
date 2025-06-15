@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { SignIn, SignUp, useUser } from "@clerk/clerk-react";
@@ -43,7 +42,7 @@ export const LoginPage = () => {
         <div className="bg-gradient-to-r from-transit-orange to-transit-orange-dark p-3 rounded-xl mb-4 shadow-lg">
           <Bus size={40} className="text-white" />
         </div>
-        <h1 className="text-3xl font-bold text-transit-orange-dark">TransitNexus</h1>
+        <h1 className="text-3xl font-bold text-transit-orange-dark">BusInn</h1>
         <p className="text-muted-foreground mt-1">Your smart transit companion</p>
       </div>
       
@@ -89,7 +88,7 @@ export const SignupPage = () => {
   
   useEffect(() => {
     if (isSignedIn) {
-      toast.success("Welcome to TransitNexus!");
+      toast.success("Welcome to BusInn!");
       navigate('/');
     }
   }, [isSignedIn, navigate]);
@@ -100,7 +99,7 @@ export const SignupPage = () => {
         <div className="bg-gradient-to-r from-transit-orange to-transit-orange-dark p-3 rounded-xl mb-4 shadow-lg">
           <Bus size={40} className="text-white" />
         </div>
-        <h1 className="text-3xl font-bold text-transit-orange-dark">TransitNexus</h1>
+        <h1 className="text-3xl font-bold text-transit-orange-dark">BusInn</h1>
         <p className="text-muted-foreground mt-1">Your smart transit companion</p>
       </div>
       
