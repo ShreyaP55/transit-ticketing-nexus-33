@@ -75,3 +75,29 @@ export const getActiveTrip = async (userId: string) => {
     return null;
   }
 };
+
+export const getUserTrips = async (userId: string) => {
+  try {
+    const response = await fetch(`${API_URL}/trips/user/${userId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return [];
+      }
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get user trips');
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error("Server is not running. Please start the backend server.");
+    }
+    console.error('Error getting user trips:', error);
+    return [];
+  }
+};

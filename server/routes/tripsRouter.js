@@ -8,35 +8,28 @@ const router = express.Router();
 router.post('/start', async (req, res) => {
   try {
     const { userId, latitude, longitude } = req.body;
-    
-    if (!userId || !latitude || !longitude) {
-      return res.status(400).json({ error: 'Missing required fields' });
+
+    if (!userId || latitude === undefined || longitude === undefined) {
+      return res.status(400).json({ error: 'userId, latitude, and longitude are required' });
     }
-    
+
     // Check if user already has an active trip
-    const activeTrip = await Trip.findOne({ userId, active: true });
-    if (activeTrip) {
+    const existingTrip = await Trip.findOne({ userId, active: true });
+    if (existingTrip) {
       return res.status(400).json({ error: 'User already has an active trip' });
     }
-    
-    // Create new trip
-    const newTrip = new Trip({
+
+    const trip = new Trip({
       userId,
       startLocation: {
-        latitude: parseFloat(latitude),
-        longitude: parseFloat(longitude),
+        latitude,
+        longitude,
         timestamp: new Date()
-      },
-      active: true
+      }
     });
-    
-    await newTrip.save();
-    
-    res.status(201).json({ 
-      success: true, 
-      message: 'Trip started successfully',
-      trip: newTrip 
-    });
+
+    await trip.save();
+    res.json({ success: true, trip });
   } catch (error) {
     console.error('Error starting trip:', error);
     res.status(500).json({ error: 'Failed to start trip' });
@@ -44,53 +37,39 @@ router.post('/start', async (req, res) => {
 });
 
 // End a trip
-router.put('/:id/end', async (req, res) => {
+router.put('/:tripId/end', async (req, res) => {
   try {
-    const { id } = req.params;
+    const { tripId } = req.params;
     const { latitude, longitude } = req.body;
-    
-    if (!latitude || !longitude) {
-      return res.status(400).json({ error: 'Missing required fields' });
+
+    if (latitude === undefined || longitude === undefined) {
+      return res.status(400).json({ error: 'latitude and longitude are required' });
     }
-    
-    // Find the active trip
-    const trip = await Trip.findById(id);
-    
+
+    const trip = await Trip.findById(tripId);
     if (!trip) {
       return res.status(404).json({ error: 'Trip not found' });
     }
-    
+
     if (!trip.active) {
       return res.status(400).json({ error: 'Trip is already completed' });
     }
-    
-    // Update trip with end location
+
+    // Set end location
     trip.endLocation = {
-      latitude: parseFloat(latitude),
-      longitude: parseFloat(longitude),
+      latitude,
+      longitude,
       timestamp: new Date()
     };
     trip.active = false;
-    
-    // Calculate trip metrics
+
+    // Calculate distance, fare, and duration
     trip.calculateDistance();
     trip.calculateFare();
     trip.calculateDuration();
-    
+
     await trip.save();
-    
-    res.json({ 
-      success: true, 
-      message: 'Trip ended successfully',
-      trip: {
-        id: trip._id,
-        distance: trip.distance,
-        fare: trip.fare,
-        duration: trip.duration,
-        startTime: trip.startLocation.timestamp,
-        endTime: trip.endLocation.timestamp
-      }
-    });
+    res.json({ success: true, trip });
   } catch (error) {
     console.error('Error ending trip:', error);
     res.status(500).json({ error: 'Failed to end trip' });
@@ -102,36 +81,50 @@ router.get('/active/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    const activeTrip = await Trip.findOne({ userId, active: true });
+    const trip = await Trip.findOne({ userId, active: true });
     
-    if (!activeTrip) {
-      return res.json({ active: false });
+    if (!trip) {
+      return res.status(404).json({ active: false, message: 'No active trip found' });
     }
-    
-    res.json({ 
-      active: true,
-      trip: activeTrip
-    });
+
+    res.json({ active: true, trip });
   } catch (error) {
     console.error('Error getting active trip:', error);
     res.status(500).json({ error: 'Failed to get active trip' });
   }
 });
 
-// Get trip history for a user
-router.get('/history/:userId', async (req, res) => {
+// Get all trips for a user
+router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    const trips = await Trip.find({ 
-      userId, 
-      active: false 
-    }).sort({ createdAt: -1 });
+    const trips = await Trip.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(50); // Limit to last 50 trips
     
-    res.json(trips);
+    // Transform trips for frontend consumption
+    const formattedTrips = trips.map(trip => ({
+      _id: trip._id,
+      status: trip.active ? 'active' : 'completed',
+      createdAt: trip.createdAt,
+      startLocation: {
+        lat: trip.startLocation.latitude,
+        lng: trip.startLocation.longitude
+      },
+      endLocation: trip.endLocation ? {
+        lat: trip.endLocation.latitude,
+        lng: trip.endLocation.longitude
+      } : null,
+      distance: trip.distance,
+      fare: trip.fare,
+      duration: trip.duration
+    }));
+
+    res.json(formattedTrips);
   } catch (error) {
-    console.error('Error getting trip history:', error);
-    res.status(500).json({ error: 'Failed to get trip history' });
+    console.error('Error getting user trips:', error);
+    res.status(500).json({ error: 'Failed to get user trips' });
   }
 });
 

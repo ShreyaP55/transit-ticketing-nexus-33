@@ -148,10 +148,18 @@ export const tripsAPI = {
 
   getActiveTrip: async (userId: string): Promise<any> => {
     try {
-      const response = await fetchAPI(`/trips/active/${userId}`);
-      return response.active ? response.trip : null;
+      const response: any = await fetchAPI(`/trips/active/${userId}`);
+      return (response && typeof response === 'object' && response.active) ? response.trip : null;
     } catch (error) {
       return null;
+    }
+  },
+
+  getUserTrips: async (userId: string): Promise<any[]> => {
+    try {
+      return await fetchAPI(`/trips/user/${userId}`);
+    } catch (error) {
+      return [];
     }
   },
 };
