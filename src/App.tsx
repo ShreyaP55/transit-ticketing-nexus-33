@@ -4,8 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { UserProvider, useUser } from "@/context/UserContext";
-import { ClerkProvider, useClerk } from "@clerk/clerk-react";
+import { UserProvider } from "@/context/UserContext";
+import { ClerkProvider } from "@clerk/clerk-react";
 import Index from "./pages/Index";
 import TicketsPage from "./pages/TicketsPage";
 import PassPage from "./pages/PassPage";
@@ -27,6 +27,10 @@ import QRScannerPage from "./pages/QRScannerPage";
 const queryClient = new QueryClient();
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+if (!PUBLISHABLE_KEY) {
+  throw new Error("Missing Clerk Publishable Key");
+}
+
 const LoadingScreen = () => (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50">
     <div className="text-center">
@@ -37,12 +41,6 @@ const LoadingScreen = () => (
 );
 
 const AppContent = () => {
-  const { isLoading } = useUser();
-  
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
   return (
     <Routes>
       {/* Public Routes */}
@@ -73,7 +71,15 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+  <ClerkProvider 
+    publishableKey={PUBLISHABLE_KEY}
+    appearance={{
+      baseTheme: undefined,
+      variables: {
+        colorPrimary: "#FF7E1D"
+      }
+    }}
+  >
     <QueryClientProvider client={queryClient}>
       <UserProvider>
         <TooltipProvider>
