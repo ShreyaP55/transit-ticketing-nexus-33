@@ -1,23 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
-import { useToast } from "@/components/ui/use-toast";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QrScanner } from "@/components/qr/QrScanner";
 import { startTrip, endTrip, getActiveTrip } from "@/services/tripService";
 import { toast } from "sonner";
-import { useAuthService } from "@/services/authService";
-import { validateQRCode } from "@/utils/qrSecurity";
+
+type Mode = "scanning" | "checking-in" | "checking-out";
 
 const QRScannerPage: React.FC = () => {
-  const [scanned, setScanned] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>("scanning"); // "scanning", "checking-in", "checking-out"
+  const [scannedUserId, setScannedUserId] = useState<string | null>(null);
   const [location, setLocation] = useState<{lat: number; lng: number} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [connectionError, setConnectionError] = useState(false);
-  const { getAuthToken, isAuthenticated } = useAuthService();
 
   // Get current location when component mounts
   useEffect(() => {
@@ -28,10 +26,8 @@ const QRScannerPage: React.FC = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
-          console.log("Location obtained:", position.coords.latitude, position.coords.longitude);
         },
         (error) => {
-          console.error("Error getting location:", error);
           toast.error("Unable to get your current location. Please enable location services.");
         }
       );
@@ -40,113 +36,63 @@ const QRScannerPage: React.FC = () => {
     }
   }, []);
 
-  // Function to handle successful QR scan
+  // Handle a successful QR scan
   const handleScan = async (data: string | null) => {
-    if (data && !scanned) {
-      console.log("QR Code scanned:", data);
-      setScanned(true);
-      setConnectionError(false);
-      
-      // Validate QR code if it's encrypted
-      let parsedUserId = data;
-      if (data.length > 50) {
-        const validation = validateQRCode(data);
-        if (!validation.isValid) {
-          toast.error(validation.error || "Invalid QR code");
-          setScanned(false);
-          return;
-        }
-        parsedUserId = validation.userId || data;
-      } else {
-        // Parse the QR code data if it's JSON
-        try {
-          const parsedData = JSON.parse(data);
-          parsedUserId = parsedData.userId || data;
-        } catch (error) {
-          // If it's not JSON, treat it as a plain user ID
-          parsedUserId = data;
-        }
-      }
-      
-      setUserId(parsedUserId);
-      
+    if (!data || mode !== "scanning") return;
+    setScannedUserId(data);
+    setIsLoading(true);
+    setConnectionError(false);
+    // Defensive: don't repeat a scan if already acting
+    try {
       if (!location) {
         toast.error("Unable to get current location. Please try again.");
-        setScanned(false);
-        setUserId(null);
-        return;
-      }
-
-      if (!isAuthenticated) {
-        toast.error("Please log in as an admin to use the scanner.");
-        setScanned(false);
-        setUserId(null);
-        return;
-      }
-
-      setIsLoading(true);
-      
-      try {
-        const authToken = await getAuthToken();
-        if (!authToken) {
-          throw new Error("Authentication required");
-        }
-
-        // Check if user already has an active trip
-        const trip = await getActiveTrip(parsedUserId, authToken);
-        setActiveTrip(trip);
-        
-        if (trip) {
-          // User has an active trip, ready for check out
-          toast.success(`Active trip found. Ready for check-out.`);
-        } else {
-          // No active trip, ready for check in
-          toast.success(`User scanned successfully. Ready for check-in.`);
-        }
-      } catch (error: any) {
-        console.error("Error checking trip status:", error);
-        if (error.message.includes("Server is not running")) {
-          setConnectionError(true);
-          toast.error("Backend server is not running. Please start the server first.");
-        } else {
-          toast.error("Failed to check trip status. Please try again.");
-        }
-        setScanned(false);
-        setUserId(null);
-      } finally {
         setIsLoading(false);
+        setScannedUserId(null);
+        return;
       }
+      // Check for active trip
+      const trip = await getActiveTrip(data);
+      setActiveTrip(trip);
+      if (trip) {
+        toast.success("Active trip found. Checking out user...");
+        setMode("checking-out");
+        // Immediately check out
+        handleCheckOut(data, trip);
+      } else {
+        toast.success("User scanned. Checking in...");
+        setMode("checking-in");
+        // Immediately check in
+        handleCheckIn(data);
+      }
+    } catch (error: any) {
+      if (error.message && error.message.includes("Server is not running")) {
+        setConnectionError(true);
+        toast.error("Backend server is not running. Please start the server first.");
+      } else {
+        toast.error("Failed to process scan. Please try again.");
+      }
+      // Reset so scanner is ready for a new scan
+      resetScanner();
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Only show scan error if a real error occurs (not just "no QR found")
   const handleError = (error: any) => {
-    console.error("QR Scan error:", error);
-    toast.error("Failed to scan QR code. Please try again.");
+    if (typeof error === "string" && error.toLowerCase().includes("not found")) return;
+    toast.error("Camera/device error: " + (error?.message || error));
   };
 
-  const handleCheckIn = async () => {
-    if (!userId || !location || !isAuthenticated) return;
-    
+  // Check-in logic after scan
+  const handleCheckIn = async (userId: string) => {
     setIsLoading(true);
     try {
-      const authToken = await getAuthToken();
-      if (!authToken) {
-        throw new Error("Authentication required");
-      }
-
-      const result = await startTrip(userId, location.lat, location.lng, authToken);
-      
+      if (!location) throw new Error("Current location missing.");
+      const result = await startTrip(userId, location.lat, location.lng);
       toast.success("Check-in successful! Trip started.");
-      
-      // Reset for next scan
-      setTimeout(() => {
-        setScanned(false);
-        setUserId(null);
-        setActiveTrip(null);
-      }, 2000);
     } catch (error: any) {
-      console.error("Check-in error:", error);
-      if (error.message.includes("Server is not running")) {
+      if (error.message && error.message.includes("Server is not running")) {
         setConnectionError(true);
         toast.error("Backend server is not running. Please start the server first.");
       } else {
@@ -154,36 +100,24 @@ const QRScannerPage: React.FC = () => {
       }
     } finally {
       setIsLoading(false);
+      setTimeout(resetScanner, 1200); // auto reset in 1.2s for next scan
     }
   };
 
-  const handleCheckOut = async () => {
-    if (!userId || !location || !activeTrip || !isAuthenticated) return;
-    
+  // Check-out logic after scan
+  const handleCheckOut = async (userId: string, trip: any) => {
     setIsLoading(true);
     try {
-      const authToken = await getAuthToken();
-      if (!authToken) {
-        throw new Error("Authentication required");
-      }
-
-      const result = await endTrip(activeTrip._id, location.lat, location.lng, authToken);
-      
+      if (!location) throw new Error("Current location missing.");
+      if (!trip || !trip._id) throw new Error("Active trip not found");
+      const result = await endTrip(trip._id, location.lat, location.lng);
       if (result.success) {
         toast.success(`Check-out successful! Distance: ${result.trip?.distance || 0}km, Fare: ₹${result.trip?.fare || 0}`);
       } else {
         toast.success("Check-out successful!");
       }
-      
-      // Reset for next scan
-      setTimeout(() => {
-        setScanned(false);
-        setUserId(null);
-        setActiveTrip(null);
-      }, 3000);
     } catch (error: any) {
-      console.error("Check-out error:", error);
-      if (error.message.includes("Server is not running")) {
+      if (error.message && error.message.includes("Server is not running")) {
         setConnectionError(true);
         toast.error("Backend server is not running. Please start the server first.");
       } else {
@@ -191,14 +125,17 @@ const QRScannerPage: React.FC = () => {
       }
     } finally {
       setIsLoading(false);
+      setTimeout(resetScanner, 1600); // auto reset in 1.6s for next scan
     }
   };
 
-  const handleReset = () => {
-    setScanned(false);
-    setUserId(null);
+  // Reset scanner for new scan
+  const resetScanner = () => {
+    setMode("scanning");
     setActiveTrip(null);
+    setScannedUserId(null);
     setConnectionError(false);
+    setIsLoading(false);
   };
 
   return (
@@ -207,19 +144,10 @@ const QRScannerPage: React.FC = () => {
         <Card className="bg-white shadow-md border-transit-orange overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
             <CardTitle className="text-center">
-              {scanned ? "User QR Scanned" : "Scan User QR Code"}
+              QR Code Scanner
             </CardTitle>
           </CardHeader>
-          
           <CardContent className="p-4">
-            {!isAuthenticated && (
-              <div className="mb-4 p-3 bg-amber-100 border border-amber-300 rounded-md">
-                <p className="text-amber-700 text-sm">
-                  ⚠️ Please log in as an admin to use the QR scanner.
-                </p>
-              </div>
-            )}
-
             {connectionError && (
               <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
                 <p className="text-red-700 text-sm">
@@ -227,8 +155,7 @@ const QRScannerPage: React.FC = () => {
                 </p>
               </div>
             )}
-
-            {!scanned ? (
+            {mode === "scanning" && (
               <div className="flex flex-col items-center">
                 <div className="w-full max-w-xs mx-auto mb-4">
                   <QrScanner onScan={handleScan} onError={handleError} />
@@ -242,63 +169,21 @@ const QRScannerPage: React.FC = () => {
                   </p>
                 )}
               </div>
-            ) : (
-              <div className="text-center">
-                <div className="mb-4">
-                  <p className="font-semibold">User ID:</p>
-                  <p className="text-sm text-muted-foreground">{userId?.substring(0, 12)}...</p>
-                  
-                  {location && (
-                    <div className="mt-2">
-                      <p className="font-semibold">Current Location:</p>
-                      <p className="text-xs text-muted-foreground">
-                        {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {activeTrip && (
-                    <div className="mt-4 p-3 bg-transit-orange/10 rounded-md">
-                      <p className="text-sm">
-                        <span className="font-medium">Trip started:</span> {new Date(activeTrip.startLocation.timestamp).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex justify-center space-x-2 mt-4">
-                  {activeTrip ? (
-                    <Button
-                      variant="destructive"
-                      onClick={handleCheckOut}
-                      disabled={isLoading || !isAuthenticated}
-                    >
-                      {isLoading ? "Processing..." : "Check Out"}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="default"
-                      className="bg-transit-orange hover:bg-transit-orange-dark"
-                      onClick={handleCheckIn}
-                      disabled={isLoading || !isAuthenticated}
-                    >
-                      {isLoading ? "Processing..." : "Check In"}
-                    </Button>
-                  )}
-                  
-                  <Button
-                    variant="outline"
-                    onClick={handleReset}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Wait..." : "Cancel"}
-                  </Button>
-                </div>
+            )}
+
+            {mode !== "scanning" && (
+              <div className="flex flex-col items-center justify-center min-h-[150px]">
+                <p className="mb-2 font-semibold text-lg">
+                  {mode === "checking-in" ? "User is being checked in..." : "User is being checked out..."}
+                </p>
+                <div className="animate-spin border-4 border-transit-orange border-t-transparent rounded-full h-8 w-8 mb-3" />
+                <p className="text-muted-foreground text-sm">
+                  Please wait...
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
-
         <div className="mt-4 p-3 bg-blue-50 rounded-md">
           <p className="text-sm text-blue-800">
             💡 <strong>How to use:</strong> Users should show their QR code from the wallet page to check in/out of trips.
@@ -310,3 +195,4 @@ const QRScannerPage: React.FC = () => {
 };
 
 export default QRScannerPage;
+
