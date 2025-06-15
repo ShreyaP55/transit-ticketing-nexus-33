@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Bus as BusIcon } from "lucide-react";
 
-const heroImg = "https://images.unsplash.com/photo-1570125909232-eb263c186f72?auto=format&fit=crop&w=900&q=80";
+const heroImg = "https://images.unsplash.com/photo-1525962898745-0c3541235cb9?auto=format&fit=crop&w=900&q=80";
 
 interface HeroSectionProps {
   isAuthenticated: boolean;
