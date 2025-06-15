@@ -41,20 +41,12 @@ const steps = [
   },
 ];
 
-const busImg = "https://images.unsplash.com/photo-1460574283810-2aab119d8511?auto=format&fit=crop&w=900&q=80";
+const heroImg =
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=80"; // Forest, green, peaceful
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isAdmin, userDetails, logout } = useUser();
-
-  const handleAuthAction = () => {
-    if (isAuthenticated) {
-      logout();
-      navigate("/");
-    } else {
-      navigate("/login");
-    }
-  };
+  const { isAuthenticated, isAdmin, userDetails } = useUser();
 
   return (
     <MainLayout title="Home">
@@ -62,7 +54,6 @@ const Index = () => {
         {/* Decorative BG */}
         <div className="absolute -top-10 -right-10 w-48 h-48 bg-primary/30 rounded-full blur-3xl z-0 animate-fade-in" />
         <div className="absolute top-1/2 -left-24 w-64 h-32 bg-secondary/50 rounded-full blur-3xl z-0 animate-fade-in" />
-        
         {/* Hero Section */}
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 py-8 mb-12">
           {/* Hero Text */}
@@ -75,39 +66,30 @@ const Index = () => {
             <p className="mt-2 text-lg text-muted-foreground">
               Experience simple, modern travel. Book tickets, renew your pass, track buses—everything at your fingertips.
             </p>
-            <div className="mt-5 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-              <Button size="lg" className="animate-scale-in w-full sm:w-auto"
+            <div className="mt-5 flex gap-4 justify-center md:justify-start">
+              <Button size="lg" className="animate-scale-in"
                 onClick={() => navigate("/pass")}>
                 Get a Pass
               </Button>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto"
+              <Button size="lg" variant="outline"
                 onClick={() => navigate("/tickets")}>
                 My Tickets
               </Button>
-              <Button 
-                size="lg" 
-                variant={isAuthenticated ? "destructive" : "default"} 
-                className="w-full sm:w-auto"
-                onClick={handleAuthAction}
-              >
-                {isAuthenticated ? "Logout" : "Login"}
-              </Button>
             </div>
           </div>
-          
           {/* Hero Image */}
           <div className="flex-1 flex items-center justify-center animate-fade-in">
             <div className="shadow-2xl rounded-xl overflow-hidden w-[320px] h-[220px] relative group hover:scale-105 transition-transform duration-200">
               <img
-                src={busImg}
-                alt="City bus transportation"
+                src={heroImg}
+                alt="Modern transit"
                 className="object-cover w-full h-full"
                 loading="lazy"
               />
               <div className="absolute top-3 right-3 bg-white/85 px-3 py-1 rounded-full flex items-center gap-2 shadow animate-fade-in">
                 <Bus size={20} className="text-primary" />
                 <span className="font-bold text-sm text-primary">
-                  Transit Ready
+                  Green Route
                 </span>
               </div>
             </div>
@@ -146,6 +128,10 @@ const Index = () => {
             ))}
           </div>
         </div>
+
+        {/* Footer */}
+        {/* Removed custom BusInn footer in favor of MainLayout's footer */}
+
       </div>
     </MainLayout>
   );
