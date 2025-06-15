@@ -140,8 +140,8 @@ const BusesPage = () => {
           )}
         </div>
         
-        <div className="flex flex-wrap md:flex-nowrap gap-4 w-full min-h-[300px]">
-          <div className="md:w-1/4 w-full min-w-[250px]">
+        <div className="flex flex-wrap gap-4 w-full min-h-[300px]">
+          <div className="flex-1 min-w-[250px]">
             <BusFilters
               routes={routes}
               isLoadingRoutes={isLoadingRoutes}
@@ -149,7 +149,7 @@ const BusesPage = () => {
               onRouteFilter={handleRouteFilter}
             />
           </div>
-          <div className="md:w-3/4 w-full flex-1 min-w-[350px]">
+          <div className="flex-[3] min-w-[350px]">
             <BusTable
               buses={buses}
               isLoading={isLoading}

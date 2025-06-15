@@ -69,9 +69,9 @@ const LiveTrackingPage = () => {
   return (
     <MainLayout title="Live Bus Tracking">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="flex flex-wrap gap-6">
           {/* Sidebar */}
-          <div className="md:col-span-1 space-y-6">
+          <div className="flex-1 space-y-6 min-w-[300px]">
             {/* Route Selection */}
             <Card className="bg-gradient-to-br from-white to-blue-50 overflow-hidden shadow-lg border-none">
               <CardHeader className="pb-3 bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
@@ -212,7 +212,7 @@ const LiveTrackingPage = () => {
           </div>
 
           {/* Map Area */}
-          <Card className="md:col-span-3 overflow-hidden border-none shadow-xl rounded-xl">
+          <Card className="flex-[3] min-w-[500px] overflow-hidden border-none shadow-xl rounded-xl">
             <CardContent className="p-0 h-[75vh]">
               <LeafletMap 
                 buses={buses || []} 

@@ -115,9 +115,9 @@ const StationManagementPage = () => {
           )}
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="flex flex-wrap gap-6">
           {/* Route Filter */}
-          <Card className="md:col-span-1 bg-gradient-to-br from-card to-background border-transit-orange/20">
+          <Card className="flex-1 min-w-[280px] bg-gradient-to-br from-card to-background border-transit-orange/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-bold text-transit-orange flex items-center neonText">
                 <Bus className="mr-2 h-5 w-5" /> 
@@ -151,7 +151,7 @@ const StationManagementPage = () => {
           </Card>
 
           {/* Station Listing */}
-          <Card className="md:col-span-3 h-fit border-transit-orange/20 bg-card">
+          <Card className="flex-[2] min-w-[400px] h-fit border-transit-orange/20 bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border">
               <div>
                 <CardTitle className="text-xl font-bold text-white">Stations</CardTitle>

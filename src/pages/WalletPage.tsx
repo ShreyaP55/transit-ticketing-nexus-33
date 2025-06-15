@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,8 +69,8 @@ const WalletPage = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-1">
+          <div className="flex flex-wrap gap-6">
+            <div className="flex-1 min-w-[280px]">
               {/* QR Code Card */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-3 flex items-center">
@@ -90,7 +91,7 @@ const WalletPage = () => {
             </div>
             
             {/* Ride History */}
-            <div className="md:col-span-2">
+            <div className="flex-[2] min-w-[400px]">
               <Card className="bg-white shadow-md h-full">
                 <CardHeader className="bg-gradient-to-r from-transit-orange/10 to-transparent">
                   <CardTitle className="flex items-center">
