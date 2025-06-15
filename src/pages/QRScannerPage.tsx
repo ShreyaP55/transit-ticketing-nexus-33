@@ -14,11 +14,16 @@ const QRScannerPage: React.FC = () => {
   const [scanned, setScanned] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [location, setLocation] = useState<{lat: number; lng: number} | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [connectionError, setConnectionError] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
+  // Fetch location once at mount
   useEffect(() => {
+    setIsLoadingLocation(true);
+    setLocationError(null);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -26,15 +31,21 @@ const QRScannerPage: React.FC = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
+          setIsLoadingLocation(false);
+          setLocationError(null);
           console.log("Location obtained:", position.coords.latitude, position.coords.longitude);
         },
         (error) => {
           console.error("Error getting location:", error);
-          toast.error("Unable to get your current location. Please enable location services.");
+          setLocation(null);
+          setLocationError("Unable to get your current location. Please enable location services.");
+          setIsLoadingLocation(false);
         }
       );
     } else {
-      toast.error("Geolocation is not supported by this browser.");
+      setLocation(null);
+      setLocationError("Geolocation is not supported by this browser.");
+      setIsLoadingLocation(false);
     }
   }, []);
 
@@ -54,12 +65,11 @@ const QRScannerPage: React.FC = () => {
       }
 
       setIsLoading(true);
-
       try {
         // getActiveTrip(userId, authToken)
         const trip = await getActiveTrip(data, DUMMY_AUTH_TOKEN);
         setActiveTrip(trip);
-        
+
         if (trip) {
           toast.success(`Active trip found. Ready for check-out.`);
         } else {
@@ -167,69 +177,92 @@ const QRScannerPage: React.FC = () => {
                 </p>
               </div>
             )}
-            {!scanned ? (
-              <div className="flex flex-col items-center">
-                <div className="w-full max-w-xs mx-auto mb-4">
-                  <QrScanner onScan={handleScan} onError={handleError} />
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Position the QR code in the center of the camera view
-                </p>
-                {!location && (
-                  <p className="text-xs text-amber-600 mt-2">
-                    📍 Getting your location...
-                  </p>
-                )}
+            {locationError ? (
+              <div className="flex flex-col items-center py-10">
+                <p className="text-red-500 font-medium mb-2">{locationError}</p>
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.reload()}
+                  className="mt-2"
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : isLoadingLocation ? (
+              <div className="flex flex-col items-center py-10">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
+                <p className="text-muted-foreground">Getting your location...</p>
               </div>
             ) : (
-              <div className="text-center">
-                <div className="mb-4">
-                  <p className="font-semibold">User ID:</p>
-                  <p className="text-sm text-muted-foreground">{userId?.substring(0, 12)}...</p>
-                  {location && (
-                    <div className="mt-2">
-                      <p className="font-semibold">Current Location:</p>
-                      <p className="text-xs text-muted-foreground">
-                        {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                      </p>
+              <>
+                {!scanned ? (
+                  <div className="flex flex-col items-center">
+                    <div className="w-full max-w-xs mx-auto mb-4">
+                      {/* Only render QrScanner when location available */}
+                      {location && (
+                        <QrScanner onScan={handleScan} onError={handleError} />
+                      )}
                     </div>
-                  )}
-                  {activeTrip && (
-                    <div className="mt-4 p-3 bg-transit-orange/10 rounded-md">
-                      <p className="text-sm">
-                        <span className="font-medium">Trip started:</span> {new Date(activeTrip.startLocation.timestamp).toLocaleTimeString()}
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Position the QR code in the center of the camera view
+                    </p>
+                    {!location && (
+                      <p className="text-xs text-amber-600 mt-2">
+                        📍 Getting your location...
                       </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <div className="mb-4">
+                      <p className="font-semibold">User ID:</p>
+                      <p className="text-sm text-muted-foreground">{userId?.substring(0, 12)}...</p>
+                      {location && (
+                        <div className="mt-2">
+                          <p className="font-semibold">Current Location:</p>
+                          <p className="text-xs text-muted-foreground">
+                            {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                          </p>
+                        </div>
+                      )}
+                      {activeTrip && (
+                        <div className="mt-4 p-3 bg-transit-orange/10 rounded-md">
+                          <p className="text-sm">
+                            <span className="font-medium">Trip started:</span> {new Date(activeTrip.startLocation.timestamp).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="flex justify-center space-x-2 mt-4">
-                  {activeTrip ? (
-                    <Button
-                      variant="destructive"
-                      onClick={handleCheckOut}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Processing..." : "Check Out"}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="default"
-                      className="bg-transit-orange hover:bg-transit-orange-dark"
-                      onClick={handleCheckIn}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Processing..." : "Check In"}
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    onClick={handleReset}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Wait..." : "Cancel"}
-                  </Button>
-                </div>
-              </div>
+                    <div className="flex justify-center space-x-2 mt-4">
+                      {activeTrip ? (
+                        <Button
+                          variant="destructive"
+                          onClick={handleCheckOut}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? "Processing..." : "Check Out"}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="default"
+                          className="bg-transit-orange hover:bg-transit-orange-dark"
+                          onClick={handleCheckIn}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? "Processing..." : "Check In"}
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        onClick={handleReset}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Wait..." : "Cancel"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
