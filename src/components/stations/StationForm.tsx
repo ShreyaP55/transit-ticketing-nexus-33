@@ -38,6 +38,7 @@ const StationForm: React.FC<StationFormProps> = ({
     longitude: station?.longitude || 0,
     fare: station?.fare || 0,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: buses, isLoading: isLoadingBuses } = useQuery({
     queryKey: ["buses", selectedRouteId],
@@ -46,28 +47,46 @@ const StationForm: React.FC<StationFormProps> = ({
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => stationsAPI.create(data),
-    onSuccess: () => {
+    mutationFn: async (data: any) => {
+      console.log('Creating station with data:', data);
+      const result = await stationsAPI.create(data);
+      console.log('Station created successfully:', result);
+      return result;
+    },
+    onSuccess: (data) => {
+      console.log('Station creation success:', data);
+      queryClient.invalidateQueries({ queryKey: ["stations"] });
+      toast.success("Station created successfully!");
       onSuccess();
     },
     onError: (error: Error) => {
-      toast.error(`Error: ${error.message}`);
+      console.error('Station creation error:', error);
+      toast.error(`Error creating station: ${error.message}`);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => stationsAPI.update(data),
-    onSuccess: () => {
+    mutationFn: async (data: any) => {
+      console.log('Updating station with data:', data);
+      const result = await stationsAPI.update(data);
+      console.log('Station updated successfully:', result);
+      return result;
+    },
+    onSuccess: (data) => {
+      console.log('Station update success:', data);
+      queryClient.invalidateQueries({ queryKey: ["stations"] });
+      toast.success("Station updated successfully!");
       onSuccess();
     },
     onError: (error: Error) => {
-      toast.error(`Error: ${error.message}`);
+      console.error('Station update error:', error);
+      toast.error(`Error updating station: ${error.message}`);
     },
   });
 
   useEffect(() => {
-    // Update form values when station changes
     if (station) {
+      console.log('Setting form values for existing station:', station);
       setFormValues({
         id: station._id,
         name: station.name,
@@ -77,7 +96,7 @@ const StationForm: React.FC<StationFormProps> = ({
         fare: station.fare,
       });
     } else {
-      // Reset form for new station
+      console.log('Resetting form for new station');
       setFormValues({
         id: "",
         name: "",
@@ -91,54 +110,96 @@ const StationForm: React.FC<StationFormProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    console.log('Form field changed:', name, value);
     setFormValues((prev) => ({
       ...prev,
       [name]: name === "fare" || name === "latitude" || name === "longitude" 
-        ? parseFloat(value) 
+        ? parseFloat(value) || 0
         : value,
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSelectChange = (name: string, value: string) => {
+    console.log('Select field changed:', name, value);
+    setFormValues((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const payload = {
-      ...formValues,
-      routeId: selectedRouteId,
-    };
+    if (isSubmitting) {
+      console.log('Form already submitting, ignoring duplicate submission');
+      return;
+    }
 
-    if (station) {
-      updateMutation.mutate(payload);
-    } else {
-      createMutation.mutate(payload);
+    console.log('Submitting station form with values:', formValues);
+    
+    if (!isFormValid()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const payload = {
+        ...formValues,
+        routeId: selectedRouteId,
+        latitude: Number(formValues.latitude),
+        longitude: Number(formValues.longitude),
+        fare: Number(formValues.fare),
+      };
+
+      console.log('Final payload for submission:', payload);
+
+      if (station) {
+        await updateMutation.mutateAsync(payload);
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleGetCurrentLocation = () => {
+    console.log('Getting current location...');
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        setFormValues(prev => ({
-          ...prev,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        }));
-        toast.success("Location updated!");
-      }, (error) => {
-        toast.error(`Location error: ${error.message}`);
-      });
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log('Location obtained:', position.coords);
+          setFormValues(prev => ({
+            ...prev,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }));
+          toast.success("Location updated!");
+        }, 
+        (error) => {
+          console.error('Geolocation error:', error);
+          toast.error(`Location error: ${error.message}`);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
     } else {
       toast.error("Geolocation is not supported by this browser.");
     }
   };
 
   const isFormValid = () => {
-    return (
-      formValues.name.trim() !== "" &&
+    const valid = formValues.name.trim() !== "" &&
       formValues.busId !== "" &&
       formValues.latitude !== 0 &&
       formValues.longitude !== 0 &&
-      formValues.fare > 0
-    );
+      formValues.fare > 0;
+    
+    console.log('Form validation result:', valid, formValues);
+    return valid;
   };
 
   return (
@@ -159,7 +220,7 @@ const StationForm: React.FC<StationFormProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Station Name</Label>
+              <Label htmlFor="name">Station Name *</Label>
               <Input
                 id="name"
                 name="name"
@@ -172,29 +233,31 @@ const StationForm: React.FC<StationFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="busId">Select Bus</Label>
+              <Label htmlFor="busId">Select Bus *</Label>
               {isLoadingBuses ? (
                 <Skeleton className="h-10 w-full" />
               ) : (
-                <select
-                  id="busId"
-                  name="busId"
-                  value={formValues.busId}
-                  onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-muted bg-background/50 px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                  required
+                <Select 
+                  value={formValues.busId} 
+                  onValueChange={(value) => handleSelectChange('busId', value)}
                 >
-                  <option value="" disabled>Select a bus</option>
-                  {buses?.map(bus => (
-                    <option key={bus._id} value={bus._id}>{bus.name}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="border-muted bg-background/50">
+                    <SelectValue placeholder="Select a bus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {buses?.map(bus => (
+                      <SelectItem key={bus._id} value={bus._id}>
+                        {bus.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude</Label>
+                <Label htmlFor="latitude">Latitude *</Label>
                 <Input
                   id="latitude"
                   name="latitude"
@@ -208,7 +271,7 @@ const StationForm: React.FC<StationFormProps> = ({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude</Label>
+                <Label htmlFor="longitude">Longitude *</Label>
                 <Input
                   id="longitude"
                   name="longitude"
@@ -233,7 +296,7 @@ const StationForm: React.FC<StationFormProps> = ({
             </Button>
 
             <div className="space-y-2">
-              <Label htmlFor="fare">Fare (₹)</Label>
+              <Label htmlFor="fare">Fare (₹) *</Label>
               <Input
                 id="fare"
                 name="fare"
@@ -254,15 +317,16 @@ const StationForm: React.FC<StationFormProps> = ({
               type="button"
               variant="outline"
               onClick={onClose}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               type="submit"
               className="bg-primary hover:bg-primary/80 text-white"
-              disabled={!isFormValid() || createMutation.isPending || updateMutation.isPending}
+              disabled={!isFormValid() || isSubmitting}
             >
-              {createMutation.isPending || updateMutation.isPending ? (
+              {isSubmitting ? (
                 "Saving..."
               ) : station ? (
                 "Update Station"
