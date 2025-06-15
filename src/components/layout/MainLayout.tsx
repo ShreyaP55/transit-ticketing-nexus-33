@@ -1,5 +1,6 @@
+
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings, QrCode, Wallet, Route, ScanLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, logout, isAdmin, userDetails } = useUser();
 
   const publicNavItems = [
@@ -40,6 +42,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
 
   const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
 
+  const currentNavItem = navItems.find(item => {
+    if (item.path.includes(":")) {
+        const basePath = item.path.split("/:")[0];
+        return location.pathname.startsWith(basePath);
+    }
+    return location.pathname === item.path;
+  });
+
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   const handleLogout = () => {
@@ -55,6 +65,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
           <header className="h-16 bg-white shadow-md flex items-center justify-between px-6 sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <SidebarTrigger className="lg:hidden" />
+              {currentNavItem && React.cloneElement(currentNavItem.icon as React.ReactElement, { className: "text-transit-orange-dark" })}
               <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "TransitNexus"}</h1>
             </div>
             <div className="flex items-center gap-4">

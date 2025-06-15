@@ -120,16 +120,7 @@ const BusesPage = () => {
   return (
     <MainLayout title="Bus Management">
       <div className="max-w-6xl mx-auto w-full px-2">
-        <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-          <div>
-            <h1 className="text-2xl font-bold text-white neonText flex items-center">
-              <BusIcon className="mr-2 h-6 w-6 text-transit-orange" />
-              Bus Management
-            </h1>
-            <p className="text-muted-foreground">
-              Create and manage buses for your transit network
-            </p>
-          </div>
+        <div className="mb-6 flex flex-col md:flex-row md:justify-end md:items-center gap-2">
           {isAdmin && (
             <Button 
               onClick={() => setIsBusFormOpen(true)} 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,10 +51,6 @@ const WalletPage = () => {
   return (
     <MainLayout title="My Wallet">
       <div className="max-w-4xl mx-auto p-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold gradient-heading">Transit Wallet</h1>
-          <p className="text-muted-foreground mt-2">Manage your funds and track your rides</p>
-        </div>
         
         {!isAuthenticated ? (
           <Card className="bg-white shadow-md mb-6">
