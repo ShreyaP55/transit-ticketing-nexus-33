@@ -28,7 +28,8 @@ const TicketsPage = () => {
   );
   
   const handleNewTicket = () => {
-    navigate("/");
+    // Updated: go directly to /booking page
+    navigate("/booking");
   };
 
   return (
@@ -103,3 +104,4 @@ const TicketsPage = () => {
 };
 
 export default TicketsPage;
+
