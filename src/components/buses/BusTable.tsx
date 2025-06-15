@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,9 +29,9 @@ const BusTable: React.FC<BusTableProps> = ({
   onGenerateQR
 }) => {
   return (
-    <div className="w-full">
+    <div className="w-full flex flex-col">
       <Card className="h-fit border-transit-orange/20 bg-card">
-        <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between pb-2 border-b border-border gap-2">
           <div>
             <CardTitle className="text-xl font-bold text-white">Buses</CardTitle>
             <CardDescription>
@@ -46,14 +45,20 @@ const BusTable: React.FC<BusTableProps> = ({
         <CardContent className="pt-6">
           {isLoading ? (
             <div className="space-y-2">
-              {Array(3).fill(0).map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
+              {Array(3)
+                .fill(0)
+                .map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
             </div>
-          ) : buses?.length === 0 ? (
+          ) : !buses || buses.length === 0 ? (
             <div className="text-center p-8 border rounded-lg border-dashed border-border bg-background/20">
               <BusIcon className="mx-auto h-12 w-12 mb-2 text-muted-foreground/50" />
-              <p className="text-muted-foreground">No buses found</p>
+              <p className="text-muted-foreground">
+                {isLoading
+                  ? "Loading buses..."
+                  : "No buses found"}
+              </p>
               {isAdmin && (
                 <Button 
                   variant="outline" 

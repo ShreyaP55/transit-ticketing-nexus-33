@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -33,7 +32,9 @@ const BusesPage = () => {
     error: routesError 
   } = useQuery({
     queryKey: ['routes'],
-    queryFn: routesAPI.getAll
+    queryFn: routesAPI.getAll,
+    retry: 3,
+    staleTime: 1000 * 60 * 2, // cache 2 min for speed
   });
 
   // Do not pass routeId to API if blank to avoid erroneous filtering.
@@ -47,7 +48,9 @@ const BusesPage = () => {
   } = useQuery({
     queryKey: ['buses', routeForApi],
     queryFn: () => busesAPI.getAll(routeForApi),
-    enabled: routes !== undefined // Don't call if routes fetch errored
+    enabled: !!routes,
+    retry: 2,
+    staleTime: 1000 * 60,
   });
 
   // Delete mutation
@@ -102,7 +105,9 @@ const BusesPage = () => {
   // Error Toast on load error
   React.useEffect(() => {
     if (routesError || busesError) {
-      toast.error(`Error loading data: ${(routesError || busesError as Error).message}`);
+      // Show exact error if possible
+      const err = (routesError || busesError) as Error;
+      toast.error(`Error loading data: ${err?.message || "Unknown"}`);
     }
   }, [routesError, busesError]);
 
@@ -129,9 +134,9 @@ const BusesPage = () => {
           )}
         </div>
         
-        {/* Responsive grid: stack vertically on mobile, row on md+ */}
-        <div className="flex flex-col md:flex-row gap-4 w-full">
-          <div className="md:w-1/4 w-full">
+        {/* Improve flex: stack mobile, row desktop, wrap if needed */}
+        <div className="flex flex-wrap md:flex-nowrap gap-4 w-full min-h-[300px]">
+          <div className="md:w-1/4 w-full min-w-[250px]">
             <BusFilters
               routes={routes}
               isLoadingRoutes={isLoadingRoutes}
@@ -140,7 +145,7 @@ const BusesPage = () => {
             />
           </div>
 
-          <div className="md:w-3/4 w-full">
+          <div className="md:w-3/4 w-full flex-1 min-w-[350px]">
             <BusTable
               buses={buses}
               isLoading={isLoading}

@@ -1,4 +1,3 @@
-
 import { IRoute, IBus, IStation, ITicket, IPass, IPassUsage } from "@/types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -95,29 +94,61 @@ export const routesAPI = {
 // Buses API
 export const busesAPI = {
   getAll: async (routeId?: string): Promise<IBus[]> => {
-    return fetchAPI(`/buses${routeId ? `?routeId=${routeId}` : ""}`);
+    try {
+      return await fetchAPI(`/buses${routeId ? `?routeId=${routeId}` : ""}`);
+    } catch (error) {
+      console.error("busesAPI.getAll error:", error);
+      // Return empty array on 404 so UI won't break; surface error on UI
+      return [];
+    }
   },
     
   create: async (bus: Omit<IBus, "_id" | "route"> & { route: string }): Promise<IBus> => {
-    console.log('Creating bus with data:', bus);
-    return fetchAPI("/buses", {
-      method: "POST",
-      body: JSON.stringify(bus),
-    });
+    try {
+      // Must send "route" not "routeId" for backend! (see server/routes/busesRouter.js)
+      const res = await fetchAPI("/buses", {
+        method: "POST",
+        body: JSON.stringify({
+          name: bus.name,
+          route: bus.route,
+          capacity: bus.capacity,
+        }),
+      });
+      return res;
+    } catch (error) {
+      console.error("busesAPI.create error:", error);
+      throw error;
+    }
   },
     
   update: async (bus: Omit<IBus, "route"> & { route: string }): Promise<IBus> => {
-    console.log('Updating bus with data:', bus);
-    return fetchAPI(`/buses/${bus._id}`, {
-      method: "PUT",
-      body: JSON.stringify(bus),
-    });
+    try {
+      // Must send "route" not "routeId"
+      const res = await fetchAPI(`/buses/${bus._id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: bus.name,
+          route: bus.route,
+          capacity: bus.capacity,
+        }),
+      });
+      return res;
+    } catch (error) {
+      console.error("busesAPI.update error:", error);
+      throw error;
+    }
   },
     
   delete: async (id: string): Promise<{ message: string }> => {
-    return fetchAPI(`/buses/${id}`, {
-      method: "DELETE",
-    });
+    try {
+      const res = await fetchAPI(`/buses/${id}`, {
+        method: "DELETE",
+      });
+      return res;
+    } catch (error) {
+      console.error("busesAPI.delete error:", error);
+      throw error;
+    }
   },
 };
 
@@ -127,8 +158,13 @@ export const stationsAPI = {
     const queryParams = new URLSearchParams();
     if (params?.routeId) queryParams.append("routeId", params.routeId);
     if (params?.busId) queryParams.append("busId", params.busId);
-      
-    return fetchAPI(`/stations?${queryParams.toString()}`);
+
+    try {
+      return await fetchAPI(`/stations?${queryParams.toString()}`);
+    } catch (error) {
+      console.error("stationsAPI.getAll error:", error);
+      return [];
+    }
   },
   
   create: async (station: Omit<IStation, "_id" | "routeId" | "busId"> & { routeId: string; busId: string }): Promise<IStation> => {
@@ -254,30 +290,43 @@ export const passesAPI = {
 
 // Payment API with Stripe integration
 export const paymentAPI = {
-  createTicketCheckoutSession: async (stationId: string, busId: string, amount: number): Promise<{ url: string }> => {
-    const userId = getAuthToken();
-    return fetchAPI("/checkout", {
-      method: "POST",
-      body: JSON.stringify({
-        userId,
-        station: { id: stationId, fare: amount },
-        bus: { id: busId },
-      }),
-    });
+  createTicketCheckoutSession: async (
+    stationId: string,
+    busId: string,
+    amount: number
+  ): Promise<{ url: string }> => {
+    try {
+      const userId = getAuthToken();
+      return await fetchAPI("/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          userId,
+          station: { id: stationId, fare: amount },
+          bus: { id: busId },
+        }),
+      });
+    } catch (error) {
+      console.error("paymentAPI.createTicketCheckoutSession error:", error);
+      throw error;
+    }
   },
-  
   createPassCheckoutSession: async (routeId: string, amount: number): Promise<{ url: string }> => {
-    const userId = getAuthToken();
-    return fetchAPI("/checkout", {
-      method: "POST",
-      body: JSON.stringify({
-        userId,
-        type: 'pass',
-        routeId,
-        fare: amount
-      }),
-    });
-  },
+    try {
+      const userId = getAuthToken();
+      return await fetchAPI("/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          userId,
+          type: 'pass',
+          routeId,
+          fare: amount
+        }),
+      });
+    } catch (error) {
+      console.error("paymentAPI.createPassCheckoutSession error:", error);
+      throw error;
+    }
+  }
 };
 
 // Admin API

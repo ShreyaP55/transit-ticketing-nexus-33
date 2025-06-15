@@ -42,7 +42,9 @@ const PassPage = () => {
   // Fetch routes
   const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
     queryKey: ["routes"],
-    queryFn: routesAPI.getAll
+    queryFn: routesAPI.getAll,
+    retry: 2,
+    staleTime: 1000 * 60 * 2, // cache for speed
   });
   
   // Fetch active pass
@@ -55,10 +57,10 @@ const PassPage = () => {
     queryKey: ["activePass"],
     queryFn: passesAPI.getActivePass,
     retry: (failureCount, error) => {
-      // Don't retry if 404 (no active pass found)
       if (error.message.includes("404")) return false;
-      return failureCount < 3;
-    }
+      return failureCount < 2;
+    },
+    staleTime: 1000 * 60 * 2,
   });
 
   // Fetch pass usage history
@@ -68,7 +70,9 @@ const PassPage = () => {
   } = useQuery({
     queryKey: ["passUsage"],
     queryFn: passesAPI.getPassUsage,
-    enabled: !!activePass
+    enabled: !!activePass,
+    retry: 2,
+    staleTime: 1000 * 60,
   });
   
   const selectedRoute = routes.find(r => r._id === selectedRouteId);
@@ -105,20 +109,22 @@ const PassPage = () => {
     
     try {
       setIsProcessing(true);
-      
+
+      // Updated paymentAPI will throw if backend fails; catch and show specific error
       const response = await paymentAPI.createPassCheckoutSession(
         selectedRouteId,
-        selectedRoute.fare * 20 // Monthly pass discount (assuming 20x the single fare)
+        selectedRoute.fare * 20 // Monthly pass discount
       );
       
-      if (response.url) {
+      if (response && response.url) {
         window.location.href = response.url;
       } else {
         toast.error("Failed to create checkout session");
       }
-    } catch (error) {
-      toast.error("Failed to process payment");
+    } catch (error: any) {
       console.error(error);
+      // Show backend message if exists
+      toast.error(error?.message || "Failed to process payment");
     } finally {
       setIsProcessing(false);
     }
