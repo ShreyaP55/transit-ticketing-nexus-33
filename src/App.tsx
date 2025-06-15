@@ -4,8 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { UserProvider } from "@/context/UserContext";
-import { ClerkProvider } from "@clerk/clerk-react";
+import { UserProvider, useUser } from "@/context/UserContext";
+import { ClerkProvider, useClerk } from "@clerk/clerk-react";
 import Index from "./pages/Index";
 import TicketsPage from "./pages/TicketsPage";
 import PassPage from "./pages/PassPage";
@@ -27,6 +27,51 @@ import QRScannerPage from "./pages/QRScannerPage";
 const queryClient = new QueryClient();
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+const LoadingScreen = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+      <p className="mt-4 text-gray-600">Loading TransitNexus...</p>
+    </div>
+  </div>
+);
+
+const AppContent = () => {
+  const { isLoading } = useUser();
+  
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<Index />} />
+      <Route path="/tickets" element={<TicketsPage />} />
+      <Route path="/pass" element={<PassPage />} />
+      <Route path="/booking" element={<BookingPage />} />
+      <Route path="/tracking" element={<LiveTrackingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/unauthorized" element={<NotAuthorizedPage />} />
+      <Route path="/wallet" element={<WalletPage />} />
+      <Route path="/qr-scan/:userId" element={<QRScanPage />} />
+      <Route path="/qr-scanner" element={<QRScannerPage />} />
+      
+      {/* Admin Routes */}
+      <Route element={<AdminRoute />}>
+        <Route path="/admin" element={<AdminDashboardPage />} />
+        <Route path="/admin/live-tracking" element={<AdminLiveTrackingPage />} />
+        <Route path="/routes" element={<RoutesPage />} />
+        <Route path="/buses" element={<BusesPage />} />
+        <Route path="/stations" element={<StationManagementPage />} />
+      </Route>
+      
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
 const App = () => (
   <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
     <QueryClientProvider client={queryClient}>
@@ -35,31 +80,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/tickets" element={<TicketsPage />} />
-              <Route path="/pass" element={<PassPage />} />
-              <Route path="/booking" element={<BookingPage />} />
-              <Route path="/tracking" element={<LiveTrackingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/unauthorized" element={<NotAuthorizedPage />} />
-              <Route path="/wallet" element={<WalletPage />} />
-              <Route path="/qr-scan/:userId" element={<QRScanPage />} />
-              <Route path="/qr-scanner" element={<QRScannerPage />} />
-              
-              {/* Admin Routes */}
-              <Route element={<AdminRoute />}>
-                <Route path="/admin" element={<AdminDashboardPage />} />
-                <Route path="/admin/live-tracking" element={<AdminLiveTrackingPage />} />
-                <Route path="/routes" element={<RoutesPage />} />
-                <Route path="/buses" element={<BusesPage />} />
-                <Route path="/stations" element={<StationManagementPage />} />
-              </Route>
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppContent />
           </BrowserRouter>
         </TooltipProvider>
       </UserProvider>

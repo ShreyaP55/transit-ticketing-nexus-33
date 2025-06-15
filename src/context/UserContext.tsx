@@ -11,6 +11,7 @@ type UserContextType = {
   isAdmin: boolean;
   userRole: UserRole;
   logout: () => void;
+  isLoading: boolean;
 };
 
 const UserContext = createContext<UserContextType>({
@@ -20,16 +21,19 @@ const UserContext = createContext<UserContextType>({
   isAdmin: false,
   userRole: "user",
   logout: () => {},
+  isLoading: true,
 });
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isSignedIn, user } = useClerkUser();
+  const { isLoaded, isSignedIn, user } = useClerkUser();
   const { signOut } = useClerk();
   const [userId, setUserId] = useState<string | null>(null);
   const [userDetails, setUserDetails] = useState<any>(null);
   const [userRole, setUserRole] = useState<UserRole>("user");
 
   useEffect(() => {
+    if (!isLoaded) return; // Wait for Clerk to load
+    
     if (isSignedIn && user) {
       setUserId(user.id);
       
@@ -54,7 +58,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUserRole("user");
       localStorage.removeItem("userId");
     }
-  }, [isSignedIn, user]);
+  }, [isLoaded, isSignedIn, user]);
 
   const logout = async () => {
     try {
@@ -74,7 +78,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userDetails,
       isAdmin: userRole === "admin",
       userRole,
-      logout 
+      logout,
+      isLoading: !isLoaded
     }}>
       {children}
     </UserContext.Provider>
