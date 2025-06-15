@@ -1,89 +1,77 @@
 
-import { ITrip } from '@/types';
-
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-// Helper function for API calls
-async function fetchAPI<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {})
-  };
-
+export const startTrip = async (userId: string, latitude: number, longitude: number) => {
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers
+    const response = await fetch(`${API_URL}/trips/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId, latitude, longitude }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || "An error occurred with status " + response.status);
+      throw new Error(error.error || 'Failed to start trip');
     }
 
     return response.json();
   } catch (error) {
-    console.error(`API Error (${endpoint}):`, error);
-    throw error;
-  }
-}
-
-export const startTrip = async (userId: string, latitude: number, longitude: number): Promise<ITrip> => {
-  try {
-    const result = await fetchAPI<{ success: boolean; trip: ITrip }>('/trips/start', {
-      method: 'POST',
-      body: JSON.stringify({ userId, latitude, longitude }),
-    });
-    
-    return result.trip;
-  } catch (error) {
-    console.error('Error starting trip:', error);
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error("Server is not running. Please start the backend server.");
+    }
     throw error;
   }
 };
 
-export const endTrip = async (tripId: string, latitude: number, longitude: number): Promise<ITrip> => {
+export const endTrip = async (tripId: string, latitude: number, longitude: number) => {
   try {
-    const result = await fetchAPI<{ success: boolean; trip: ITrip }>(`/trips/${tripId}/end`, {
+    const response = await fetch(`${API_URL}/trips/${tripId}/end`, {
       method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ latitude, longitude }),
     });
-    
-    return result.trip;
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to end trip');
+    }
+
+    return response.json();
   } catch (error) {
-    console.error('Error ending trip:', error);
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error("Server is not running. Please start the backend server.");
+    }
     throw error;
   }
 };
 
-export const getActiveTrip = async (userId: string): Promise<ITrip | null> => {
+export const getActiveTrip = async (userId: string) => {
   try {
-    const result = await fetchAPI<{ active: boolean; trip?: ITrip }>(`/trips/active/${userId}`);
-    
-    return result.active ? result.trip! : null;
+    const response = await fetch(`${API_URL}/trips/active/${userId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get active trip');
+    }
+
+    const data = await response.json();
+    return data.active ? data.trip : null;
   } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error("Server is not running. Please start the backend server.");
+    }
     console.error('Error getting active trip:', error);
-    throw error;
-  }
-};
-
-export const getTripHistory = async (userId: string): Promise<ITrip[]> => {
-  try {
-    return fetchAPI<ITrip[]>(`/trips/history/${userId}`);
-  } catch (error) {
-    console.error('Error getting trip history:', error);
-    throw error;
-  }
-};
-
-export const getUserTrips = async (userId: string): Promise<ITrip[]> => {
-  try {
-    return fetchAPI<ITrip[]>(`/trips/user/${userId}`);
-  } catch (error) {
-    console.error('Error getting user trips:', error);
-    throw error;
+    return null;
   }
 };

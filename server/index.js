@@ -26,8 +26,17 @@ app.use(express.json());
 
 // MongoDB Connection
 connect()
-  .then(() => console.log('Connected to MongoDB via utility'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Server is running', 
+    timestamp: new Date().toISOString() 
+  });
+});
 
 // Routes
 app.use('/api/buses', busesRouter);
@@ -44,10 +53,35 @@ app.use('/api/wallet', walletRouter);
 
 // Root route
 app.get('/', (req, res) => {
-  res.send('Transit API Server is running');
+  res.json({
+    message: 'Transit API Server is running',
+    version: '1.0.0',
+    endpoints: [
+      '/api/health',
+      '/api/routes',
+      '/api/buses', 
+      '/api/stations',
+      '/api/tickets',
+      '/api/passes',
+      '/api/pass-usage',
+      '/api/payments',
+      '/api/users',
+      '/api/trips',
+      '/api/rides',
+      '/api/wallet'
+    ]
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📱 API Base URL: http://localhost:${PORT}/api`);
+  console.log(`🏥 Health Check: http://localhost:${PORT}/api/health`);
 });

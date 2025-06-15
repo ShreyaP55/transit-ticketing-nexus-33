@@ -5,11 +5,10 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 // Get auth token for API calls
 const getAuthToken = () => {
-  // In a real app, get the JWT token from Clerk
-  return localStorage.getItem("userId"); // Simplified for demo
+  return localStorage.getItem("userId");
 };
 
-// Helper function for API calls
+// Helper function for API calls with better error handling
 async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -29,12 +28,18 @@ async function fetchAPI<T>(
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "An error occurred with status " + response.status);
+      if (response.status === 404) {
+        throw new Error(`Resource not found: ${endpoint}`);
+      }
+      const error = await response.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
     }
 
     return response.json();
   } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error("Server is not running. Please start the backend server.");
+    }
     console.error(`API Error (${endpoint}):`, error);
     throw error;
   }
@@ -122,6 +127,32 @@ export const stationsAPI = {
     return fetchAPI(`/stations/${id}`, {
       method: "DELETE",
     });
+  },
+};
+
+// Trips API for QR Scanner
+export const tripsAPI = {
+  startTrip: async (userId: string, latitude: number, longitude: number): Promise<any> => {
+    return fetchAPI("/trips/start", {
+      method: "POST",
+      body: JSON.stringify({ userId, latitude, longitude }),
+    });
+  },
+
+  endTrip: async (tripId: string, latitude: number, longitude: number): Promise<any> => {
+    return fetchAPI(`/trips/${tripId}/end`, {
+      method: "PUT",
+      body: JSON.stringify({ latitude, longitude }),
+    });
+  },
+
+  getActiveTrip: async (userId: string): Promise<any> => {
+    try {
+      const response = await fetchAPI(`/trips/active/${userId}`);
+      return response.active ? response.trip : null;
+    } catch (error) {
+      return null;
+    }
   },
 };
 
