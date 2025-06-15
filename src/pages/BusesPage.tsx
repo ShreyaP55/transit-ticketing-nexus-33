@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import MainLayout from "@/components/layout/MainLayout";
-import { busesAPI, routesAPI } from "@/services/api";
+import { busesAPI, routesAPI, stationsAPI } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Plus, Bus as BusIcon } from "lucide-react";
 import BusForm from "@/components/buses/BusForm";
@@ -35,6 +35,13 @@ const BusesPage = () => {
     queryFn: routesAPI.getAll,
     retry: 3,
     staleTime: 1000 * 60 * 2, // cache 2 min for speed
+  });
+
+  // Fetch all stations once for mapping busId -> stations for the table
+  const { data: stations, isLoading: isLoadingStations } = useQuery({
+    queryKey: ['stations'],
+    queryFn: () => stationsAPI.getAll(),
+    staleTime: 1000 * 60, // 1 min cache
   });
 
   // Do not pass routeId to API if blank to avoid erroneous filtering.
@@ -155,6 +162,10 @@ const BusesPage = () => {
               onEditBus={handleEdit}
               onDeleteBus={handleDeleteClick}
               onGenerateQR={handleGenerateQR}
+              // Pass stations to BusTable (new prop)
+              stations={stations}
+              isLoadingStations={isLoadingStations}
+              routes={routes}
             />
           </div>
         </div>

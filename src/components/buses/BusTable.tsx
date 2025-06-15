@@ -5,7 +5,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components
 import { Plus, Bus as BusIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import BusTableRow from "./BusTableRow";
-import { IBus } from "@/types";
+import { IBus, IStation, IRoute } from "@/types";
 
 interface BusTableProps {
   buses: IBus[] | undefined;
@@ -16,6 +16,9 @@ interface BusTableProps {
   onEditBus: (bus: IBus) => void;
   onDeleteBus: (id: string) => void;
   onGenerateQR: (bus: IBus) => void;
+  stations?: IStation[];
+  isLoadingStations?: boolean;
+  routes?: IRoute[];
 }
 
 const BusTable: React.FC<BusTableProps> = ({
@@ -26,7 +29,10 @@ const BusTable: React.FC<BusTableProps> = ({
   onAddBus,
   onEditBus,
   onDeleteBus,
-  onGenerateQR
+  onGenerateQR,
+  stations,
+  isLoadingStations,
+  routes
 }) => {
   return (
     <div className="w-full flex flex-col">
@@ -77,22 +83,43 @@ const BusTable: React.FC<BusTableProps> = ({
                     <TableHead>Name</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Capacity</TableHead>
+                    <TableHead>Fare</TableHead>
+                    <TableHead>Station</TableHead>
                     <TableHead className="w-[150px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {buses?.map(bus => (
-                    <BusTableRow
-                      key={bus._id}
-                      bus={bus}
-                      isAdmin={isAdmin}
-                      onEdit={onEditBus}
-                      onDelete={onDeleteBus}
-                      onGenerateQR={onGenerateQR}
-                    />
-                  ))}
+                  {buses?.map(bus => {
+                    // Get related route
+                    let route: IRoute | undefined = undefined;
+                    if (routes) {
+                      route = routes.find(r => (typeof bus.route === "string" ? bus.route === r._id : bus.route?._id === r._id));
+                    }
+                    // Get first related station
+                    const station = stations?.find(stn => {
+                      return (String(stn.busId) === String(bus._id));
+                    });
+                    return (
+                      <BusTableRow
+                        key={bus._id}
+                        bus={bus}
+                        isAdmin={isAdmin}
+                        onEdit={onEditBus}
+                        onDelete={onDeleteBus}
+                        onGenerateQR={onGenerateQR}
+                        route={route}
+                        fare={route ? route.fare : undefined}
+                        stationName={station?.name}
+                      />
+                    );
+                  })}
                 </TableBody>
               </Table>
+              {isLoadingStations && (
+                <div className="text-center p-2 text-sm text-muted-foreground">
+                  Loading stations...
+                </div>
+              )}
             </div>
           )}
         </CardContent>
