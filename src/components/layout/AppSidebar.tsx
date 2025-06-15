@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
@@ -31,7 +30,6 @@ export const AppSidebar: React.FC = () => {
   ];
 
   const adminNavItems = [
-    { name: "Admin Dashboard", icon: Settings, path: "/admin" },
     { name: "Routes", icon: Route, path: "/routes" },
     { name: "Buses", icon: Bus, path: "/buses" },
     { name: "Stations", icon: MapPin, path: "/stations" },

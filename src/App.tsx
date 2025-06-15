@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,7 +16,6 @@ import StationManagementPage from "./pages/StationManagementPage";
 import LiveTrackingPage from "./pages/LiveTrackingPage";
 import AdminLiveTrackingPage from "./pages/AdminLiveTrackingPage";
 import { LoginPage, SignupPage } from "./pages/AuthPages";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
 import NotAuthorizedPage from "./pages/NotAuthorizedPage";
 import AdminRoute from "./components/auth/AdminRoute";
 import WalletPage from "./pages/WalletPage";
@@ -41,6 +39,7 @@ const LoadingScreen = () => (
 );
 
 import { useUser } from "@/context/UserContext"; // <-- Add import
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 const AppContent = () => {
   const { isLoading } = useUser(); // <-- Use hook here
@@ -66,7 +65,7 @@ const AppContent = () => {
 
       {/* Admin Routes */}
       <Route element={<AdminRoute />}>
-        <Route path="/admin" element={<AdminDashboardPage />} />
+        {/* Removed: <Route path="/admin" element={<AdminDashboardPage />} /> */}
         <Route path="/admin/live-tracking" element={<AdminLiveTrackingPage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/buses" element={<BusesPage />} />
@@ -76,7 +75,7 @@ const AppContent = () => {
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
-};
+}
 
 const App = () => (
   <ClerkProvider 
@@ -103,4 +102,3 @@ const App = () => (
 );
 
 export default App;
-
