@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -126,20 +125,34 @@ const QRScannerPage: React.FC = () => {
     if (!userId || !location || !activeTrip) return;
     setIsLoading(true);
     try {
-      // endTrip(tripId, latitude, longitude, authToken)
       const result = await endTrip(activeTrip._id, location.lat, location.lng, DUMMY_AUTH_TOKEN);
 
       if (result.success) {
-        toast.success(`Check-out successful! Distance: ${result.trip?.distance || 0}km, Fare: ₹${result.trip?.fare || 0}`);
+        const fare = result.trip?.fare || 0;
+        const distance = result.trip?.distance || 0;
+        const tripDetails = `Distance: ${distance.toFixed(2)} km, Fare: ₹${fare.toFixed(2)}.`;
+
+        if (result.deduction?.status === 'success') {
+          toast.success("Check-out successful!", {
+            description: `${tripDetails} ${result.deduction.message}`,
+            duration: 6000,
+          });
+        } else { // 'error' or any other status
+          toast.warning("Check-out complete, but payment failed.", {
+            description: `${tripDetails} ${result.deduction.message}`,
+            duration: 8000,
+          });
+        }
       } else {
-        toast.success("Check-out successful!");
+        toast.error(result.error || "Check-out failed. Please try again.");
       }
 
+      // Reset for next scan
       setTimeout(() => {
         setScanned(false);
         setUserId(null);
         setActiveTrip(null);
-      }, 3000);
+      }, 5000);
     } catch (error: any) {
       console.error("Check-out error:", error);
       if (error.message && error.message.includes("Server is not running")) {

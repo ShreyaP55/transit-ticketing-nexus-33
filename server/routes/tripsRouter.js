@@ -1,6 +1,6 @@
-
 import express from 'express';
 import Trip from '../models/Trip.js';
+import Wallet from '../models/Wallet.js';
 import { authenticateUser, requireOwnership } from '../middleware/auth.js';
 import { tripRateLimit, validateTrip, sanitizeInput, securityLogger } from '../middleware/security.js';
 
@@ -100,7 +100,33 @@ router.put('/:tripId/end', authenticateUser, validateTrip, async (req, res) => {
     await trip.save();
     console.log('Trip ended:', { userId: trip.userId, tripId: trip._id, fare: trip.fare, timestamp: new Date().toISOString() });
     
-    res.json({ success: true, trip });
+    // Deduct fare from user's wallet
+    let deduction = { status: 'pending', message: 'Deduction not attempted.' };
+    try {
+      if (trip.fare > 0) {
+        const wallet = await Wallet.findOne({ userId: trip.userId });
+        if (wallet) {
+          await wallet.deductFunds(trip.fare, `Bus fare for trip`, trip._id);
+          deduction = { status: 'success', message: `₹${trip.fare.toFixed(2)} was deducted from wallet.` };
+          console.log(`Fare deducted for trip ${trip._id} from user ${trip.userId}`);
+        } else {
+          deduction = { status: 'error', message: 'User wallet not found.' };
+          console.warn(`Wallet not found for user ${trip.userId} for trip ${trip._id}`);
+        }
+      } else {
+        deduction = { status: 'success', message: 'No fare to deduct.' };
+      }
+    } catch (error) {
+      if (error.message === 'Insufficient funds') {
+        deduction = { status: 'error', message: 'Insufficient funds in wallet.' };
+        console.warn(`Insufficient funds for user ${trip.userId} for trip ${trip._id}`);
+      } else {
+        deduction = { status: 'error', message: 'Error processing fare deduction.' };
+        console.error(`Error deducting funds for trip ${trip._id}:`, error);
+      }
+    }
+    
+    res.json({ success: true, trip, deduction });
   } catch (error) {
     console.error('Error ending trip:', error);
     res.status(500).json({ error: 'Failed to end trip' });
