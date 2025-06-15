@@ -6,19 +6,39 @@ const router = express.Router();
 // Simple checkout endpoint for testing
 router.post('/', async (req, res) => {
   try {
-    console.log('Checkout request received:', req.body);
+    console.log('=== CHECKOUT REQUEST ===');
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
     
     const { type, amount, stationId, busId, routeId } = req.body;
     
-    if (!type || !amount) {
-      return res.status(400).json({ error: 'Missing required fields: type and amount' });
+    // Validate required fields
+    if (!type) {
+      console.error('Missing type field');
+      return res.status(400).json({ error: 'Missing required field: type' });
+    }
+    
+    if (!amount || amount <= 0) {
+      console.error('Missing or invalid amount field');
+      return res.status(400).json({ error: 'Missing or invalid required field: amount' });
+    }
+
+    // Validate type-specific requirements
+    if (type === 'ticket' && (!stationId || !busId)) {
+      console.error('Missing stationId or busId for ticket type');
+      return res.status(400).json({ error: 'Missing required fields for ticket: stationId and busId' });
+    }
+    
+    if (type === 'pass' && !routeId) {
+      console.error('Missing routeId for pass type');
+      return res.status(400).json({ error: 'Missing required field for pass: routeId' });
     }
 
     // Simulate Stripe checkout session creation
     const mockSessionId = `cs_test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const mockSession = {
       id: mockSessionId,
-      url: `https://checkout.stripe.com/pay/${mockSessionId}#fidkdWxOYHwnPyd1blpxYHZxWjA0TUhNfGJHQ1NHNG1kSURyZjFRMFxMZXZHZEtwSGIyNjx0UXVmY29DQU1RXWdqfE1zU19RUWNINz9sQ1dmTktyfTFuVXN%2BSGpnfWZ8Q1VGNVBnPWx3YSdBcWJyalQ0N3VzZCcpJ2hwbGkrZ2F0Kl8qZGxhYCc%2FJyt3YGtkPSd4JSUl`,
+      url: `https://checkout.stripe.com/pay/${mockSessionId}#mock_session`,
       payment_status: 'pending',
       amount_total: amount,
       currency: 'inr',
@@ -27,16 +47,32 @@ router.post('/', async (req, res) => {
         stationId: stationId || null,
         busId: busId || null,
         routeId: routeId || null
-      }
+      },
+      success: true
     };
 
+    console.log('=== CHECKOUT RESPONSE ===');
     console.log('Mock checkout session created:', mockSession);
     
-    res.json(mockSession);
+    res.status(200).json(mockSession);
   } catch (error) {
+    console.error('=== CHECKOUT ERROR ===');
     console.error('Checkout error:', error);
-    res.status(500).json({ error: 'Failed to create checkout session' });
+    res.status(500).json({ 
+      error: 'Failed to create checkout session',
+      details: error.message 
+    });
   }
+});
+
+// Health check for checkout service
+router.get('/health', (req, res) => {
+  console.log('Checkout service health check');
+  res.json({ 
+    status: 'OK', 
+    service: 'checkout',
+    timestamp: new Date().toISOString() 
+  });
 });
 
 export default router;

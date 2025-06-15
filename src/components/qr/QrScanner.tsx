@@ -20,19 +20,24 @@ export const QrScanner: React.FC<QrScannerProps> = ({
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const scannerContainerId = 'qr-reader';
+  const scannerContainerId = `qr-reader-${Math.random().toString(36).substr(2, 9)}`;
   const initTimeoutRef = useRef<NodeJS.Timeout>();
+  const mountedRef = useRef(true);
   
   const safeStopScanner = async () => {
     try {
       if (scannerRef.current && isScanning) {
+        console.log("Stopping scanner...");
         await scannerRef.current.stop();
-        console.log("Scanner stopped successfully");
+        await scannerRef.current.clear();
+        console.log("Scanner stopped and cleared successfully");
       }
     } catch (err) {
-      console.log("Scanner already stopped:", err);
+      console.log("Scanner stop/clear error (this is normal):", err);
     } finally {
-      setIsScanning(false);
+      if (mountedRef.current) {
+        setIsScanning(false);
+      }
     }
   };
 
@@ -48,7 +53,11 @@ export const QrScanner: React.FC<QrScannerProps> = ({
   };
   
   useEffect(() => {
+    mountedRef.current = true;
+    
     const initializeScanner = async () => {
+      if (!mountedRef.current) return;
+      
       try {
         setError(null);
         console.log("Initializing QR scanner...");
@@ -57,13 +66,18 @@ export const QrScanner: React.FC<QrScannerProps> = ({
         const scannerElement = document.getElementById(scannerContainerId);
         if (!scannerElement) {
           console.log("Scanner element not found, retrying...");
-          initTimeoutRef.current = setTimeout(initializeScanner, 100);
+          initTimeoutRef.current = setTimeout(initializeScanner, 200);
           return;
         }
 
-        // Clean up any existing scanner
+        // Clean up any existing scanner first
         await safeStopScanner();
         clearScanner();
+
+        // Small delay to ensure camera is released
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        if (!mountedRef.current) return;
 
         // Create new scanner instance
         const html5QrCode = new Html5Qrcode(scannerContainerId);
@@ -77,48 +91,64 @@ export const QrScanner: React.FC<QrScannerProps> = ({
           // Prefer back camera for mobile devices
           const backCamera = devices.find(device => 
             device.label.toLowerCase().includes('back') || 
-            device.label.toLowerCase().includes('rear')
+            device.label.toLowerCase().includes('rear') ||
+            device.label.toLowerCase().includes('environment')
           );
           const cameraId = backCamera ? backCamera.id : devices[0].id;
           
           console.log("Starting scanner with camera:", cameraId);
           await startScanner(html5QrCode, cameraId);
-          setIsInitialized(true);
+          
+          if (mountedRef.current) {
+            setIsInitialized(true);
+          }
         } else {
           throw new Error("No cameras found on this device");
         }
       } catch (err) {
         console.error("Error initializing scanner:", err);
-        const errorMessage = err instanceof Error ? err.message : "Failed to initialize camera";
-        setError(errorMessage);
-        toast.error(`Camera Error: ${errorMessage}`);
-        onError(errorMessage);
+        if (mountedRef.current) {
+          const errorMessage = err instanceof Error ? err.message : "Failed to initialize camera";
+          setError(errorMessage);
+          toast.error(`Camera Error: ${errorMessage}`);
+          onError(errorMessage);
+        }
       }
     };
 
     const startScanner = async (scanner: Html5Qrcode, deviceId: string) => {
       try {
+        if (!mountedRef.current) return;
+        
         const config = { 
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
+          fps: 5, // Reduced fps to avoid performance issues
+          qrbox: { width: 200, height: 200 },
           aspectRatio: 1.0,
           disableFlip: false,
+          videoConstraints: {
+            facingMode: "environment" // Prefer back camera
+          }
         };
 
-        setIsScanning(true);
+        if (mountedRef.current) {
+          setIsScanning(true);
+        }
         
         await scanner.start(
           deviceId, 
           config,
           (decodedText) => {
             console.log("QR Code scanned:", decodedText);
-            onScan(decodedText);
-            toast.success("QR Code scanned successfully!");
+            if (mountedRef.current) {
+              onScan(decodedText);
+              toast.success("QR Code scanned successfully!");
+            }
           },
           (errorMessage) => {
             // Only log actual errors, not "no QR code found" messages
             if (!errorMessage.includes('QR code not found') && 
-                !errorMessage.includes('No MultiFormat Readers')) {
+                !errorMessage.includes('No MultiFormat Readers') &&
+                !errorMessage.includes('NotFoundException')) {
               console.warn("QR Scanner warning:", errorMessage);
             }
           }
@@ -127,23 +157,30 @@ export const QrScanner: React.FC<QrScannerProps> = ({
         console.log("QR Scanner started successfully");
       } catch (err) {
         console.error("Scanner start error:", err);
-        const errorMessage = err instanceof Error ? err.message : "Failed to start camera";
-        setError(errorMessage);
-        setIsScanning(false);
+        if (mountedRef.current) {
+          const errorMessage = err instanceof Error ? err.message : "Failed to start camera";
+          setError(errorMessage);
+          setIsScanning(false);
+        }
         throw err;
       }
     };
 
-    // Initialize with a small delay to ensure DOM is ready
+    // Initialize with a delay to ensure DOM is ready
     initTimeoutRef.current = setTimeout(initializeScanner, 100);
     
     return () => {
+      mountedRef.current = false;
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
       }
-      safeStopScanner().then(() => {
+      
+      // Cleanup scanner
+      const cleanup = async () => {
+        await safeStopScanner();
         clearScanner();
-      });
+      };
+      cleanup();
     };
   }, [onScan, onError]);
 
@@ -161,8 +198,11 @@ export const QrScanner: React.FC<QrScannerProps> = ({
               onClick={() => window.location.reload()} 
               className="mt-2 px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700"
             >
-              Retry
+              Reload Page
             </button>
+            <p className="text-xs text-gray-500 mt-2">
+              If error persists, try closing other camera apps
+            </p>
           </div>
         </div>
       </div>
@@ -177,12 +217,17 @@ export const QrScanner: React.FC<QrScannerProps> = ({
         className="overflow-hidden rounded-lg border border-muted bg-black"
       />
       <div className="mt-2 flex items-center space-x-2">
-        <div className={`w-2 h-2 rounded-full ${isScanning ? 'bg-green-500' : 'bg-gray-400'}`} />
+        <div className={`w-2 h-2 rounded-full ${isScanning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
         <p className="text-sm text-muted-foreground">
           {!isInitialized ? "Initializing camera..." : 
            isScanning ? "Scanning for QR code..." : "Camera not active"}
         </p>
       </div>
+      {isScanning && (
+        <p className="text-xs text-green-600 mt-1">
+          Point camera at QR code to scan
+        </p>
+      )}
     </div>
   );
 };

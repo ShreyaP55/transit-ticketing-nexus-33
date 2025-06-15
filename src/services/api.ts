@@ -5,7 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 // Get auth token for API calls
 const getAuthToken = () => {
-  return localStorage.getItem("userId");
+  return localStorage.getItem("userId") || localStorage.getItem("authToken");
 };
 
 // Helper function for API calls with better error handling
@@ -22,23 +22,43 @@ async function fetchAPI<T>(
   };
 
   try {
+    console.log(`Making API call to: ${API_URL}${endpoint}`);
+    console.log('Request headers:', headers);
+    console.log('Request body:', options.body);
+    
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
       headers
     });
 
+    console.log(`API Response status: ${response.status}`);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error response: ${errorText}`);
+      
       if (response.status === 404) {
         throw new Error(`Resource not found: ${endpoint}`);
       }
-      const error = await response.json().catch(() => ({ error: "Unknown error" }));
+      
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch (e) {
+        error = { error: `HTTP ${response.status}: ${response.statusText}` };
+      }
+      
       throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    const responseData = await response.json();
+    console.log('API Response data:', responseData);
+    return responseData;
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error("Server is not running. Please start the backend server.");
+      console.error('Network error - server may not be running');
+      throw new Error("Server is not running. Please start the backend server on port 3000.");
     }
     console.error(`API Error (${endpoint}):`, error);
     throw error;
@@ -79,6 +99,7 @@ export const busesAPI = {
   },
     
   create: async (bus: Omit<IBus, "_id" | "route"> & { route: string }): Promise<IBus> => {
+    console.log('Creating bus with data:', bus);
     return fetchAPI("/buses", {
       method: "POST",
       body: JSON.stringify(bus),
@@ -86,6 +107,7 @@ export const busesAPI = {
   },
     
   update: async (bus: Omit<IBus, "route"> & { route: string }): Promise<IBus> => {
+    console.log('Updating bus with data:', bus);
     return fetchAPI(`/buses/${bus._id}`, {
       method: "PUT",
       body: JSON.stringify(bus),
@@ -110,16 +132,34 @@ export const stationsAPI = {
   },
   
   create: async (station: Omit<IStation, "_id" | "routeId" | "busId"> & { routeId: string; busId: string }): Promise<IStation> => {
+    console.log('Creating station with data:', station);
     return fetchAPI("/stations", {
       method: "POST",
-      body: JSON.stringify(station),
+      body: JSON.stringify({
+        routeId: station.routeId,
+        busId: station.busId,
+        name: station.name,
+        latitude: Number(station.latitude),
+        longitude: Number(station.longitude),
+        fare: Number(station.fare),
+        location: station.location || station.name
+      }),
     });
   },
     
   update: async (station: Omit<IStation, "routeId" | "busId"> & { routeId: string; busId: string }): Promise<IStation> => {
+    console.log('Updating station with data:', station);
     return fetchAPI(`/stations/${station._id}`, {
       method: "PUT",
-      body: JSON.stringify(station),
+      body: JSON.stringify({
+        routeId: station.routeId,
+        busId: station.busId,
+        name: station.name,
+        latitude: Number(station.latitude),
+        longitude: Number(station.longitude),
+        fare: Number(station.fare),
+        location: station.location || station.name
+      }),
     });
   },
     
