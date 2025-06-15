@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
@@ -18,13 +17,17 @@ const BookingPage = () => {
   const [searchParams] = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // New state to hold after-pay params
+  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
+  
   // Handle payment status from URL params
   useEffect(() => {
     const status = searchParams.get("status");
-    if (status === "success") {
-      toast.success("Payment successful! Your ticket has been generated.");
-      // Redirect to tickets page after a short delay
-      setTimeout(() => navigate("/tickets"), 2000);
+    const sessionId = searchParams.get("session_id");
+    if (status === "success" && sessionId) {
+      // Only create the ticket after confirming payment!
+      toast.success("Payment successful! Generating your ticket...");
+      setPendingSessionId(sessionId);
     } else if (status === "cancel") {
       toast.error("Payment was cancelled.");
     }
@@ -88,6 +91,37 @@ const BookingPage = () => {
     setSelectedStationId("");
   }, [selectedBusId]);
 
+  // Call the ticket creation API after successful Stripe payment
+  useEffect(() => {
+    if (pendingSessionId && selectedStationId && selectedBusId) {
+      // Actually create ticket on our backend using the session id
+      (async () => {
+        try {
+          // Call your ticket API endpoint (assuming it creates on sessionId)
+          const result = await fetch("/api/ticket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId: pendingSessionId,
+              stationId: selectedStationId,
+              busId: selectedBusId,
+            }),
+          });
+          const data = await result.json();
+          if (result.ok && data.ticket) {
+            toast.success("Ticket generated! Redirecting...");
+            setTimeout(() => navigate("/tickets"), 2000);
+          } else {
+            toast.error(data.error || "Failed to create ticket after payment.");
+          }
+        } catch (error) {
+          toast.error("Error generating ticket after payment.");
+        }
+      })();
+    }
+  // eslint-disable-next-line
+  }, [pendingSessionId]);
+
   const handleBookTicket = async () => {
     if (!selectedStationId) {
       toast.error("Please select a station");
@@ -109,7 +143,7 @@ const BookingPage = () => {
       setIsProcessing(true);
       toast.info("Redirecting to payment...");
       
-      // Create a checkout session
+      // Create a checkout session only (no booking to DB here)
       const response = await stripeService.createTicketCheckoutSession(
         selectedStationId,
         selectedBusId, 

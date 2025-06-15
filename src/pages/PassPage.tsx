@@ -29,7 +29,27 @@ const PassPage = () => {
   const [activeTab, setActiveTab] = useState("current");
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Check for successful payment
+  // Confirm payment after successful checkout
+  const confirmPayment = async (sessionId) => {
+    try {
+      setIsProcessing(true);
+      // After successful payment, finalize the pass purchase here
+      const result = await passesAPI.confirmPassPayment(sessionId);
+      if (result.success) {
+        toast.success("Monthly pass purchased successfully!");
+        queryClient.invalidateQueries({ queryKey: ["activePass"] });
+        navigate("/pass"); // Remove query params
+      } else {
+        toast.error(result.error || "Failed to create pass after payment");
+      }
+    } catch (error) {
+      toast.error("Failed to process payment confirmation");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  // Listen for ?status=success&session_id=X and confirm payment
   useEffect(() => {
     if (status === "success" && sessionId) {
       toast.success("Payment successful! Processing your pass...");
@@ -38,7 +58,7 @@ const PassPage = () => {
       toast.error("Payment was canceled.");
     }
   }, [status, sessionId]);
-
+  
   // Fetch routes
   const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
     queryKey: ["routes"],
@@ -77,25 +97,7 @@ const PassPage = () => {
   
   const selectedRoute = routes.find(r => r._id === selectedRouteId);
 
-  // Confirm payment after successful checkout
-  const confirmPayment = async (sessionId) => {
-    try {
-      setIsProcessing(true);
-      const result = await passesAPI.confirmPassPayment(sessionId);
-      
-      if (result.success) {
-        toast.success("Monthly pass purchased successfully!");
-        queryClient.invalidateQueries({ queryKey: ["activePass"] });
-        navigate("/pass"); // Remove query params
-      }
-    } catch (error) {
-      toast.error("Failed to process payment confirmation");
-      console.error(error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
+  // Handle purchase pass
   const handlePurchasePass = async () => {
     if (!selectedRouteId) {
       toast.error("Please select a route");

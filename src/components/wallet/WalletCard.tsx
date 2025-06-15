@@ -32,14 +32,30 @@ const WalletCard = () => {
   useEffect(() => {
     // Handle successful wallet recharge
     const status = searchParams.get('status');
+    const sessionId = searchParams.get('session_id');
     const amount = searchParams.get('amount');
     
-    if (status === 'success' && amount && authToken) {
-      const rechargeAmount = parseFloat(amount);
-      if (userId) {
-        addFunds(rechargeAmount);
-        toast.success(`₹${rechargeAmount} added to your wallet successfully!`);
-      }
+    if (status === 'success' && sessionId && authToken && userId && amount) {
+      // Only after payment confirmation, credit wallet
+      (async () => {
+        try {
+          // Call your wallet top-up API endpoint
+          const res = await fetch('/api/wallet/confirm-topup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, sessionId, amount: parseFloat(amount) }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            addFunds(parseFloat(amount));
+            toast.success(`₹${amount} added to your wallet successfully!`);
+          } else {
+            toast.error(data.error || 'Failed to confirm wallet top-up.');
+          }
+        } catch (err) {
+          toast.error('Failed to confirm wallet top-up (network).');
+        }
+      })();
     } else if (status === 'cancel') {
       toast.error('Wallet recharge was cancelled.');
     }
