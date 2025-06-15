@@ -4,6 +4,8 @@ import { useUser } from "@/context/UserContext";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import Hero from "@/components/home/Hero";
 import { Calendar, Navigation, MapPin } from "lucide-react";
 
 const Index = () => {
@@ -12,21 +14,23 @@ const Index = () => {
 
   return (
     <MainLayout title="Home">
-      <div className="max-w-5xl mx-auto my-8 px-2 sm:px-4">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold mb-3 text-primary">
-            {isAuthenticated && userDetails?.firstName
-              ? `Welcome, ${userDetails.firstName}!`
-              : "Welcome to TransitNexus"}
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            {isAuthenticated && userDetails?.firstName
-              ? "The modern way to travel. Discover routes, track buses, and manage tickets all in one place."
-              : "The modern way to travel. Discover routes, track buses, and manage tickets all in one place."}
-          </p>
+      <div className="w-full relative mb-10">
+        {/* Hero banner with avatar top right when authenticated */}
+        <div className="absolute top-8 right-8 z-20">
+          {isAuthenticated && userDetails && (
+            <Avatar>
+              <AvatarImage src={userDetails.imageUrl} alt={userDetails.firstName || "User"} />
+              <AvatarFallback>
+                {userDetails.firstName && userDetails.firstName[0]}
+                {userDetails.lastName && userDetails.lastName[0]}
+              </AvatarFallback>
+            </Avatar>
+          )}
         </div>
-        {/* Removed: Popular Routes and Featured Buses */}
-
+        <Hero userFirstName={isAuthenticated && userDetails ? userDetails.firstName : undefined} />
+      </div>
+      {/* Quick links/cards section as before */}
+      <div className="max-w-5xl mx-auto px-2 sm:px-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="border-primary/20 bg-white shadow-md hover-scale">
             <CardContent className="p-6 flex flex-col items-center">
@@ -77,7 +81,7 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
-
+        {/* Admin panel remains for admins */}
         {isAdmin && (
           <div className="mt-12 mb-4">
             <h2 className="text-xl font-semibold mb-4 text-center text-primary">Admin Panel</h2>
@@ -115,7 +119,6 @@ const Index = () => {
             </div>
           </div>
         )}
-
         <div className="mt-16 text-center text-muted-foreground text-xs">
           &copy; {new Date().getFullYear()} TransitNexus. All rights reserved.
         </div>
