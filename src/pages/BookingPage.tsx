@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { NewTicketModal } from "@/components/tickets/NewTicketModal";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, Bus, Navigation, AlertCircle, CreditCard } from "lucide-react";
 import { routesAPI, busesAPI, stationsAPI } from "@/services/api";
 import { stripeService } from "@/services/stripeService";
 import { toast } from "sonner";
-
 const BookingPage = () => {
+  // For demo, mount modal from here
+  const [open, setOpen] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -286,6 +289,10 @@ const BookingPage = () => {
           </CardFooter>
         </Card>
       </div>
+       <Button className="mb-8" onClick={() => setOpen(true)}>
+        New Ticket
+      </Button>
+      <NewTicketModal open={open} onOpenChange={setOpen} />
     </MainLayout>
   );
 };
