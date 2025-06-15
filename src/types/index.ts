@@ -1,4 +1,3 @@
-
 export interface IRoute {
   _id: string;
   start: string;
@@ -9,7 +8,7 @@ export interface IRoute {
 export interface IBus {
   _id: string;
   name: string;
-  route: string | IRoute;
+  route: string | IRoute | null;
   capacity: number;
 }
 
@@ -123,7 +122,7 @@ export interface ITransaction {
 }
 
 // Type guard helpers
-export const isRoute = (route: string | IRoute): route is IRoute => {
+export const isRoute = (route: string | IRoute | null): route is IRoute => {
   return typeof route === 'object' && route !== null && '_id' in route;
 };
 
