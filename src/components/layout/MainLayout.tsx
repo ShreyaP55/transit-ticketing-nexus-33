@@ -4,6 +4,8 @@ import { Menu, X, User, Ticket, Map, Calendar, Bus, MapPin, Navigation, Settings
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/layout/AppSidebar";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -43,94 +45,30 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
   };
 
   return (
-    <div className="flex min-h-screen transitBg">
-      {/* Mobile sidebar toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-40 lg:hidden"
-      >
-        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-      </Button>
-
-      {/* Sidebar */}
-      <div
-        className={cn(
-          "fixed top-0 left-0 z-30 h-full w-64 transform transition-transform duration-200 ease-in-out bg-sidebar shadow-lg border-r border-sidebar-border lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="flex h-16 items-center border-b border-sidebar-border px-6 orangeGradient">
-          <Link 
-            to="/" 
-            className="flex items-center gap-2 font-bold text-transit-orange-dark text-xl"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <Bus className="h-6 w-6" />
-            <span>BusInn</span>
-          </Link>
-        </div>
-
-        <nav className="mt-6 px-4 space-y-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              to={item.path}
-              className="flex items-center px-4 py-3 text-sm font-medium rounded-md hover:bg-sidebar-accent group text-sidebar-foreground"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <div className="mr-3 text-transit-orange-light">{item.icon}</div>
-              {item.name}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="absolute bottom-10 left-0 w-full px-4">
-          {isAuthenticated ? (
-            <Button 
-              variant="outline" 
-              className="w-full bg-sidebar-accent text-sidebar-foreground border-sidebar-border hover:bg-sidebar-primary hover:text-sidebar-primary-foreground" 
-              onClick={handleLogout}
-            >
-              <User className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          ) : (
-            <Button 
-              className="w-full bg-transit-orange hover:bg-transit-orange-dark" 
-              onClick={() => navigate("/login")}
-            >
-              <User className="mr-2 h-4 w-4" />
-              Login
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex flex-col w-full lg:pl-64">
-        <header className="h-16 bg-white shadow-md flex items-center justify-between px-6">
-          <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "TransitNexus"}</h1>
-          
-          {isAdmin && (
-            <div className="flex items-center">
-              <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-medium">
-                Admin Access
-              </span>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full transitBg">
+        <AppSidebar />
+        <div className="flex flex-col flex-1">
+          <header className="h-16 bg-white shadow-md flex items-center justify-between px-6 sticky top-0 z-10">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="lg:hidden" />
+              <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "TransitNexus"}</h1>
             </div>
-          )}
-        </header>
-
-        <main className="flex-1 p-6">
-          {children}
-        </main>
-
-        <footer className="bg-white p-4 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} TransitNexus. All rights reserved.
-        </footer>
+            {isAdmin && (
+              <div className="flex items-center">
+                <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-medium">
+                  Admin Access
+                </span>
+              </div>
+            )}
+          </header>
+          <main className="flex-1 p-4 md:p-6">{children}</main>
+          <footer className="bg-white p-4 text-center text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} TransitNexus. All rights reserved.
+          </footer>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

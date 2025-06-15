@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,9 +9,9 @@ import { toast } from "sonner";
 type Mode = "scanning" | "checking-in" | "checking-out";
 
 const QRScannerPage: React.FC = () => {
-  const [mode, setMode] = useState<Mode>("scanning"); // "scanning", "checking-in", "checking-out"
+  const [mode, setMode] = useState<"scanning" | "checking-in" | "checking-out">("scanning");
   const [scannedUserId, setScannedUserId] = useState<string | null>(null);
-  const [location, setLocation] = useState<{lat: number; lng: number} | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [connectionError, setConnectionError] = useState(false);
@@ -36,13 +35,12 @@ const QRScannerPage: React.FC = () => {
     }
   }, []);
 
-  // Handle a successful QR scan
+  // Handle QR scan
   const handleScan = async (data: string | null) => {
     if (!data || mode !== "scanning") return;
     setScannedUserId(data);
     setIsLoading(true);
     setConnectionError(false);
-    // Defensive: don't repeat a scan if already acting
     try {
       if (!location) {
         toast.error("Unable to get current location. Please try again.");
@@ -50,19 +48,15 @@ const QRScannerPage: React.FC = () => {
         setScannedUserId(null);
         return;
       }
-      // Check for active trip
-      const trip = await getActiveTrip(data);
+      // getActiveTrip expects 2 arguments: userId, location
+      const trip = await getActiveTrip(data, location);
       setActiveTrip(trip);
       if (trip) {
-        toast.success("Active trip found. Checking out user...");
         setMode("checking-out");
-        // Immediately check out
-        handleCheckOut(data, trip);
+        handleCheckOut(data, trip, location);
       } else {
-        toast.success("User scanned. Checking in...");
         setMode("checking-in");
-        // Immediately check in
-        handleCheckIn(data);
+        handleCheckIn(data, location);
       }
     } catch (error: any) {
       if (error.message && error.message.includes("Server is not running")) {
@@ -71,25 +65,21 @@ const QRScannerPage: React.FC = () => {
       } else {
         toast.error("Failed to process scan. Please try again.");
       }
-      // Reset so scanner is ready for a new scan
       resetScanner();
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Only show scan error if a real error occurs (not just "no QR found")
   const handleError = (error: any) => {
     if (typeof error === "string" && error.toLowerCase().includes("not found")) return;
     toast.error("Camera/device error: " + (error?.message || error));
   };
 
-  // Check-in logic after scan
-  const handleCheckIn = async (userId: string) => {
+  const handleCheckIn = async (userId: string, locationObj: {lat: number, lng: number}) => {
     setIsLoading(true);
     try {
-      if (!location) throw new Error("Current location missing.");
-      const result = await startTrip(userId, location.lat, location.lng);
+      const result = await startTrip(userId, locationObj.lat, locationObj.lng, null);
       toast.success("Check-in successful! Trip started.");
     } catch (error: any) {
       if (error.message && error.message.includes("Server is not running")) {
@@ -100,17 +90,14 @@ const QRScannerPage: React.FC = () => {
       }
     } finally {
       setIsLoading(false);
-      setTimeout(resetScanner, 1200); // auto reset in 1.2s for next scan
+      setTimeout(resetScanner, 1200);
     }
   };
 
-  // Check-out logic after scan
-  const handleCheckOut = async (userId: string, trip: any) => {
+  const handleCheckOut = async (userId: string, trip: any, locationObj: {lat: number, lng: number}) => {
     setIsLoading(true);
     try {
-      if (!location) throw new Error("Current location missing.");
-      if (!trip || !trip._id) throw new Error("Active trip not found");
-      const result = await endTrip(trip._id, location.lat, location.lng);
+      const result = await endTrip(trip._id, userId, locationObj.lat, locationObj.lng);
       if (result.success) {
         toast.success(`Check-out successful! Distance: ${result.trip?.distance || 0}km, Fare: ₹${result.trip?.fare || 0}`);
       } else {
@@ -125,11 +112,10 @@ const QRScannerPage: React.FC = () => {
       }
     } finally {
       setIsLoading(false);
-      setTimeout(resetScanner, 1600); // auto reset in 1.6s for next scan
+      setTimeout(resetScanner, 1600);
     }
   };
 
-  // Reset scanner for new scan
   const resetScanner = () => {
     setMode("scanning");
     setActiveTrip(null);
@@ -195,4 +181,3 @@ const QRScannerPage: React.FC = () => {
 };
 
 export default QRScannerPage;
-
