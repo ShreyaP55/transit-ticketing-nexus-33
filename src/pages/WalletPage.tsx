@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,33 +6,29 @@ import { Wallet, CreditCard, Navigation, MapPin, Clock } from 'lucide-react';
 import { useUser } from "@/context/UserContext";
 import UserQRCode from "@/components/wallet/UserQRCode";
 import WalletCard from "@/components/wallet/WalletCard";
-import { getUserTrips } from "@/services/tripService";
+import { ridesAPI } from "@/services/api";
+import { IRide } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuthService } from "@/services/authService";
 
 const WalletPage = () => {
   const { userId, isAuthenticated } = useUser();
   const { toast } = useToast();
-  const { getAuthToken } = useAuthService();
-  const [trips, setTrips] = useState<any[]>([]);
+  const [rides, setRides] = useState<IRide[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    const fetchTrips = async () => {
+    const fetchHistory = async () => {
       if (!userId || !isAuthenticated) return;
       
       try {
         setIsLoading(true);
-        const authToken = await getAuthToken();
-        if (authToken) {
-          const userTrips = await getUserTrips(userId, authToken);
-          setTrips(userTrips);
-        }
+        const userRides = await ridesAPI.getHistory(userId);
+        setRides(userRides);
       } catch (error) {
-        console.error("Error fetching trips:", error);
+        console.error("Error fetching ride history:", error);
         toast({
           title: "Error",
-          description: "Failed to load trip history",
+          description: "Failed to load ride history",
           variant: "destructive",
         });
       } finally {
@@ -41,13 +36,13 @@ const WalletPage = () => {
       }
     };
     
-    fetchTrips();
+    fetchHistory();
     
-    // Refresh trips every 30 seconds
-    const intervalId = setInterval(fetchTrips, 30000);
+    // Refresh history every 30 seconds
+    const intervalId = setInterval(fetchHistory, 30000);
     
     return () => clearInterval(intervalId);
-  }, [userId, isAuthenticated, getAuthToken, toast]);
+  }, [userId, isAuthenticated, toast]);
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
@@ -58,7 +53,7 @@ const WalletPage = () => {
       <div className="max-w-4xl mx-auto p-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold gradient-heading">Transit Wallet</h1>
-          <p className="text-muted-foreground mt-2">Manage your funds and track your trips</p>
+          <p className="text-muted-foreground mt-2">Manage your funds and track your rides</p>
         </div>
         
         {!isAuthenticated ? (
@@ -94,13 +89,13 @@ const WalletPage = () => {
               </div>
             </div>
             
-            {/* Trip History */}
+            {/* Ride History */}
             <div className="md:col-span-2">
               <Card className="bg-white shadow-md h-full">
                 <CardHeader className="bg-gradient-to-r from-transit-orange/10 to-transparent">
                   <CardTitle className="flex items-center">
                     <Navigation className="mr-2 h-5 w-5 text-transit-orange" />
-                    Trip History
+                    Ride History
                   </CardTitle>
                   <CardDescription>
                     Your recent travel and payments
@@ -111,32 +106,32 @@ const WalletPage = () => {
                   {isLoading ? (
                     <div className="py-8 text-center">
                       <div className="animate-spin h-8 w-8 border-4 border-transit-orange border-t-transparent rounded-full mx-auto"></div>
-                      <p className="mt-4 text-muted-foreground">Loading your trips...</p>
+                      <p className="mt-4 text-muted-foreground">Loading your rides...</p>
                     </div>
-                  ) : trips.length === 0 ? (
+                  ) : rides.length === 0 ? (
                     <div className="py-8 text-center">
                       <Clock className="h-12 w-12 text-muted-foreground mx-auto" />
-                      <p className="mt-4 text-muted-foreground">No trip history found</p>
+                      <p className="mt-4 text-muted-foreground">No ride history found</p>
                       <p className="text-sm text-muted-foreground">
-                        Use your QR code to start a trip
+                        Use your QR code to start a ride
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {trips.map((trip) => (
-                        <Card key={trip._id} className="bg-white shadow-sm">
+                      {rides.map((ride) => (
+                        <Card key={ride._id} className="bg-white shadow-sm">
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between">
                               <div>
                                 <div className="flex items-center mb-1">
                                   <Badge 
-                                    variant={trip.status === 'completed' ? "default" : "outline"}
-                                    className={trip.status === 'completed' ? "bg-transit-green" : ""}
+                                    variant={!ride.active ? "default" : "outline"}
+                                    className={!ride.active ? "bg-transit-green" : ""}
                                   >
-                                    {trip.status === 'completed' ? 'Completed' : 'In Progress'}
+                                    {!ride.active ? 'Completed' : 'In Progress'}
                                   </Badge>
                                   <span className="text-xs text-muted-foreground ml-2">
-                                    {formatDate(trip.createdAt)}
+                                    {formatDate(ride.createdAt)}
                                   </span>
                                 </div>
                                 
@@ -144,15 +139,15 @@ const WalletPage = () => {
                                   <div className="flex items-center text-sm">
                                     <MapPin className="h-3 w-3 mr-1 text-transit-orange" />
                                     <span>
-                                      Start: {trip.startLocation.lat.toFixed(6)}, {trip.startLocation.lng.toFixed(6)}
+                                      Start: {ride.startLocation.latitude.toFixed(6)}, {ride.startLocation.longitude.toFixed(6)}
                                     </span>
                                   </div>
                                   
-                                  {trip.endLocation && (
+                                  {ride.endLocation && (
                                     <div className="flex items-center text-sm mt-1">
                                       <MapPin className="h-3 w-3 mr-1 text-transit-orange" />
                                       <span>
-                                        End: {trip.endLocation.lat.toFixed(6)}, {trip.endLocation.lng.toFixed(6)}
+                                        End: {ride.endLocation.latitude.toFixed(6)}, {ride.endLocation.longitude.toFixed(6)}
                                       </span>
                                     </div>
                                   )}
@@ -160,13 +155,13 @@ const WalletPage = () => {
                               </div>
                               
                               <div className="text-right">
-                                {trip.status === 'completed' && (
+                                {!ride.active && ride.distance && ride.fare && (
                                   <>
                                     <p className="text-sm font-medium">
-                                      Distance: {trip.distance} km
+                                      Distance: {ride.distance.toFixed(2)} km
                                     </p>
                                     <p className="text-lg font-bold text-transit-orange">
-                                      ₹{trip.fare}
+                                      ₹{ride.fare}
                                     </p>
                                   </>
                                 )}

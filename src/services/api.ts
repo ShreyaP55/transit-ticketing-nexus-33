@@ -1,4 +1,4 @@
-import { IRoute, IBus, IStation, ITicket, IPass, IPassUsage } from "@/types";
+import { IRoute, IBus, IStation, ITicket, IPass, IPassUsage, IRide } from "@/types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -242,6 +242,13 @@ export const tripsAPI = {
     } catch (error) {
       return [];
     }
+  },
+};
+
+// Rides API
+export const ridesAPI = {
+  getHistory: (userId: string): Promise<IRide[]> => {
+    return fetchAPI(`/rides/history/${userId}`);
   },
 };
 
