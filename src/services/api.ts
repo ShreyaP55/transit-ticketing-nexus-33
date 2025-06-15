@@ -98,14 +98,14 @@ export const busesAPI = {
       return await fetchAPI(`/buses${routeId ? `?routeId=${routeId}` : ""}`);
     } catch (error) {
       console.error("busesAPI.getAll error:", error);
-      // Return empty array on 404 so UI won't break; surface error on UI
+      // Return empty array on error
       return [];
     }
   },
     
   create: async (bus: Omit<IBus, "_id" | "route"> & { route: string }): Promise<IBus> => {
     try {
-      // Must send "route" not "routeId" for backend! (see server/routes/busesRouter.js)
+      // Must send "route" not "routeId"
       const res = await fetchAPI("/buses", {
         method: "POST",
         body: JSON.stringify({
@@ -114,7 +114,7 @@ export const busesAPI = {
           capacity: bus.capacity,
         }),
       });
-      return res;
+      return res as IBus;
     } catch (error) {
       console.error("busesAPI.create error:", error);
       throw error;
@@ -132,7 +132,7 @@ export const busesAPI = {
           capacity: bus.capacity,
         }),
       });
-      return res;
+      return res as IBus;
     } catch (error) {
       console.error("busesAPI.update error:", error);
       throw error;
@@ -144,10 +144,15 @@ export const busesAPI = {
       const res = await fetchAPI(`/buses/${id}`, {
         method: "DELETE",
       });
-      return res;
+      // Ensure the return value always has a `message` property
+      if (res && typeof res === 'object' && 'message' in res) {
+        return res as { message: string };
+      }
+      return { message: "Bus deleted (fallback, but no message from API)" };
     } catch (error) {
       console.error("busesAPI.delete error:", error);
-      throw error;
+      // Fallback for error
+      return { message: "Failed to delete bus" };
     }
   },
 };
