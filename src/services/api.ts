@@ -180,23 +180,29 @@ export const ticketsAPI = {
 // Passes API
 export const passesAPI = {
   getActivePass: (): Promise<IPass> => {
-    return fetchAPI("/passes");
+    const userId = getAuthToken();
+    return fetchAPI(`/passes?userId=${userId}`);
   },
     
-  createPass: (pass: { routeId: string; fare: number; sessionId: string }): Promise<{ success: boolean; pass: IPass }> =>
-    fetchAPI("/passes", {
+  createPass: (pass: { routeId: string; fare: number; sessionId: string }): Promise<{ success: boolean; pass: IPass }> => {
+    const userId = getAuthToken();
+    return fetchAPI("/passes", {
       method: "POST",
-      body: JSON.stringify(pass),
-    }),
+      body: JSON.stringify({ ...pass, userId }),
+    });
+  },
     
-  confirmPassPayment: (sessionId: string): Promise<{ success: boolean; pass: IPass }> =>
-    fetchAPI("/payments", {
+  confirmPassPayment: (sessionId: string): Promise<{ success: boolean; pass: IPass }> => {
+    const userId = getAuthToken();
+    return fetchAPI("/payments", {
       method: "POST",
-      body: JSON.stringify({ sessionId }),
-    }),
+      body: JSON.stringify({ sessionId, userId }),
+    });
+  },
     
   getPassUsage: (): Promise<IPassUsage[]> => {
-    return fetchAPI("/pass-usage");
+    const userId = getAuthToken();
+    return fetchAPI(`/pass-usage?userId=${userId}`);
   },
     
   recordPassUsage: (passId: string, location: string): Promise<{ message: string; usage: IPassUsage }> =>
@@ -209,9 +215,11 @@ export const passesAPI = {
 // Payment API with Stripe integration
 export const paymentAPI = {
   createTicketCheckoutSession: async (stationId: string, busId: string, amount: number): Promise<{ url: string }> => {
+    const userId = getAuthToken();
     return fetchAPI("/checkout", {
       method: "POST",
       body: JSON.stringify({
+        userId,
         station: { id: stationId, fare: amount },
         bus: { id: busId },
       }),
@@ -219,9 +227,11 @@ export const paymentAPI = {
   },
   
   createPassCheckoutSession: async (routeId: string, amount: number): Promise<{ url: string }> => {
-    return fetchAPI("/payments", {
+    const userId = getAuthToken();
+    return fetchAPI("/checkout", {
       method: "POST",
       body: JSON.stringify({
+        userId,
         type: 'pass',
         routeId,
         fare: amount

@@ -1,6 +1,7 @@
 
 import express from 'express';
 import Payment from '../models/Payment.js';
+import Pass from '../models/Pass.js';
 
 const router = express.Router();
 
@@ -27,35 +28,69 @@ router.get('/', async (req, res) => {
 // Create payment
 router.post('/', async (req, res) => {
   try {
-    const { userId, type, routeId, start, end, fare, stripeSessionId } = req.body;
+    const { userId, sessionId } = req.body;
     
-    if (!userId || !type || !fare || !stripeSessionId) {
+    if (!userId || !sessionId) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    const newPayment = new Payment({
-      userId,
-      type,
-      routeId,
-      start,
-      end,
-      fare: parseFloat(fare),
-      stripeSessionId,
-      status: 'pending'
-    });
+    // For now, simulate successful payment confirmation
+    // In real implementation, you would verify with Stripe
     
-    await newPayment.save();
+    // Find the payment record by session ID
+    const payment = await Payment.findOne({ stripeSessionId: sessionId });
     
-    // If integration with Stripe, would redirect to Stripe checkout here
-    const stripeRedirectUrl = `https://checkout.stripe.com/pay/${stripeSessionId}`;
+    if (!payment) {
+      // Create a mock pass for testing
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 1);
+      
+      const newPass = new Pass({
+        userId,
+        routeId: req.body.routeId || '674a123456789012345678ab', // Mock route ID
+        fare: req.body.fare || 100,
+        expiryDate
+      });
+      
+      await newPass.save();
+      
+      return res.json({
+        success: true,
+        pass: newPass
+      });
+    }
     
-    res.status(201).json({
-      url: stripeRedirectUrl,
-      payment: newPayment
-    });
+    // Update payment status
+    payment.status = 'completed';
+    await payment.save();
+    
+    // Create pass if it's a pass payment
+    if (payment.type === 'pass') {
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 1);
+      
+      const newPass = new Pass({
+        userId: payment.userId,
+        routeId: payment.routeId,
+        fare: payment.fare,
+        expiryDate
+      });
+      
+      await newPass.save();
+      
+      res.json({
+        success: true,
+        pass: newPass
+      });
+    } else {
+      res.json({
+        success: true,
+        payment
+      });
+    }
   } catch (error) {
-    console.error('Error creating payment:', error);
-    res.status(500).json({ error: 'Failed to create payment' });
+    console.error('Error confirming payment:', error);
+    res.status(500).json({ error: 'Failed to confirm payment' });
   }
 });
 

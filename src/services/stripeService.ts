@@ -7,11 +7,12 @@ export const stripeService = {
   // Create a checkout session for ticket purchase
   createTicketCheckoutSession: async (stationId: string, busId: string, amount: number) => {
     try {
+      const userId = localStorage.getItem('userId');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('userId') || 'guest'}`,
+          'Authorization': `Bearer ${userId || 'guest'}`,
         },
         body: JSON.stringify({
           type: 'ticket',
@@ -38,11 +39,12 @@ export const stripeService = {
   // Create a checkout session for pass purchase
   createPassCheckoutSession: async (routeId: string, amount: number) => {
     try {
+      const userId = localStorage.getItem('userId');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('userId') || 'guest'}`,
+          'Authorization': `Bearer ${userId || 'guest'}`,
         },
         body: JSON.stringify({
           type: 'pass',
@@ -68,11 +70,12 @@ export const stripeService = {
   // Create a checkout session for wallet recharge
   createWalletCheckoutSession: async (amount: number) => {
     try {
+      const userId = localStorage.getItem('userId');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('userId') || 'guest'}`,
+          'Authorization': `Bearer ${userId || 'guest'}`,
         },
         body: JSON.stringify({
           type: 'wallet',

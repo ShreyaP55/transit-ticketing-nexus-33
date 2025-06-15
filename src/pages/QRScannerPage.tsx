@@ -42,8 +42,19 @@ const QRScannerPage: React.FC = () => {
     if (data && !scanned) {
       console.log("QR Code scanned:", data);
       setScanned(true);
-      setUserId(data);
       setConnectionError(false);
+      
+      // Parse the QR code data
+      let parsedData;
+      try {
+        parsedData = JSON.parse(data);
+      } catch (error) {
+        // If it's not JSON, treat it as a plain user ID
+        parsedData = { userId: data };
+      }
+      
+      const userId = parsedData.userId || data;
+      setUserId(userId);
       
       if (!location) {
         toast.error("Unable to get current location. Please try again.");
@@ -56,7 +67,7 @@ const QRScannerPage: React.FC = () => {
       
       try {
         // Check if user already has an active trip
-        const trip = await getActiveTrip(data);
+        const trip = await getActiveTrip(userId);
         setActiveTrip(trip);
         
         if (trip) {
