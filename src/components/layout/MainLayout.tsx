@@ -30,6 +30,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
     { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
     { name: "Scanner", icon: <ScanLine size={20} />, path: "/qr-scanner" },
+    { name: "Admin Live Tracking", icon: <Navigation size={20} />, path: "/admin/live-tracking" },
   ];
 
   const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
