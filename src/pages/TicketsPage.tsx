@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -39,8 +38,7 @@ const TicketsPage = () => {
     <MainLayout title="My Tickets">
       <div className="max-w-3xl mx-auto">
         {/* Updated: Button is in top right */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">My Tickets</h1>
+        <div className="flex justify-end items-center mb-6">
           <Button onClick={handleNewTicket}>
             <Plus className="mr-2 h-4 w-4" />
             New Ticket

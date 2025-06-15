@@ -95,16 +95,7 @@ const StationManagementPage = () => {
   return (
     <MainLayout title="Station Management">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-white neonText flex items-center">
-              <MapPin className="mr-2 h-6 w-6 text-primary" />
-              Station Management
-            </h1>
-            <p className="text-muted-foreground">
-              Create and manage stations for your transit network
-            </p>
-          </div>
+        <div className="mb-6 flex justify-end items-center">
           {isAdmin && (
             <Button 
               onClick={() => setIsStationFormOpen(true)} 

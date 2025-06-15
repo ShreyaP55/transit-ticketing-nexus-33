@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -90,8 +89,7 @@ const RoutesPage = () => {
   return (
     <MainLayout title="Routes Management">
       <div className="max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-white neonText">Routes Management</h1>
+        <div className="flex justify-end items-center mb-6">
           {isAdmin && (
             <Button onClick={() => setIsRouteFormOpen(true)} className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)]">
               <Plus className="mr-2 h-4 w-4" /> Add Route
