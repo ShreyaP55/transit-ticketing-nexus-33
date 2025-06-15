@@ -5,7 +5,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import HeroSection from "@/components/home/HeroSection";
 import FeatureCards from "@/components/home/FeatureCards";
 import HowItWorks from "@/components/home/HowItWorks";
-// Removed: import BusFilterSection from "@/components/home/BusFilterSection";
+import BusFilterSection from "@/components/home/BusFilterSection";
 
 const Index = () => {
   const { isAuthenticated, userDetails } = useUser();
@@ -21,7 +21,7 @@ const Index = () => {
         
         <FeatureCards />
         
-        {/* <BusFilterSection /> Removed per user request */}
+        <BusFilterSection />
         
         <HowItWorks />
       </div>
@@ -30,4 +30,3 @@ const Index = () => {
 };
 
 export default Index;
-

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,21 +8,23 @@ const heroImg = "https://images.unsplash.com/photo-1570125909232-eb263c186f72?au
 
 interface HeroSectionProps {
   isAuthenticated: boolean;
-  userDetails: any;
+  userDetails: { firstName?: string | null } | null;
 }
 
 const HeroSection: React.FC<HeroSectionProps> = ({ isAuthenticated, userDetails }) => {
   const navigate = useNavigate();
 
   return (
-    <section className="flex flex-col md:flex-row items-center gap-8 md:gap-12 mb-12 mt-2">
-      {/* Left: Main text */}
-      <div className="flex-1 animate-fade-in">
-        <h1 className="text-3xl md:text-5xl font-extrabold mb-4 text-primary drop-shadow-sm">
-          Welcome to TransitNexus 🚍
+    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 py-8 mb-12">
+      {/* Hero Text */}
+      <div className="flex-1 text-center md:text-left space-y-4 animate-fade-in">
+        <h1 className="text-4xl sm:text-5xl font-extrabold mb-2 gradient-heading">
+          {isAuthenticated && userDetails?.firstName
+            ? `Welcome, ${userDetails.firstName}!`
+            : "TransitNexus – Smart City Transit"}
         </h1>
-        <p className="text-lg mb-6 text-muted-foreground max-w-xl">
-          The smarter way to commute – buy passes, track buses in real time, and travel paperless in your city!
+        <p className="mt-2 text-lg text-muted-foreground">
+          Experience simple, modern travel. Book tickets, renew your pass, track buses—everything at your fingertips.
         </p>
         <div className="mt-5 flex gap-4 justify-center md:justify-start">
           <Button size="lg" className="animate-scale-in"
@@ -34,15 +37,24 @@ const HeroSection: React.FC<HeroSectionProps> = ({ isAuthenticated, userDetails 
           </Button>
         </div>
       </div>
-      {/* Right: Illustrative image */}
+      {/* Hero Image */}
       <div className="flex-1 flex items-center justify-center animate-fade-in">
-        <img
-          src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=400&q=80"
-          alt="Person using MacBook Pro"
-          className="w-full max-w-xs md:max-w-md rounded-2xl shadow-xl object-cover"
-        />
+        <div className="shadow-2xl rounded-xl overflow-hidden w-[320px] h-[220px] relative group hover:scale-105 transition-transform duration-200">
+          <img
+            src={heroImg}
+            alt="Modern city bus"
+            className="object-cover w-full h-full"
+            loading="lazy"
+          />
+          <div className="absolute top-3 right-3 bg-white/85 px-3 py-1 rounded-full flex items-center gap-2 shadow animate-fade-in">
+            <BusIcon size={20} className="text-primary" />
+            <span className="font-bold text-sm text-primary">
+              Green Route
+            </span>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
   );
 };
 
