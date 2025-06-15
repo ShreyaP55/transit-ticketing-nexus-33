@@ -156,6 +156,14 @@ const QRScanPage = () => {
     navigate(-1);
   };
 
+  // Helper function to safely get trip start time
+  const getTripStartTime = () => {
+    if (activeTrip && activeTrip.startLocation && activeTrip.startLocation.timestamp) {
+      return new Date(activeTrip.startLocation.timestamp).toLocaleTimeString();
+    }
+    return "Unknown time";
+  };
+
   return (
     <MainLayout title={activeTrip ? "Trip in Progress" : "Start Your Trip"}>
       <div className="max-w-lg mx-auto p-4">
@@ -217,7 +225,7 @@ const QRScanPage = () => {
                   
                   <p className="text-sm text-muted-foreground mt-1">
                     {activeTrip
-                      ? `Trip started at ${new Date(activeTrip.startLocation.timestamp).toLocaleTimeString()}`
+                      ? `Trip started at ${getTripStartTime()}`
                       : "Your location has been detected"}
                   </p>
                   
@@ -231,7 +239,7 @@ const QRScanPage = () => {
                 {activeTrip ? (
                   <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                     <p className="text-sm text-green-700">
-                      Trip started at {new Date(activeTrip.startLocation.timestamp).toLocaleTimeString()}.
+                      Trip started at {getTripStartTime()}.
                       Check out when you reach your destination.
                     </p>
                   </div>
