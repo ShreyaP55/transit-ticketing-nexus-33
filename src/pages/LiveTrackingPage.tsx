@@ -11,7 +11,7 @@ import { Navigation, Bus, Route as RouteIcon, MapPin, Search, AlertTriangle, Inf
 import { routesAPI, busesAPI } from "@/services/api";
 import LeafletMap from "@/components/tracking/LeafletMap";
 import BusInfoPanel from "@/components/tracking/BusInfoPanel";
-import { useTrackBuses } from "@/services/liveTrackingService";
+import { useTrackBuses } from "@/hooks/useTrackBuses";
 import { IBus } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
 

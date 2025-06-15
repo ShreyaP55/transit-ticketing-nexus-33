@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Bus, Clock, MapPin, Activity } from 'lucide-react';
 import { routesAPI, busesAPI } from "@/services/api";
 import LeafletMap from "@/components/tracking/LeafletMap";
-import { useTrackBuses } from "@/services/liveTrackingService";
+import { useTrackBuses } from "@/hooks/useTrackBuses";
 import { IBus } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
 

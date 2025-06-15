@@ -1,41 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { IBus, IRoute } from '@/types';
-
-export interface BusLocation {
-  latitude: number;
-  longitude: number;
-  lat: number;
-  lng: number;
-  speed?: number;
-  heading?: number;
-  updatedAt: string;
-}
-
-export interface BusLocations {
-  [busId: string]: BusLocation;
-}
-
-// Predefined bus routes with realistic waypoints in Goa
-const BUS_ROUTES = {
-  'route1': [
-    { lat: 15.4909, lng: 73.8278, name: 'Panaji Bus Stand' },
-    { lat: 15.4985, lng: 73.8242, name: 'Panaji Market' },
-    { lat: 15.5150, lng: 73.8050, name: 'Dona Paula' },
-    { lat: 15.5500, lng: 73.7500, name: 'Calangute' },
-  ],
-  'route2': [
-    { lat: 15.2993, lng: 74.1240, name: 'Margao Bus Stand' },
-    { lat: 15.3200, lng: 74.1100, name: 'Margao Market' },
-    { lat: 15.4000, lng: 73.9500, name: 'Ponda Junction' },
-    { lat: 15.4909, lng: 73.8278, name: 'Panaji' },
-  ],
-  'route3': [
-    { lat: 15.5937, lng: 73.7515, name: 'Mapusa Bus Stand' },
-    { lat: 15.5800, lng: 73.7600, name: 'Mapusa Market' },
-    { lat: 15.5500, lng: 73.7500, name: 'Calangute Beach' },
-    { lat: 15.5200, lng: 73.7300, name: 'Baga Beach' },
-  ]
-};
+import { BusLocations } from '@/types/tracking';
+import { BUS_ROUTES } from '@/data/busRoutes';
 
 export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses?: IBus[] | null, allRoutes?: IRoute[] | null): BusLocations => {
   const [busLocations, setBusLocations] = useState<BusLocations>({});
@@ -155,7 +122,7 @@ export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses
             lng: finalLng,
             speed: speed,
             heading: heading < 0 ? heading + 360 : heading,
-            updatedAt: timestamp
+            updatedAt: new Date().toISOString()
           };
           
           newLocations[busId] = locationUpdate;
@@ -191,88 +158,4 @@ export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses
   }, [busIds, routeId, allBuses, allRoutes]);
 
   return busLocations;
-};
-
-// Enhanced location service for user tracking
-export const locationService = {
-  getCurrentPosition: (): Promise<GeolocationPosition> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        const error = new Error('Geolocation is not supported');
-        console.error('Geolocation not supported');
-        reject(error);
-        return;
-      }
-
-      console.log('=== GETTING USER LOCATION ===');
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log('=== USER LOCATION SUCCESS ===');
-          console.log('Current position obtained:', {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy + 'm',
-            timestamp: new Date(position.timestamp).toISOString()
-          });
-          resolve(position);
-        },
-        (error) => {
-          console.error('=== USER LOCATION ERROR ===');
-          console.error('Geolocation error:', {
-            code: error.code,
-            message: error.message,
-            PERMISSION_DENIED: error.code === 1,
-            POSITION_UNAVAILABLE: error.code === 2,
-            TIMEOUT: error.code === 3
-          });
-          reject(error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 60000
-        }
-      );
-    });
-  },
-
-  watchPosition: (callback: (position: GeolocationPosition) => void) => {
-    if (!navigator.geolocation) {
-      throw new Error('Geolocation is not supported');
-    }
-
-    console.log('=== STARTING POSITION WATCH ===');
-    return navigator.geolocation.watchPosition(
-      (position) => {
-        console.log('=== POSITION UPDATE ===');
-        console.log('Position update:', {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy + 'm',
-          speed: position.coords.speed,
-          heading: position.coords.heading,
-          timestamp: new Date(position.timestamp).toISOString()
-        });
-        callback(position);
-      },
-      (error) => {
-        console.error('=== POSITION WATCH ERROR ===');
-        console.error('Position watch error:', {
-          code: error.code,
-          message: error.message
-        });
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 30000
-      }
-    );
-  },
-
-  clearWatch: (watchId: number) => {
-    console.log('=== CLEARING POSITION WATCH ===');
-    console.log('Clearing position watch:', watchId);
-    navigator.geolocation.clearWatch(watchId);
-  }
 };
