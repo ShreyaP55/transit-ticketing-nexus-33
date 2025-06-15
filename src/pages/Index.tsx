@@ -5,7 +5,6 @@ import MainLayout from "@/components/layout/MainLayout";
 import HeroSection from "@/components/home/HeroSection";
 import FeatureCards from "@/components/home/FeatureCards";
 import HowItWorks from "@/components/home/HowItWorks";
-import BusFilterSection from "@/components/home/BusFilterSection";
 
 const Index = () => {
   const { isAuthenticated, userDetails } = useUser();
@@ -20,8 +19,6 @@ const Index = () => {
         <HeroSection isAuthenticated={isAuthenticated} userDetails={userDetails} />
         
         <FeatureCards />
-        
-        <BusFilterSection />
         
         <HowItWorks />
       </div>
