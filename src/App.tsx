@@ -15,7 +15,6 @@ import StationManagementPage from "./pages/StationManagementPage";
 import LiveTrackingPage from "./pages/LiveTrackingPage";
 import AdminLiveTrackingPage from "./pages/AdminLiveTrackingPage";
 import { LoginPage, SignupPage } from "./pages/AuthPages";
-import NotAuthorizedPage from "./pages/NotAuthorizedPage";
 import AdminRoute from "@/components/auth/AdminRoute";
 import WalletPage from "./pages/WalletPage";
 import QRScanPage from "./pages/QRScanPage";
@@ -55,7 +54,6 @@ const AppContent = () => {
       <Route path="/tracking" element={<LiveTrackingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
-      <Route path="/unauthorized" element={<NotAuthorizedPage />} />
       <Route path="/wallet" element={<WalletPage />} />
       <Route path="/qr-scan/:userId" element={<QRScanPage />} />
       <Route path="/qr-scanner" element={<QRScannerPage />} />
