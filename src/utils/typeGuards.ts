@@ -7,7 +7,8 @@ export const getRouteDisplay = (route: string | IRoute | null): string => {
   return `${route.start} → ${route.end}`;
 };
 
-export const getBusName = (bus: string | IBus): string => {
+export const getBusName = (bus: string | IBus | null): string => {
+  if (!bus) return 'No bus assigned';
   if (typeof bus === 'string') return bus;
   return bus.name;
 };
@@ -18,12 +19,14 @@ export const getRouteId = (route: string | IRoute | null): string => {
   return route._id;
 };
 
-export const getBusId = (bus: string | IBus): string => {
+export const getBusId = (bus: string | IBus | null): string => {
+  if (!bus) return '';
   if (typeof bus === 'string') return bus;
   return bus._id;
 };
 
-export const getPassId = (pass: string | IPass): string => {
+export const getPassId = (pass: string | IPass | null): string => {
+  if (!pass) return '';
   if (typeof pass === 'string') return pass;
   return pass._id;
 };
@@ -32,10 +35,10 @@ export const isRoute = (route: string | IRoute | null): route is IRoute => {
   return typeof route === 'object' && route !== null && '_id' in route;
 };
 
-export const isBus = (bus: string | IBus): bus is IBus => {
+export const isBus = (bus: string | IBus | null): bus is IBus => {
   return typeof bus === 'object' && bus !== null && '_id' in bus;
 };
 
-export const isPass = (pass: string | IPass): pass is IPass => {
+export const isPass = (pass: string | IPass | null): pass is IPass => {
   return typeof pass === 'object' && pass !== null && '_id' in pass;
 };
