@@ -70,7 +70,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
             </div>
             <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 flex-shrink-0">
               {isAdmin && (
-                <span className="bg-amber-100 text-amber-800 px-1 sm:px-2 lg:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium">
+                <span className="bg-amber-100 text-amber-800 px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium border border-amber-200">
                   <span className="hidden sm:inline">Admin</span>
                   <span className="sm:hidden">A</span>
                 </span>
