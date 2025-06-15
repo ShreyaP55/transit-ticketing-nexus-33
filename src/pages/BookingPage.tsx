@@ -170,6 +170,18 @@ const BookingPage = () => {
   return (
     <MainLayout title="Book Ticket">
       <div className="container mx-auto py-4 space-y-6">
+        {/* HEADER ROW WITH NEW TICKET BUTTON */}
+        <div className="flex justify-between items-center mb-6">
+          <div />
+          <Button 
+            onClick={() => setOpen(true)} 
+            className="ml-auto"
+            variant="default"
+          >
+            New Ticket
+          </Button>
+        </div>
+
         <Card className="border-primary/20 bg-white shadow-md">
           <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent">
             <CardTitle className="flex items-center text-lg sm:text-xl">
@@ -289,9 +301,6 @@ const BookingPage = () => {
           </CardFooter>
         </Card>
       </div>
-       <Button className="mb-8" onClick={() => setOpen(true)}>
-        New Ticket
-      </Button>
       <NewTicketModal open={open} onOpenChange={setOpen} />
     </MainLayout>
   );
