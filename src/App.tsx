@@ -15,6 +15,7 @@ import BusesPage from "./pages/BusesPage";
 import NotFound from "./pages/NotFound";
 import StationManagementPage from "./pages/StationManagementPage";
 import LiveTrackingPage from "./pages/LiveTrackingPage";
+import AdminLiveTrackingPage from "./pages/AdminLiveTrackingPage";
 import { LoginPage, SignupPage } from "./pages/AuthPages";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import NotAuthorizedPage from "./pages/NotAuthorizedPage";
@@ -51,6 +52,7 @@ const App = () => (
               {/* Admin Routes */}
               <Route element={<AdminRoute />}>
                 <Route path="/admin" element={<AdminDashboardPage />} />
+                <Route path="/admin/live-tracking" element={<AdminLiveTrackingPage />} />
                 <Route path="/routes" element={<RoutesPage />} />
                 <Route path="/buses" element={<BusesPage />} />
                 <Route path="/stations" element={<StationManagementPage />} />
