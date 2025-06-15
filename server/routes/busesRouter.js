@@ -1,4 +1,3 @@
-
 import express from 'express';
 import mongoose from 'mongoose';
 import Bus from '../models/Bus.js';
@@ -16,7 +15,7 @@ router.get('/', async (req, res) => {
       query.route = routeId;
     }
     
-    const buses = await Bus.find(query).populate('route');
+    const buses = await Bus.find(query);
     res.json(buses);
   } catch (error) {
     console.error('Error fetching buses:', error);
@@ -61,10 +60,7 @@ router.post('/', async (req, res) => {
     const savedBus = await newBus.save();
     console.log('Bus created successfully:', savedBus);
     
-    // Populate route data before sending response
-    const populatedBus = await Bus.findById(savedBus._id).populate('route');
-    
-    res.status(201).json(populatedBus);
+    res.status(201).json(savedBus);
   } catch (error) {
     console.error('Error creating bus:', error);
     
@@ -126,7 +122,7 @@ router.put('/:id', async (req, res) => {
         capacity: capacityNum,
       },
       { new: true, runValidators: true }
-    ).populate('route');
+    );
     
     if (!updatedBus) {
       return res.status(404).json({ error: 'Bus not found' });

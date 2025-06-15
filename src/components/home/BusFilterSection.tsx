@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Bus as BusIcon, Route as RouteIcon } from "lucide-react";
 import { routesAPI, busesAPI } from "@/services/api";
+import { getRouteId } from '@/utils/typeGuards';
 
 const BusFilterSection = () => {
   const [selectedRouteId, setSelectedRouteId] = useState<string>("all");
@@ -72,21 +73,26 @@ const BusFilterSection = () => {
           </div>
         ) : (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-            {buses?.map(bus => (
-              <Card key={bus._id} className="flex flex-col items-start p-4 border border-border bg-background/80 hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-2 mb-2">
-                  <BusIcon className="h-5 w-5 text-transit-orange" />
-                  <span className="font-bold text-primary text-xl">{bus.name}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <RouteIcon className="h-4 w-4" />
-                  Route: {typeof bus.route === "object" && bus.route ? `${bus.route.start} - ${bus.route.end}` : 'Unassigned'}
-                </div>
-                <Badge variant="outline" className="mt-2 bg-accent/20 text-primary border-transit-orange/20">
-                  {bus.capacity} seats
-                </Badge>
-              </Card>
-            ))}
+            {buses?.map(bus => {
+              const routeInfo = routes?.find(r => r._id === getRouteId(bus.route));
+              const routeDisplay = routeInfo ? `${routeInfo.start} - ${routeInfo.end}` : 'Unassigned';
+
+              return (
+                <Card key={bus._id} className="flex flex-col items-start p-4 border border-border bg-background/80 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BusIcon className="h-5 w-5 text-transit-orange" />
+                    <span className="font-bold text-primary text-xl">{bus.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <RouteIcon className="h-4 w-4" />
+                    Route: {routeDisplay}
+                  </div>
+                  <Badge variant="outline" className="mt-2 bg-accent/20 text-primary border-transit-orange/20">
+                    {bus.capacity} seats
+                  </Badge>
+                </Card>
+              );
+            })}
           </div>
         )}
       </CardContent>
