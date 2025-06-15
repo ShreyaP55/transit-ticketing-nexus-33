@@ -89,10 +89,17 @@ const RoutesPage = () => {
 
   return (
     <MainLayout title="Routes Management">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex justify-end items-center mb-6">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-transit-orange">Routes Management</h1>
+            <p className="text-sm text-muted-foreground">Manage your transit routes</p>
+          </div>
           {isAdmin && (
-            <Button onClick={() => setIsRouteFormOpen(true)} className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)]">
+            <Button 
+              onClick={() => setIsRouteFormOpen(true)} 
+              className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)] w-full sm:w-auto"
+            >
               <Plus className="mr-2 h-4 w-4" /> Add Route
             </Button>
           )}
@@ -100,9 +107,9 @@ const RoutesPage = () => {
 
         <Card className="bg-card border-transit-orange/20">
           <CardHeader className="pb-2 border-b border-border">
-            <CardTitle className="text-white">Transit Routes</CardTitle>
+            <CardTitle className="text-white text-lg sm:text-xl">Transit Routes</CardTitle>
           </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 px-2 sm:px-6">
             {isLoading ? (
               <div className="space-y-2">
                 {Array(3).fill(0).map((_, i) => (
@@ -123,9 +130,9 @@ const RoutesPage = () => {
                 <Table>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
-                      <TableHead>Route Name</TableHead>
-                      <TableHead>Fare</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="min-w-[200px]">Route Name</TableHead>
+                      <TableHead className="min-w-[80px]">Fare</TableHead>
+                      <TableHead className="text-right min-w-[200px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -136,24 +143,24 @@ const RoutesPage = () => {
                           <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-transit-orange/20">₹{route.fare}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex flex-col sm:flex-row justify-end gap-2">
                             <Button 
                               variant="secondary" 
                               size="sm"
                               onClick={() => handleAddBus(route)}
-                              className="h-8 px-3 bg-transit-orange hover:bg-transit-orange-dark text-white"
+                              className="h-8 px-3 bg-transit-orange hover:bg-transit-orange-dark text-white text-xs sm:text-sm"
                             >
                               <BusIcon className="mr-1 h-3.5 w-3.5" /> Add Bus
                             </Button>
                             {isAdmin && (
-                              <>
+                              <div className="flex gap-2 justify-end">
                                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-transit-orange" onClick={() => handleEdit(route)}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteClick(route._id)}>
                                   <Trash className="h-4 w-4" />
                                 </Button>
-                              </>
+                              </div>
                             )}
                           </div>
                         </TableCell>

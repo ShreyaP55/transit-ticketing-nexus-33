@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
@@ -21,20 +22,20 @@ export const AppSidebar: React.FC = () => {
   const location = useLocation();
 
   const publicNavItems = [
-    { name: "Home", icon: Map, path: "/" },
-    { name: "My Tickets", icon: Ticket, path: "/tickets" },
-    { name: "Monthly Pass", icon: Calendar, path: "/pass" },
-    { name: "Live Tracking", icon: Navigation, path: "/tracking" },
-    { name: "QR", icon: QrCode, path: "/qr-scan/:userId" },
-    { name: "wallet", icon: Wallet, path: "/wallet" },
+    { name: "Home", shortName: "Home", icon: Map, path: "/" },
+    { name: "My Tickets", shortName: "Tickets", icon: Ticket, path: "/tickets" },
+    { name: "Monthly Pass", shortName: "Pass", icon: Calendar, path: "/pass" },
+    { name: "Live Tracking", shortName: "Tracking", icon: Navigation, path: "/tracking" },
+    { name: "QR", shortName: "QR", icon: QrCode, path: "/qr-scan/:userId" },
+    { name: "Wallet", shortName: "Wallet", icon: Wallet, path: "/wallet" },
   ];
 
   const adminNavItems = [
-    { name: "Routes", icon: Route, path: "/routes" },
-    { name: "Buses", icon: Bus, path: "/buses" },
-    { name: "Stations", icon: MapPin, path: "/stations" },
-    { name: "Scanner", icon: ScanLine, path: "/qr-scanner" },
-    { name: "Admin Live Tracking", icon: Navigation, path: "/admin/live-tracking" },
+    { name: "Routes", shortName: "Routes", icon: Route, path: "/routes" },
+    { name: "Buses", shortName: "Buses", icon: Bus, path: "/buses" },
+    { name: "Stations", shortName: "Stations", icon: MapPin, path: "/stations" },
+    { name: "Scanner", shortName: "Scanner", icon: ScanLine, path: "/qr-scanner" },
+    { name: "Admin Live Tracking", shortName: "Admin Track", icon: Navigation, path: "/admin/live-tracking" },
   ];
 
   const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
@@ -44,9 +45,10 @@ export const AppSidebar: React.FC = () => {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>
-            <span className="flex items-center gap-2 font-bold text-transit-orange-dark text-xl">
-              <Bus className="h-6 w-6" />
-              <span>BusInn</span>
+            <span className="flex items-center gap-2 font-bold text-transit-orange-dark text-lg sm:text-xl">
+              <Bus className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="hidden sm:inline">BusInn</span>
+              <span className="sm:hidden">BI</span>
             </span>
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -56,10 +58,11 @@ export const AppSidebar: React.FC = () => {
                   <SidebarMenuButton
                     asChild
                     isActive={location.pathname === item.path || (item.path.includes(":userId") && location.pathname.startsWith("/qr-scan"))}
+                    className="flex items-center gap-2 text-sm"
                   >
                     <Link to={item.path.replace(":userId", "me")}>
-                      <item.icon className="mr-2" />
-                      <span>{item.name}</span>
+                      <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <span className="truncate text-xs sm:text-sm">{item.shortName}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -72,7 +75,7 @@ export const AppSidebar: React.FC = () => {
         {isAuthenticated ? (
           <Button
             variant="outline"
-            className="w-full mt-2"
+            className="w-full mt-2 text-xs sm:text-sm"
             onClick={() => {
               logout();
               navigate("/login");
@@ -82,7 +85,7 @@ export const AppSidebar: React.FC = () => {
           </Button>
         ) : (
           <Button
-            className="w-full mt-2"
+            className="w-full mt-2 text-xs sm:text-sm"
             onClick={() => navigate("/login")}
           >
             Login

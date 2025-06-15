@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
-// Remove explicit Avatar import, we'll use Clerk's UserButton instead
-// import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { UserButton } from "@clerk/clerk-react";
 
 interface MainLayoutProps {
@@ -61,26 +59,32 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     <SidebarProvider>
       <div className="flex min-h-screen w-full transitBg">
         <AppSidebar />
-        <div className="flex flex-col flex-1">
-          <header className="h-16 bg-white shadow-md flex items-center justify-between px-6 sticky top-0 z-10">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="lg:hidden" />
-              {currentNavItem && React.cloneElement(currentNavItem.icon as React.ReactElement, { className: "text-transit-orange-dark" })}
-              <h1 className="text-xl font-semibold text-transit-orange-dark">{title || "TransitNexus"}</h1>
+        <div className="flex flex-col flex-1 min-w-0">
+          <header className="h-14 sm:h-16 bg-white shadow-md flex items-center justify-between px-3 sm:px-6 sticky top-0 z-10">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <SidebarTrigger className="lg:hidden flex-shrink-0" />
+              {currentNavItem && React.cloneElement(currentNavItem.icon as React.ReactElement, { className: "text-transit-orange-dark h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" })}
+              <h1 className="text-sm sm:text-xl font-semibold text-transit-orange-dark truncate">
+                {title || "TransitNexus"}
+              </h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               {isAdmin && (
-                <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-medium">
+                <span className="bg-amber-100 text-amber-800 px-2 sm:px-3 py-1 rounded-full text-xs font-medium hidden sm:inline">
                   Admin Access
                 </span>
               )}
+              {isAdmin && (
+                <span className="bg-amber-100 text-amber-800 px-1 py-1 rounded-full text-xs font-medium sm:hidden">
+                  A
+                </span>
+              )}
               {isAuthenticated && (
-                // Clerk UserButton (shows avatar, and clicking it opens the profile/settings dropdown)
-                <div className="flex items-center h-10">
+                <div className="flex items-center h-8 sm:h-10">
                   <UserButton 
                     appearance={{
                       elements: {
-                        avatarBox: "h-10 w-10 border-2 border-primary shadow"
+                        avatarBox: "h-8 w-8 sm:h-10 sm:w-10 border-2 border-primary shadow"
                       }
                     }}
                     userProfileMode="modal"
@@ -89,8 +93,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
               )}
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6">{children}</main>
-          <footer className="bg-white p-4 text-center text-sm text-muted-foreground">
+          <main className="flex-1 p-2 sm:p-4 md:p-6 min-w-0">{children}</main>
+          <footer className="bg-white p-3 sm:p-4 text-center text-xs sm:text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} BusInn. All rights reserved.
           </footer>
         </div>
