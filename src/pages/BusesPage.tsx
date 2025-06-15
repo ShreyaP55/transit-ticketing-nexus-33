@@ -36,14 +36,18 @@ const BusesPage = () => {
     queryFn: routesAPI.getAll
   });
 
+  // Do not pass routeId to API if blank to avoid erroneous filtering.
+  const routeForApi = selectedRouteId && selectedRouteId !== "undefined" ? selectedRouteId : undefined;
+
   // Fetch buses data
   const { 
     data: buses, 
     isLoading,
     error: busesError 
   } = useQuery({
-    queryKey: ['buses', selectedRouteId],
-    queryFn: () => busesAPI.getAll(selectedRouteId),
+    queryKey: ['buses', routeForApi],
+    queryFn: () => busesAPI.getAll(routeForApi),
+    enabled: routes !== undefined // Don't call if routes fetch errored
   });
 
   // Delete mutation
@@ -95,15 +99,17 @@ const BusesPage = () => {
     setSelectedRouteId(routeId === selectedRouteId ? "" : routeId);
   };
 
-  // Display data fetching errors
-  if (routesError || busesError) {
-    toast.error(`Error loading data: ${(routesError || busesError as Error).message}`);
-  }
+  // Error Toast on load error
+  React.useEffect(() => {
+    if (routesError || busesError) {
+      toast.error(`Error loading data: ${(routesError || busesError as Error).message}`);
+    }
+  }, [routesError, busesError]);
 
   return (
     <MainLayout title="Bus Management">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6 flex justify-between items-center">
+      <div className="max-w-6xl mx-auto w-full px-2">
+        <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
           <div>
             <h1 className="text-2xl font-bold text-white neonText flex items-center">
               <BusIcon className="mr-2 h-6 w-6 text-transit-orange" />
@@ -116,31 +122,36 @@ const BusesPage = () => {
           {isAdmin && (
             <Button 
               onClick={() => setIsBusFormOpen(true)} 
-              className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)]"
+              className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)] w-full md:w-auto"
             >
               <Plus className="mr-2 h-4 w-4" /> Add Bus
             </Button>
           )}
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <BusFilters
-            routes={routes}
-            isLoadingRoutes={isLoadingRoutes}
-            selectedRouteId={selectedRouteId}
-            onRouteFilter={handleRouteFilter}
-          />
+        {/* Responsive grid: stack vertically on mobile, row on md+ */}
+        <div className="flex flex-col md:flex-row gap-4 w-full">
+          <div className="md:w-1/4 w-full">
+            <BusFilters
+              routes={routes}
+              isLoadingRoutes={isLoadingRoutes}
+              selectedRouteId={selectedRouteId}
+              onRouteFilter={handleRouteFilter}
+            />
+          </div>
 
-          <BusTable
-            buses={buses}
-            isLoading={isLoading}
-            selectedRouteId={selectedRouteId}
-            isAdmin={isAdmin}
-            onAddBus={() => setIsBusFormOpen(true)}
-            onEditBus={handleEdit}
-            onDeleteBus={handleDeleteClick}
-            onGenerateQR={handleGenerateQR}
-          />
+          <div className="md:w-3/4 w-full">
+            <BusTable
+              buses={buses}
+              isLoading={isLoading}
+              selectedRouteId={selectedRouteId}
+              isAdmin={isAdmin}
+              onAddBus={() => setIsBusFormOpen(true)}
+              onEditBus={handleEdit}
+              onDeleteBus={handleDeleteClick}
+              onGenerateQR={handleGenerateQR}
+            />
+          </div>
         </div>
 
         {/* Bus Form Dialog */}
