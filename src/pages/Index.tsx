@@ -99,13 +99,20 @@ const Index = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12 animate-fade-in">
           {featureCards.map((feat, idx) => (
             <div
-              className="bg-white border border-primary/20 p-6 rounded-xl text-center shadow-lg hover:scale-105 hover:bg-primary/5 transition-all duration-300 flex flex-col items-center gap-3 hover-scale animate-scale-in"
+              className={`
+                bg-white border border-primary/20 p-6 rounded-xl text-center shadow-lg
+                flex flex-col items-center gap-3 animate-scale-in
+                transition-all duration-300 hover:bg-primary hover:text-white hover:shadow-xl hover:scale-105
+                group
+              `}
               key={idx}
               style={{ animationDelay: `${idx * 120}ms` }}
             >
-              <div className="mb-2">{feat.icon}</div>
-              <h3 className="text-lg font-semibold text-primary">{feat.title}</h3>
-              <p className="text-muted-foreground">{feat.desc}</p>
+              <div className="mb-2 group-hover:text-white transition-colors duration-300">{feat.icon}</div>
+              <h3 className="text-lg font-semibold text-primary group-hover:text-white transition-colors duration-300">
+                {feat.title}
+              </h3>
+              <p className="text-muted-foreground group-hover:text-white transition-colors duration-300">{feat.desc}</p>
             </div>
           ))}
         </div>
@@ -116,21 +123,28 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
             {steps.map((step, idx) => (
               <div
-                className={`flex flex-col items-center flex-1 max-w-xs transition-all duration-200 animate-fade-in`}
+                className={`
+                  flex flex-col items-center flex-1 max-w-xs transition-all duration-200 animate-fade-in
+                  rounded-xl py-4 
+                  hover:bg-primary hover:text-white hover:shadow-lg hover:scale-105
+                  group
+                `}
                 style={{ animationDelay: `${idx * 120}ms` }}
                 key={idx}
               >
-                <div className="w-14 h-14 flex items-center justify-center rounded-full bg-primary/10 mb-3 border border-primary/10">{step.icon}</div>
-                <div className="text-xl font-medium text-primary text-center">{step.title}</div>
-                <div className="text-muted-foreground text-center">{step.desc}</div>
+                <div className="w-14 h-14 flex items-center justify-center rounded-full bg-primary/10 mb-3 border border-primary/10 group-hover:bg-white/30 group-hover:text-white transition-colors duration-300">
+                  {step.icon}
+                </div>
+                <div className="text-xl font-medium text-primary text-center group-hover:text-white transition-colors duration-300">
+                  {step.title}
+                </div>
+                <div className="text-muted-foreground text-center group-hover:text-white transition-colors duration-300">
+                  {step.desc}
+                </div>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Footer */}
-        {/* Removed custom BusInn footer in favor of MainLayout's footer */}
-
       </div>
     </MainLayout>
   );
