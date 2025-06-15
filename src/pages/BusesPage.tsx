@@ -1,10 +1,9 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import MainLayout from "@/components/layout/MainLayout";
 import { busesAPI, routesAPI, stationsAPI } from "@/services/api";
-import { Button } from "@/components/ui/button";
-import { Plus, Bus as BusIcon } from "lucide-react";
 import BusForm from "@/components/buses/BusForm";
 import BusQRCode from "@/components/buses/BusQRCode";
 import BusFilters from "@/components/buses/BusFilters";
@@ -13,6 +12,7 @@ import { useUser } from "@/context/UserContext";
 import { IBus } from "@/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Bus as BusIcon, Plus } from "lucide-react";
 
 const BusesPage = () => {
   const { isAdmin } = useUser();
@@ -34,14 +34,14 @@ const BusesPage = () => {
     queryKey: ['routes'],
     queryFn: routesAPI.getAll,
     retry: 3,
-    staleTime: 1000 * 60 * 2, // cache 2 min for speed
+    staleTime: 1000 * 60 * 2
   });
 
-  // Fetch all stations once for mapping busId -> stations for the table
-  const { data: stations, isLoading: isLoadingStations } = useQuery({
+  // Fetch stations for mapping busId -> station
+  const { data: stations, isLoading: isLoadingStations, error: stationsError } = useQuery({
     queryKey: ['stations'],
     queryFn: () => stationsAPI.getAll(),
-    staleTime: 1000 * 60, // 1 min cache
+    staleTime: 1000 * 60
   });
 
   // Do not pass routeId to API if blank to avoid erroneous filtering.
@@ -72,7 +72,7 @@ const BusesPage = () => {
     }
   });
 
-  // Handle QR code generation
+  // QR code
   const handleGenerateQR = (bus: IBus) => {
     setBusForQR(bus);
     setIsQRDialogOpen(true);
@@ -111,12 +111,11 @@ const BusesPage = () => {
 
   // Error Toast on load error
   React.useEffect(() => {
-    if (routesError || busesError) {
-      // Show exact error if possible
-      const err = (routesError || busesError) as Error;
+    if (routesError || busesError || stationsError) {
+      const err = (routesError || busesError || stationsError) as Error;
       toast.error(`Error loading data: ${err?.message || "Unknown"}`);
     }
-  }, [routesError, busesError]);
+  }, [routesError, busesError, stationsError]);
 
   return (
     <MainLayout title="Bus Management">
@@ -141,7 +140,6 @@ const BusesPage = () => {
           )}
         </div>
         
-        {/* Improve flex: stack mobile, row desktop, wrap if needed */}
         <div className="flex flex-wrap md:flex-nowrap gap-4 w-full min-h-[300px]">
           <div className="md:w-1/4 w-full min-w-[250px]">
             <BusFilters
@@ -151,7 +149,6 @@ const BusesPage = () => {
               onRouteFilter={handleRouteFilter}
             />
           </div>
-
           <div className="md:w-3/4 w-full flex-1 min-w-[350px]">
             <BusTable
               buses={buses}
@@ -162,7 +159,6 @@ const BusesPage = () => {
               onEditBus={handleEdit}
               onDeleteBus={handleDeleteClick}
               onGenerateQR={handleGenerateQR}
-              // Pass stations to BusTable (new prop)
               stations={stations}
               isLoadingStations={isLoadingStations}
               routes={routes}
