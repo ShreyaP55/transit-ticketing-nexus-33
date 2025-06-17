@@ -14,8 +14,10 @@ export const paymentAPI = {
         method: "POST",
         body: JSON.stringify({
           userId,
-          station: { id: stationId, fare: amount },
-          bus: { id: busId },
+          type: 'ticket',
+          stationId,
+          busId,
+          amount,
         }),
       });
     } catch (error) {
@@ -23,6 +25,7 @@ export const paymentAPI = {
       throw error;
     }
   },
+  
   createPassCheckoutSession: async (routeId: string, amount: number): Promise<{ url: string }> => {
     try {
       const userId = getAuthToken();
@@ -32,11 +35,44 @@ export const paymentAPI = {
           userId,
           type: 'pass',
           routeId,
-          fare: amount
+          amount
         }),
       });
     } catch (error) {
       console.error("paymentAPI.createPassCheckoutSession error:", error);
+      throw error;
+    }
+  },
+
+  createWalletCheckoutSession: async (amount: number): Promise<{ url: string }> => {
+    try {
+      const userId = getAuthToken();
+      return await fetchAPI("/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          userId,
+          type: 'wallet',
+          amount
+        }),
+      });
+    } catch (error) {
+      console.error("paymentAPI.createWalletCheckoutSession error:", error);
+      throw error;
+    }
+  },
+
+  confirmPayment: async (sessionId: string): Promise<{ success: boolean; data?: any }> => {
+    try {
+      const userId = getAuthToken();
+      return await fetchAPI("/payments", {
+        method: "POST",
+        body: JSON.stringify({
+          userId,
+          sessionId
+        }),
+      });
+    } catch (error) {
+      console.error("paymentAPI.confirmPayment error:", error);
       throw error;
     }
   }
