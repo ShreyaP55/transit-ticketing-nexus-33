@@ -23,15 +23,17 @@ export const stripeService = {
           'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({
-          userId: authToken,
           type: 'ticket',
           stationId,
           busId,
-          amount: amount, // Keep original amount, backend will convert
+          amount: Math.round(amount * 100), // Convert to cents
+          successUrl: `${window.location.origin}/tickets?status=success`,
+          cancelUrl: `${window.location.origin}/booking?status=cancel`,
         }),
       });
 
       console.log('Checkout response status:', response.status);
+      console.log('Checkout response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -76,10 +78,11 @@ export const stripeService = {
           'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({
-          userId: authToken,
           type: 'pass',
           routeId,
-          amount: amount,
+          amount: Math.round(amount * 100), // Convert to cents
+          successUrl: `${window.location.origin}/pass?status=success`,
+          cancelUrl: `${window.location.origin}/pass?status=cancel`,
         }),
       });
 
@@ -128,9 +131,10 @@ export const stripeService = {
           'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({
-          userId: authToken,
           type: 'wallet',
-          amount: amount,
+          amount: Math.round(amount * 100), // Convert to cents
+          successUrl: `${window.location.origin}/wallet?status=success&amount=${amount}`,
+          cancelUrl: `${window.location.origin}/wallet?status=cancel`,
         }),
       });
 

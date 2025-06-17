@@ -1,29 +1,18 @@
 
 import express from 'express';
-import Stripe from 'stripe';
-import { connect } from '../utils/mongoConnect.js';
-import Payment from '../models/Payment.js';
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Create checkout session
+// Simple checkout endpoint for testing
 router.post('/', async (req, res) => {
   try {
     console.log('=== CHECKOUT REQUEST ===');
     console.log('Headers:', req.headers);
     console.log('Body:', req.body);
     
-    await connect();
-    
-    const { userId, type, amount, stationId, busId, routeId } = req.body;
+    const { type, amount, stationId, busId, routeId } = req.body;
     
     // Validate required fields
-    if (!userId) {
-      console.error('Missing userId field');
-      return res.status(400).json({ error: 'Missing required field: userId' });
-    }
-    
     if (!type) {
       console.error('Missing type field');
       return res.status(400).json({ error: 'Missing required field: type' });
@@ -45,51 +34,27 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required field for pass: routeId' });
     }
 
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'inr',
-            unit_amount: Math.round(amount * 100), // Convert to paise
-            product_data: {
-              name: type === 'wallet' ? 'Wallet Top-up' : 
-                    type === 'pass' ? 'Monthly Pass' : 'Bus Ticket',
-            },
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `${req.headers.origin || 'http://localhost:5173'}/${type}?status=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin || 'http://localhost:5173'}/${type}?status=cancel`,
+    // Simulate Stripe checkout session creation
+    const mockSessionId = `cs_test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const mockSession = {
+      id: mockSessionId,
+      url: `https://checkout.stripe.com/pay/${mockSessionId}#mock_session`,
+      payment_status: 'pending',
+      amount_total: amount,
+      currency: 'inr',
       metadata: {
-        userId,
         type,
-        routeId: routeId || '',
-        stationId: stationId || '',
-        busId: busId || '',
+        stationId: stationId || null,
+        busId: busId || null,
+        routeId: routeId || null
       },
-    });
-
-    // Create payment record
-    const payment = new Payment({
-      userId,
-      type,
-      routeId: routeId || null,
-      fare: amount,
-      stripeSessionId: session.id,
-      status: 'pending'
-    });
-
-    await payment.save();
+      success: true
+    };
 
     console.log('=== CHECKOUT RESPONSE ===');
-    console.log('Stripe session created:', session.id);
-    console.log('Payment record created:', payment._id);
+    console.log('Mock checkout session created:', mockSession);
     
-    res.status(200).json({ url: session.url });
+    res.status(200).json(mockSession);
   } catch (error) {
     console.error('=== CHECKOUT ERROR ===');
     console.error('Checkout error:', error);
