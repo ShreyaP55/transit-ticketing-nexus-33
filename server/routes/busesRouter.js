@@ -14,11 +14,18 @@ router.get('/', async (req, res) => {
     console.log('GET /buses - routeId:', routeId);
     console.log('MongoDB connection state:', mongoose.connection.readyState);
     console.log('Bus model available:', !!Bus);
+    console.log('Bus model methods:', Object.getOwnPropertyNames(Bus));
     
     // Check database connection
     if (mongoose.connection.readyState !== 1) {
       console.error('Database not connected, state:', mongoose.connection.readyState);
       return res.status(500).json({ error: 'Database connection failed' });
+    }
+
+    // Verify Bus model is properly initialized
+    if (!Bus || typeof Bus.find !== 'function') {
+      console.error('Bus model not properly initialized');
+      return res.status(500).json({ error: 'Bus model initialization failed' });
     }
     
     let query = {};

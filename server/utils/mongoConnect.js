@@ -11,6 +11,11 @@ export const connect = async () => {
   }
 
   try {
+    // Clear any existing models to prevent issues
+    Object.keys(mongoose.models).forEach(key => {
+      delete mongoose.models[key];
+    });
+
     await mongoose.connect(process.env.MONGODB_URI, {
       dbName: "transit-app",
       useNewUrlParser: true,
@@ -18,6 +23,10 @@ export const connect = async () => {
     });
 
     console.log("🚀 MongoDB connected successfully");
+    
+    // Wait a moment for models to be ready
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
   } catch (error) {
     console.error("❌ MongoDB connection error:", error);
     throw new Error("MongoDB connection failed");
