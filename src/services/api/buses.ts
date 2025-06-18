@@ -6,18 +6,21 @@ import { fetchAPI } from "./base";
 export const busesAPI = {
   getAll: async (routeId?: string): Promise<IBus[]> => {
     try {
-      return await fetchAPI(`/buses${routeId ? `?routeId=${routeId}` : ""}`);
+      console.log('busesAPI.getAll called with routeId:', routeId);
+      const url = `/buses${routeId ? `?routeId=${routeId}` : ""}`;
+      const result = await fetchAPI(url);
+      console.log('busesAPI.getAll result:', result);
+      return result as IBus[];
     } catch (error) {
       console.error("busesAPI.getAll error:", error);
-      // Return empty array on error
-      return [];
+      throw error; // Re-throw to let React Query handle it
     }
   },
     
   create: async (bus: Omit<IBus, "_id" | "route"> & { route: string }): Promise<IBus> => {
     try {
-      // Must send "route" not "routeId"
-      const res = await fetchAPI("/buses", {
+      console.log('busesAPI.create called with:', bus);
+      const result = await fetchAPI("/buses", {
         method: "POST",
         body: JSON.stringify({
           name: bus.name,
@@ -25,7 +28,8 @@ export const busesAPI = {
           capacity: bus.capacity,
         }),
       });
-      return res as IBus;
+      console.log('busesAPI.create result:', result);
+      return result as IBus;
     } catch (error) {
       console.error("busesAPI.create error:", error);
       throw error;
@@ -34,8 +38,8 @@ export const busesAPI = {
     
   update: async (bus: Omit<IBus, "route"> & { route: string }): Promise<IBus> => {
     try {
-      // Must send "route" not "routeId"
-      const res = await fetchAPI(`/buses/${bus._id}`, {
+      console.log('busesAPI.update called with:', bus);
+      const result = await fetchAPI(`/buses/${bus._id}`, {
         method: "PUT",
         body: JSON.stringify({
           name: bus.name,
@@ -43,7 +47,8 @@ export const busesAPI = {
           capacity: bus.capacity,
         }),
       });
-      return res as IBus;
+      console.log('busesAPI.update result:', result);
+      return result as IBus;
     } catch (error) {
       console.error("busesAPI.update error:", error);
       throw error;
@@ -52,18 +57,15 @@ export const busesAPI = {
     
   delete: async (id: string): Promise<{ message: string }> => {
     try {
-      const res = await fetchAPI(`/buses/${id}`, {
+      console.log('busesAPI.delete called with id:', id);
+      const result = await fetchAPI(`/buses/${id}`, {
         method: "DELETE",
       });
-      // Ensure the return value always has a `message` property
-      if (res && typeof res === 'object' && 'message' in res) {
-        return res as { message: string };
-      }
-      return { message: "Bus deleted (fallback, but no message from API)" };
+      console.log('busesAPI.delete result:', result);
+      return result as { message: string };
     } catch (error) {
       console.error("busesAPI.delete error:", error);
-      // Fallback for error
-      return { message: "Failed to delete bus" };
+      throw error;
     }
   },
 };

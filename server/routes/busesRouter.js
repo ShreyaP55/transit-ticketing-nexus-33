@@ -11,21 +11,22 @@ router.get('/', async (req, res) => {
   try {
     const { routeId } = req.query;
     
-    console.log('Fetching buses, routeId:', routeId);
-    console.log('Bus model available:', !!Bus);
-    console.log('Bus.find function:', typeof Bus.find);
+    console.log('GET /buses - routeId:', routeId);
+    console.log('Bus model:', !!Bus);
     
     let query = {};
-    if (routeId) {
+    if (routeId && mongoose.Types.ObjectId.isValid(routeId)) {
       query.route = routeId;
     }
     
+    console.log('Query:', query);
     const buses = await Bus.find(query).populate('route');
-    console.log('Buses found:', buses.length);
+    console.log('Found buses:', buses.length);
+    
     res.json(buses);
   } catch (error) {
     console.error('Error fetching buses:', error);
-    res.status(500).json({ error: 'Failed to fetch buses' });
+    res.status(500).json({ error: 'Failed to fetch buses', details: error.message });
   }
 });
 
@@ -34,26 +35,31 @@ router.post('/', async (req, res) => {
   try {
     const { name, route, capacity } = req.body;
     
-    console.log('Creating bus with data:', { name, route, capacity });
+    console.log('POST /buses - Creating bus with:', { name, route, capacity });
     
+    // Validation
     if (!name || !route || !capacity) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      console.error('Missing required fields:', { name: !!name, route: !!route, capacity: !!capacity });
+      return res.status(400).json({ error: 'Missing required fields: name, route, and capacity are required' });
     }
 
-    // Validate that route is a valid ObjectId
+    // Validate route ID format
     if (!mongoose.Types.ObjectId.isValid(route)) {
+      console.error('Invalid route ID format:', route);
       return res.status(400).json({ error: 'Invalid route ID format' });
     }
 
     // Check if route exists
     const existingRoute = await Route.findById(route);
     if (!existingRoute) {
+      console.error('Route not found:', route);
       return res.status(400).json({ error: 'Route not found' });
     }
 
-    // Validate capacity is a positive number
+    // Validate capacity
     const capacityNum = parseInt(capacity);
     if (isNaN(capacityNum) || capacityNum <= 0) {
+      console.error('Invalid capacity:', capacity);
       return res.status(400).json({ error: 'Capacity must be a positive number' });
     }
     
@@ -63,26 +69,28 @@ router.post('/', async (req, res) => {
       capacity: capacityNum,
     });
     
+    console.log('Creating new bus:', newBus);
     const savedBus = await newBus.save();
     console.log('Bus created successfully:', savedBus);
     
-    res.status(201).json(savedBus);
+    // Populate the route for the response
+    const populatedBus = await Bus.findById(savedBus._id).populate('route');
+    
+    res.status(201).json(populatedBus);
   } catch (error) {
     console.error('Error creating bus:', error);
     
-    // Handle specific mongoose validation errors
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ error: `Validation failed: ${validationErrors.join(', ')}` });
     }
     
-    // Handle duplicate key errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({ error: `A bus with this ${field} already exists.` });
+      return res.status(400).json({ error: `A bus with this ${field} already exists` });
     }
     
-    res.status(500).json({ error: 'Failed to create bus' });
+    res.status(500).json({ error: 'Failed to create bus', details: error.message });
   }
 });
 
@@ -92,29 +100,25 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { name, route, capacity } = req.body;
     
-    console.log('Updating bus with data:', { id, name, route, capacity });
+    console.log('PUT /buses/:id - Updating bus:', { id, name, route, capacity });
     
     if (!name || !route || !capacity) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Validate that id is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid bus ID format' });
     }
 
-    // Validate that route is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(route)) {
       return res.status(400).json({ error: 'Invalid route ID format' });
     }
 
-    // Check if route exists
     const existingRoute = await Route.findById(route);
     if (!existingRoute) {
       return res.status(400).json({ error: 'Route not found' });
     }
 
-    // Validate capacity is a positive number
     const capacityNum = parseInt(capacity);
     if (isNaN(capacityNum) || capacityNum <= 0) {
       return res.status(400).json({ error: 'Capacity must be a positive number' });
@@ -128,7 +132,7 @@ router.put('/:id', async (req, res) => {
         capacity: capacityNum,
       },
       { new: true, runValidators: true }
-    );
+    ).populate('route');
     
     if (!updatedBus) {
       return res.status(404).json({ error: 'Bus not found' });
@@ -139,19 +143,17 @@ router.put('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating bus:', error);
     
-    // Handle specific mongoose validation errors
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ error: `Validation failed: ${validationErrors.join(', ')}` });
     }
     
-    // Handle duplicate key errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({ error: `A bus with this ${field} already exists.` });
+      return res.status(400).json({ error: `A bus with this ${field} already exists` });
     }
     
-    res.status(500).json({ error: 'Failed to update bus' });
+    res.status(500).json({ error: 'Failed to update bus', details: error.message });
   }
 });
 
@@ -160,24 +162,23 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    console.log('Deleting bus with id:', id);
+    console.log('DELETE /buses/:id - Deleting bus:', id);
     
-    // Validate that id is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid bus ID format' });
     }
     
-    const result = await Bus.findByIdAndDelete(id);
+    const deletedBus = await Bus.findByIdAndDelete(id);
     
-    if (!result) {
+    if (!deletedBus) {
       return res.status(404).json({ error: 'Bus not found' });
     }
     
-    console.log('Bus deleted successfully:', result);
+    console.log('Bus deleted successfully:', deletedBus);
     res.json({ message: 'Bus deleted successfully' });
   } catch (error) {
     console.error('Error deleting bus:', error);
-    res.status(500).json({ error: 'Failed to delete bus' });
+    res.status(500).json({ error: 'Failed to delete bus', details: error.message });
   }
 });
 
