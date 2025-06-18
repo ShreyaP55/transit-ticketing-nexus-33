@@ -8,6 +8,7 @@ export const busesAPI = {
     try {
       console.log('busesAPI.getAll called with routeId:', routeId);
       const url = `/buses${routeId ? `?routeId=${routeId}` : ""}`;
+      console.log('Making request to:', url);
       const result = await fetchAPI(url);
       console.log('busesAPI.getAll result:', result);
       return result as IBus[];

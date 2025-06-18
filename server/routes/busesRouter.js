@@ -12,7 +12,14 @@ router.get('/', async (req, res) => {
     const { routeId } = req.query;
     
     console.log('GET /buses - routeId:', routeId);
-    console.log('Bus model:', !!Bus);
+    console.log('MongoDB connection state:', mongoose.connection.readyState);
+    console.log('Bus model available:', !!Bus);
+    
+    // Check database connection
+    if (mongoose.connection.readyState !== 1) {
+      console.error('Database not connected, state:', mongoose.connection.readyState);
+      return res.status(500).json({ error: 'Database connection failed' });
+    }
     
     let query = {};
     if (routeId && mongoose.Types.ObjectId.isValid(routeId)) {
@@ -20,13 +27,20 @@ router.get('/', async (req, res) => {
     }
     
     console.log('Query:', query);
-    const buses = await Bus.find(query).populate('route');
+    
+    // Use proper error handling for the database query
+    const buses = await Bus.find(query).populate('route').lean();
     console.log('Found buses:', buses.length);
     
     res.json(buses);
   } catch (error) {
     console.error('Error fetching buses:', error);
-    res.status(500).json({ error: 'Failed to fetch buses', details: error.message });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to fetch buses', 
+      details: error.message,
+      dbState: mongoose.connection.readyState 
+    });
   }
 });
 
@@ -79,6 +93,7 @@ router.post('/', async (req, res) => {
     res.status(201).json(populatedBus);
   } catch (error) {
     console.error('Error creating bus:', error);
+    console.error('Error stack:', error.stack);
     
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
@@ -142,6 +157,7 @@ router.put('/:id', async (req, res) => {
     res.json(updatedBus);
   } catch (error) {
     console.error('Error updating bus:', error);
+    console.error('Error stack:', error.stack);
     
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
@@ -178,6 +194,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Bus deleted successfully' });
   } catch (error) {
     console.error('Error deleting bus:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to delete bus', details: error.message });
   }
 });

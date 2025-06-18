@@ -22,11 +22,15 @@ const BusSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Add index for better query performance
+// Add indexes for better performance
 BusSchema.index({ route: 1 });
 BusSchema.index({ name: 1 });
 
-// Ensure we don't try to recompile the model if it already exists
-const Bus = mongoose.models.Bus || mongoose.model("Bus", BusSchema);
+// Clear any existing model to avoid recompilation errors
+if (mongoose.models.Bus) {
+  delete mongoose.models.Bus;
+}
+
+const Bus = mongoose.model("Bus", BusSchema);
 
 export default Bus;
