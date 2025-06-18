@@ -127,7 +127,10 @@ const RoutesPage = () => {
                           </div>
                         </TableCell>
                         <TableCell className="px-1 sm:px-2 lg:px-4 py-1 sm:py-2 lg:py-4">
-                          <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-transit-orange/20 text-xs px-1 sm:px-2">
+                          <Badge 
+                            variant="secondary" 
+                            className="bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30 text-xs px-1 sm:px-2"
+                          >
                             ₹{route.fare}
                           </Badge>
                         </TableCell>
