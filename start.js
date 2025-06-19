@@ -9,34 +9,56 @@ if (!fs.existsSync(path.join(__dirname, 'server'))) {
   process.exit(1);
 }
 
-// Start backend server
-console.log('Starting backend server...');
-const backend = exec('cd server && npm run dev');
+// Function to kill process on specific port
+const killPort = (port) => {
+  const isWindows = process.platform === 'win32';
+  const command = isWindows 
+    ? `netstat -ano | findstr :${port} && for /f "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /f /pid %a`
+    : `lsof -ti:${port} | xargs kill -9`;
+  
+  exec(command, (error, stdout, stderr) => {
+    if (!error) {
+      console.log(`Cleared port ${port}`);
+    }
+  });
+};
 
-backend.stdout.on('data', (data) => {
-  console.log(`Backend: ${data}`);
-});
+// Clear ports 3000 and 3001 before starting
+console.log('Clearing ports...');
+killPort(3000);
+killPort(3001);
 
-backend.stderr.on('data', (data) => {
-  console.error(`Backend Error: ${data}`);
-});
+// Wait a moment before starting servers
+setTimeout(() => {
+  // Start backend server
+  console.log('Starting backend server...');
+  const backend = exec('cd server && npm run dev');
 
-// Start frontend development server
-console.log('Starting frontend server...');
-const frontend = exec('npm run dev');
+  backend.stdout.on('data', (data) => {
+    console.log(`Backend: ${data}`);
+  });
 
-frontend.stdout.on('data', (data) => {
-  console.log(`Frontend: ${data}`);
-});
+  backend.stderr.on('data', (data) => {
+    console.error(`Backend Error: ${data}`);
+  });
 
-frontend.stderr.on('data', (data) => {
-  console.error(`Frontend Error: ${data}`);
-});
+  // Start frontend development server
+  console.log('Starting frontend server...');
+  const frontend = exec('npm run dev');
 
-// Handle process termination
-process.on('SIGINT', () => {
-  console.log('Stopping servers...');
-  backend.kill();
-  frontend.kill();
-  process.exit();
-});
+  frontend.stdout.on('data', (data) => {
+    console.log(`Frontend: ${data}`);
+  });
+
+  frontend.stderr.on('data', (data) => {
+    console.error(`Frontend Error: ${data}`);
+  });
+
+  // Handle process termination
+  process.on('SIGINT', () => {
+    console.log('Stopping servers...');
+    backend.kill();
+    frontend.kill();
+    process.exit();
+  });
+}, 2000);

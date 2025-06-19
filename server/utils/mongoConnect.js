@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Fix Mongoose deprecation warning
+mongoose.set('strictQuery', false);
+
 export const connect = async () => {
   if (mongoose.connection.readyState >= 1) {
     console.log("✅ MongoDB already connected");

@@ -20,7 +20,7 @@ import webhookRouter from './routes/webhookRouter.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001; // Changed default port to 3001
 
 // CORS configuration
 app.use(cors({
@@ -57,6 +57,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });
 
-app.listen(PORT, () => {
+// Handle port conflicts gracefully
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`❌ Port ${PORT} is busy, trying port ${PORT + 1}`);
+    server.listen(PORT + 1, () => {
+      console.log(`🚀 Server running on port ${PORT + 1}`);
+    });
+  } else {
+    console.error('❌ Server error:', err);
+  }
 });
