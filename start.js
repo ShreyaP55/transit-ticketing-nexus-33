@@ -1,11 +1,16 @@
 
-const { exec } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+import { exec } from 'child_process';
 
-// Check if server directory exists
-if (!fs.existsSync(path.join(__dirname, 'server'))) {
-  console.error('Error: server directory not found');
+// Check if npm is available
+try {
+  exec('npm --version', (error) => {
+    if (error) {
+      console.error('❌ npm is not available. Please install Node.js and npm.');
+      process.exit(1);
+    }
+  });
+} catch (error) {
+  console.error('❌ npm is not available. Please install Node.js and npm.');
   process.exit(1);
 }
 
@@ -18,47 +23,62 @@ const killPort = (port) => {
   
   exec(command, (error, stdout, stderr) => {
     if (!error) {
-      console.log(`Cleared port ${port}`);
+      console.log(`✅ Cleared port ${port}`);
     }
   });
 };
 
 // Clear ports 3000 and 3001 before starting
-console.log('Clearing ports...');
+console.log('🧹 Clearing ports...');
 killPort(3000);
 killPort(3001);
 
-// Wait a moment before starting servers
-setTimeout(() => {
-  // Start backend server
-  console.log('Starting backend server...');
-  const backend = exec('cd server && npm run dev');
+// Install server dependencies first
+console.log('📦 Installing server dependencies...');
+const installDeps = exec('cd server && node install-deps.js');
 
-  backend.stdout.on('data', (data) => {
-    console.log(`Backend: ${data}`);
-  });
+installDeps.stdout.on('data', (data) => {
+  console.log(`Dependencies: ${data}`);
+});
 
-  backend.stderr.on('data', (data) => {
-    console.error(`Backend Error: ${data}`);
-  });
+installDeps.on('close', (code) => {
+  if (code !== 0) {
+    console.error('❌ Failed to install dependencies');
+    process.exit(1);
+  }
 
-  // Start frontend development server
-  console.log('Starting frontend server...');
-  const frontend = exec('npm run dev');
+  // Wait a moment before starting servers
+  setTimeout(() => {
+    // Start backend server
+    console.log('🚀 Starting backend server...');
+    const backend = exec('cd server && npm run dev');
 
-  frontend.stdout.on('data', (data) => {
-    console.log(`Frontend: ${data}`);
-  });
+    backend.stdout.on('data', (data) => {
+      console.log(`Backend: ${data}`);
+    });
 
-  frontend.stderr.on('data', (data) => {
-    console.error(`Frontend Error: ${data}`);
-  });
+    backend.stderr.on('data', (data) => {
+      console.error(`Backend Error: ${data}`);
+    });
 
-  // Handle process termination
-  process.on('SIGINT', () => {
-    console.log('Stopping servers...');
-    backend.kill();
-    frontend.kill();
-    process.exit();
-  });
-}, 2000);
+    // Start frontend development server
+    console.log('🌐 Starting frontend server...');
+    const frontend = exec('npm run dev');
+
+    frontend.stdout.on('data', (data) => {
+      console.log(`Frontend: ${data}`);
+    });
+
+    frontend.stderr.on('data', (data) => {
+      console.error(`Frontend Error: ${data}`);
+    });
+
+    // Handle process termination
+    process.on('SIGINT', () => {
+      console.log('⏹️ Stopping servers...');
+      backend.kill();
+      frontend.kill();
+      process.exit();
+    });
+  }, 3000);
+});

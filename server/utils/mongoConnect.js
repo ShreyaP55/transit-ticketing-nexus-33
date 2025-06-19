@@ -19,19 +19,27 @@ export const connect = async () => {
       delete mongoose.models[key];
     });
 
-    await mongoose.connect(process.env.MONGODB_URI, {
+    const MONGODB_URI = process.env.VITE_MONGODB_URI || process.env.MONGODB_URI;
+    
+    if (!MONGODB_URI) {
+      throw new Error('MongoDB URI not found in environment variables');
+    }
+
+    await mongoose.connect(MONGODB_URI, {
       dbName: "transit-app",
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
 
     console.log("🚀 MongoDB connected successfully");
+    console.log(`📊 Database: ${mongoose.connection.db.databaseName}`);
     
     // Wait a moment for models to be ready
     await new Promise(resolve => setTimeout(resolve, 100));
     
   } catch (error) {
     console.error("❌ MongoDB connection error:", error);
+    console.error("🔍 Check your MONGODB_URI in .env file");
     throw new Error("MongoDB connection failed");
   }
 };
