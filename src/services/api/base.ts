@@ -1,5 +1,5 @@
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 // Get auth token for API calls
 export const getAuthToken = () => {
@@ -50,7 +50,7 @@ export async function fetchAPI<T>(
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('Network error - server may not be running');
-      throw new Error("Server is not running. Please start the backend server on port 3000.");
+      throw new Error("Server is not running. Please start the backend server on port 3001.");
     }
     console.error(`API Error (${endpoint}):`, error);
     throw error;
