@@ -18,6 +18,9 @@ export const connect = async () => {
     Object.keys(mongoose.models).forEach(key => {
       delete mongoose.models[key];
     });
+    
+    // Clear the model registry completely
+    mongoose.deleteModel(/.*/)
 
     const MONGODB_URI = process.env.VITE_MONGODB_URI || process.env.MONGODB_URI;
     
@@ -34,8 +37,8 @@ export const connect = async () => {
     console.log("🚀 MongoDB connected successfully");
     console.log(`📊 Database: ${mongoose.connection.db.databaseName}`);
     
-    // Wait a moment for models to be ready
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait longer for models to be ready
+    await new Promise(resolve => setTimeout(resolve, 500));
     
   } catch (error) {
     console.error("❌ MongoDB connection error:", error);

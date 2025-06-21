@@ -1,8 +1,24 @@
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+
+// Rate limiting helper
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 1000; // 1 second between requests
+
+const delayIfNeeded = async () => {
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+    const delay = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  lastRequestTime = Date.now();
+};
 
 export const startTrip = async (userId: string, latitude: number, longitude: number, authToken: string) => {
   try {
+    await delayIfNeeded();
+    
     const response = await fetch(`${API_URL}/trips/start`, {
       method: 'POST',
       headers: {
@@ -28,6 +44,8 @@ export const startTrip = async (userId: string, latitude: number, longitude: num
 
 export const endTrip = async (tripId: string, latitude: number, longitude: number, authToken: string) => {
   try {
+    await delayIfNeeded();
+    
     const response = await fetch(`${API_URL}/trips/${tripId}/end`, {
       method: 'PUT',
       headers: {
@@ -53,6 +71,8 @@ export const endTrip = async (tripId: string, latitude: number, longitude: numbe
 
 export const getActiveTrip = async (userId: string, authToken: string) => {
   try {
+    await delayIfNeeded();
+    
     const response = await fetch(`${API_URL}/trips/active/${userId}`, {
       headers: {
         'Content-Type': 'application/json',
@@ -63,6 +83,10 @@ export const getActiveTrip = async (userId: string, authToken: string) => {
     if (!response.ok) {
       if (response.status === 404) {
         return null;
+      }
+      if (response.status === 429) {
+        console.warn('Rate limit exceeded for active trip check');
+        return null; // Return null instead of throwing error
       }
       const error = await response.json();
       throw new Error(error.error || 'Failed to get active trip');
@@ -81,6 +105,8 @@ export const getActiveTrip = async (userId: string, authToken: string) => {
 
 export const getUserTrips = async (userId: string, authToken: string) => {
   try {
+    await delayIfNeeded();
+    
     const response = await fetch(`${API_URL}/trips/user/${userId}`, {
       headers: {
         'Content-Type': 'application/json',
@@ -89,7 +115,7 @@ export const getUserTrips = async (userId: string, authToken: string) => {
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 429) {
         return [];
       }
       const error = await response.json();

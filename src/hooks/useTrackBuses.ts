@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { IBus, IRoute } from '@/types';
 import { BusLocations } from '@/types/tracking';
 import { BUS_ROUTES } from '@/data/busRoutes';
@@ -8,21 +8,28 @@ export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses
   const [busLocations, setBusLocations] = useState<BusLocations>({});
   const [busRouteProgress, setBusRouteProgress] = useState<{ [busId: string]: number }>({});
 
+  // Memoize the busIds array to prevent unnecessary re-renders
+  const stableBusIds = useMemo(() => busIds, [JSON.stringify(busIds)]);
+  
+  // Memoize the route data to prevent unnecessary re-renders
+  const stableRoutes = useMemo(() => allRoutes, [JSON.stringify(allRoutes)]);
+  const stableBuses = useMemo(() => allBuses, [JSON.stringify(allBuses)]);
+
   useEffect(() => {
     console.log('=== LIVE TRACKING INITIALIZED ===');
-    console.log('Bus IDs to track:', busIds, 'on route:', routeId);
+    console.log('Bus IDs to track:', stableBusIds, 'on route:', routeId);
     
-    if (busIds.length === 0) {
+    if (stableBusIds.length === 0) {
       console.log('No bus IDs provided for tracking');
       setBusLocations({});
       return;
     }
 
-    console.log('Starting realistic bus tracking for IDs:', busIds);
+    console.log('Starting realistic bus tracking for IDs:', stableBusIds);
 
     // Initialize route progress for each bus
     const initialProgress: { [busId: string]: number } = {};
-    busIds.forEach((busId) => {
+    stableBusIds.forEach((busId) => {
       initialProgress[busId] = Math.random() * 0.5; // Start buses at different points
     });
     setBusRouteProgress(initialProgress);
@@ -35,17 +42,17 @@ export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses
       setBusRouteProgress(prevProgress => {
         const updatedProgress = { ...prevProgress };
         
-        busIds.forEach((busId, index) => {
+        stableBusIds.forEach((busId, index) => {
           const routeKeys = Object.keys(BUS_ROUTES);
           let routeKey: keyof typeof BUS_ROUTES;
           
-          const bus = allBuses?.find(b => b._id === busId);
+          const bus = stableBuses?.find(b => b._id === busId);
           const busRouteId = bus?.route ? (typeof bus.route === 'string' ? bus.route : bus.route._id) : null;
 
           const effectiveRouteId = routeId || busRouteId;
 
-          if (effectiveRouteId && allRoutes && allRoutes.length > 0) {
-            const route = allRoutes.find(r => r._id === effectiveRouteId);
+          if (effectiveRouteId && stableRoutes && stableRoutes.length > 0) {
+            const route = stableRoutes.find(r => r._id === effectiveRouteId);
             if (route) {
                 const start = route.start.toLowerCase();
                 const end = route.end.toLowerCase();
@@ -148,14 +155,14 @@ export const useTrackBuses = (busIds: string[], routeId: string | null, allBuses
         console.log('New locations count:', Object.keys(newLocations).length);
         return newLocations;
       });
-    }, 2000); // Update every 2 seconds for smoother tracking
+    }, 5000); // Increased interval to 5 seconds to reduce API calls
 
     return () => {
       console.log('=== STOPPING LIVE TRACKING ===');
-      console.log('Clearing tracking interval for buses:', busIds);
+      console.log('Clearing tracking interval for buses:', stableBusIds);
       clearInterval(interval);
     };
-  }, [busIds, routeId, allBuses, allRoutes]);
+  }, [stableBusIds, routeId, stableBuses, stableRoutes]);
 
   return busLocations;
 };
