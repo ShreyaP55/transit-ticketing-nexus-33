@@ -14,14 +14,14 @@ import { NewTicketModal } from "@/components/tickets/NewTicketModal";
 
 const TicketsPage = () => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { userId } = useUser();
   const [activeTab, setActiveTab] = useState("active");
   const [open, setOpen] = useState(false);
 
   const { data: tickets = [], isLoading } = useQuery({
-    queryKey: ["tickets", user?.clerkId],
-    queryFn: () => ticketsAPI.getByUserId(user?.clerkId || ""),
-    enabled: !!user?.clerkId,
+    queryKey: ["tickets", userId],
+    queryFn: () => ticketsAPI.getByUserId(userId || ""),
+    enabled: !!userId,
   });
 
   const activeTickets = tickets.filter(
