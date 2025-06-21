@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Ticket, Calendar, MapPin, Bus } from 'lucide-react';
 import { ticketsAPI, passesAPI } from '@/services/api';
 import { useUser } from '@/context/UserContext';
+import { getRouteDisplay } from '@/utils/typeGuards';
 
 const ActiveTicketDisplay: React.FC = () => {
   const { userId } = useUser();
@@ -90,7 +91,10 @@ const ActiveTicketDisplay: React.FC = () => {
               </div>
               <div className="flex items-center text-sm text-card-foreground">
                 <Bus className="h-4 w-4 mr-2 text-primary" />
-                <span>Price: ₹{ticket.price}</span>
+                <span>Route: {getRouteDisplay(ticket.routeId)}</span>
+              </div>
+              <div className="flex items-center text-sm text-card-foreground">
+                <span className="font-medium">Price: ₹{ticket.price}</span>
               </div>
             </div>
           </div>
@@ -109,11 +113,10 @@ const ActiveTicketDisplay: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center text-sm text-card-foreground">
                 <Calendar className="h-4 w-4 mr-2 text-primary" />
-                <span>Monthly Pass - Route {pass.routeId}</span>
+                <span>Route: {getRouteDisplay(pass.routeId)}</span>
               </div>
               <div className="flex items-center text-sm text-card-foreground">
-                <Bus className="h-4 w-4 mr-2 text-primary" />
-                <span>Price: ₹{pass.fare}</span>
+                <span className="font-medium">Price: ₹{pass.fare}</span>
               </div>
             </div>
           </div>
