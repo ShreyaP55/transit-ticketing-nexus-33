@@ -32,11 +32,13 @@ export const walletService = {
         throw new Error('Failed to fetch wallet');
       }
       
-      const wallet = await response.json();
+      const result = await response.json();
+      const wallet = result.wallet || result;
       const processedWallet = {
-        ...wallet.wallet || wallet,
-        transactions: (wallet.wallet || wallet).transactions || [],
-        createdAt: (wallet.wallet || wallet).createdAt || new Date().toISOString(),
+        ...wallet,
+        transactions: wallet.transactions || [],
+        createdAt: wallet.createdAt || new Date().toISOString(),
+        balance: typeof wallet.balance === 'number' ? wallet.balance : 0,
       };
       console.log('Fetched wallet data:', processedWallet);
       return processedWallet;
@@ -63,10 +65,12 @@ export const walletService = {
       }
       
       const result = await response.json();
+      const wallet = result.wallet || result;
       return {
-        ...result.wallet,
-        transactions: result.wallet.transactions || [],
-        createdAt: result.wallet.createdAt || new Date().toISOString(),
+        ...wallet,
+        transactions: wallet.transactions || [],
+        createdAt: wallet.createdAt || new Date().toISOString(),
+        balance: typeof wallet.balance === 'number' ? wallet.balance : 0,
       };
     } catch (error) {
       console.error('Error adding funds:', error);
@@ -91,10 +95,12 @@ export const walletService = {
       }
       
       const result = await response.json();
+      const wallet = result.wallet || result;
       return {
-        ...result.wallet,
-        transactions: result.wallet.transactions || [],
-        createdAt: result.wallet.createdAt || new Date().toISOString(),
+        ...wallet,
+        transactions: wallet.transactions || [],
+        createdAt: wallet.createdAt || new Date().toISOString(),
+        balance: typeof wallet.balance === 'number' ? wallet.balance : 0,
       };
     } catch (error) {
       console.error('Error deducting funds:', error);
@@ -130,14 +136,17 @@ export const useWallet = (userId: string, authToken: string) => {
     queryKey: ['wallet', userId],
     queryFn: () => walletService.getBalance(userId, authToken || "dummy-auth-token"),
     enabled: !!userId && !!authToken,
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    refetchInterval: 60000, // Refetch every minute
+    staleTime: 10000, // Consider data fresh for 10 seconds
+    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 
   const addFundsMutation = useMutation({
     mutationFn: (amount: number) => walletService.addFunds(userId, amount, authToken || "dummy-auth-token"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet', userId] });
+      // Force refetch immediately
+      refetch();
     },
   });
 
@@ -146,6 +155,8 @@ export const useWallet = (userId: string, authToken: string) => {
       walletService.deductFunds(userId, amount, description, authToken || "dummy-auth-token"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet', userId] });
+      // Force refetch immediately
+      refetch();
     },
   });
 

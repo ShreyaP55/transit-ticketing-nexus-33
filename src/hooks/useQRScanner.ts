@@ -91,8 +91,8 @@ export const useQRScanner = () => {
       setIsLoading(true);
       try {
         const authToken = await getAuthToken() || "dummy-auth-token";
-        // Add delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Add longer delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 3000));
         const trip = await getActiveTrip(extractedUserId, authToken);
         setActiveTrip(trip);
 
@@ -107,7 +107,7 @@ export const useQRScanner = () => {
           setConnectionError(true);
           toast.error("Backend server is not running. Please start the server first.");
         } else if (error.message && error.message.includes("Too many requests")) {
-          toast.warning("Please wait a moment before scanning again.");
+          toast.warning("Please wait longer before scanning again.");
         } else {
           toast.error("Failed to check trip status. Please try again.");
         }
@@ -129,8 +129,8 @@ export const useQRScanner = () => {
     setIsLoading(true);
     try {
       const authToken = await getAuthToken() || "dummy-auth-token";
-      // Add delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Add longer delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 3000));
       await startTrip(userId, location.lat, location.lng, authToken);
       toast.success("Check-in successful! Trip started.");
       // Reset for next scan
@@ -138,14 +138,14 @@ export const useQRScanner = () => {
         setScanned(false);
         setUserId(null);
         setActiveTrip(null);
-      }, 2000);
+      }, 3000);
     } catch (error: any) {
       console.error("Check-in error:", error);
       if (error.message && error.message.includes("Server is not running")) {
         setConnectionError(true);
         toast.error("Backend server is not running. Please start the server first.");
       } else if (error.message && error.message.includes("Too many requests")) {
-        toast.warning("Please wait a moment before trying again.");
+        toast.warning("Rate limited. Please wait 30 seconds before trying again.");
       } else {
         toast.error(error.message || "Failed to check in user");
       }
@@ -159,8 +159,8 @@ export const useQRScanner = () => {
     setIsLoading(true);
     try {
       const authToken = await getAuthToken() || "dummy-auth-token";
-      // Add delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Add longer delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 3000));
       const result = await endTrip(activeTrip._id, location.lat, location.lng, authToken);
 
       if (result.success) {
@@ -188,14 +188,14 @@ export const useQRScanner = () => {
         setScanned(false);
         setUserId(null);
         setActiveTrip(null);
-      }, 5000);
+      }, 6000);
     } catch (error: any) {
       console.error("Check-out error:", error);
       if (error.message && error.message.includes("Server is not running")) {
         setConnectionError(true);
         toast.error("Backend server is not running. Please start the server first.");
       } else if (error.message && error.message.includes("Too many requests")) {
-        toast.warning("Please wait a moment before trying again.");
+        toast.warning("Rate limited. Please wait 30 seconds before trying again.");
       } else {
         toast.error(error.message || "Failed to check out user");
       }

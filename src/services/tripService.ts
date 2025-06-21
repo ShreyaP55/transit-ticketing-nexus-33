@@ -1,9 +1,9 @@
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
-// Rate limiting helper
+// Rate limiting helper with longer delays
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 500; // Reduced to 500ms
+const MIN_REQUEST_INTERVAL = 2000; // Increased to 2 seconds
 
 const delayIfNeeded = async () => {
   const now = Date.now();
@@ -29,6 +29,9 @@ export const startTrip = async (userId: string, latitude: number, longitude: num
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Too many requests, please wait before trying again');
+      }
       const error = await response.json();
       throw new Error(error.error || 'Failed to start trip');
     }
@@ -56,6 +59,9 @@ export const endTrip = async (tripId: string, latitude: number, longitude: numbe
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Too many requests, please wait before trying again');
+      }
       const error = await response.json();
       throw new Error(error.error || 'Failed to end trip');
     }
