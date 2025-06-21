@@ -3,7 +3,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 // Rate limiting helper
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 1000; // 1 second between requests
+const MIN_REQUEST_INTERVAL = 500; // Reduced to 500ms
 
 const delayIfNeeded = async () => {
   const now = Date.now();
@@ -86,7 +86,7 @@ export const getActiveTrip = async (userId: string, authToken: string) => {
       }
       if (response.status === 429) {
         console.warn('Rate limit exceeded for active trip check');
-        return null; // Return null instead of throwing error
+        return null;
       }
       const error = await response.json();
       throw new Error(error.error || 'Failed to get active trip');

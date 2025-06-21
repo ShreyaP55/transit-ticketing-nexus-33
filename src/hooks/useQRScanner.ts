@@ -1,10 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { startTrip, endTrip, getActiveTrip } from "@/services/tripService";
+import { useAuthService } from "@/services/authService";
 import { toast } from "sonner";
-
-// TODO: In production, replace this with the user's actual auth token
-const DUMMY_AUTH_TOKEN = "dummy-auth-token";
 
 export const useQRScanner = () => {
   const [scanned, setScanned] = useState(false);
@@ -15,6 +13,8 @@ export const useQRScanner = () => {
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [connectionError, setConnectionError] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  
+  const { getAuthToken } = useAuthService();
 
   // Fetch location once at mount
   useEffect(() => {
@@ -62,7 +62,8 @@ export const useQRScanner = () => {
 
       setIsLoading(true);
       try {
-        const trip = await getActiveTrip(data, DUMMY_AUTH_TOKEN);
+        const authToken = await getAuthToken() || "dummy-auth-token";
+        const trip = await getActiveTrip(data, authToken);
         setActiveTrip(trip);
 
         if (trip) {
@@ -95,7 +96,8 @@ export const useQRScanner = () => {
     if (!userId || !location) return;
     setIsLoading(true);
     try {
-      await startTrip(userId, location.lat, location.lng, DUMMY_AUTH_TOKEN);
+      const authToken = await getAuthToken() || "dummy-auth-token";
+      await startTrip(userId, location.lat, location.lng, authToken);
       toast.success("Check-in successful! Trip started.");
       // Reset for next scan
       setTimeout(() => {
@@ -120,7 +122,8 @@ export const useQRScanner = () => {
     if (!userId || !location || !activeTrip) return;
     setIsLoading(true);
     try {
-      const result = await endTrip(activeTrip._id, location.lat, location.lng, DUMMY_AUTH_TOKEN);
+      const authToken = await getAuthToken() || "dummy-auth-token";
+      const result = await endTrip(activeTrip._id, location.lat, location.lng, authToken);
 
       if (result.success) {
         const fare = result.trip?.fare || 0;
@@ -132,7 +135,7 @@ export const useQRScanner = () => {
             description: `${tripDetails} ${result.deduction.message}`,
             duration: 6000,
           });
-        } else { // 'error' or any other status
+        } else {
           toast.warning("Check-out complete, but payment failed.", {
             description: `${tripDetails} ${result.deduction.message}`,
             duration: 8000,

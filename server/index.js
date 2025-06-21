@@ -41,10 +41,10 @@ app.options('*', (req, res) => {
   res.sendStatus(204);
 });
 
-// Basic rate limiting middleware
+// More lenient rate limiting middleware for development
 const requestCounts = new Map();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 100; // Increased limit
+const MAX_REQUESTS_PER_WINDOW = 200; // Increased limit for development
 
 const rateLimiter = (req, res, next) => {
   const clientId = req.ip;
@@ -86,8 +86,8 @@ const startServer = async () => {
     await connect();
     console.log('Database connected, initializing routes...');
     
-    // Add a small delay to ensure models are fully loaded
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Add a delay to ensure models are fully loaded
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Routes with proper error handling
     app.use('/api/routes', routesRouter);
