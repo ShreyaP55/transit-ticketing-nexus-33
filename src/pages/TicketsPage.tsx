@@ -1,25 +1,27 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, TicketX } from "lucide-react";
 import { ticketsAPI } from "@/services/api";
 import { ITicket } from "@/types";
+import { useUser } from "@/context/UserContext";
 import MainLayout from "@/components/layout/MainLayout";
 import { TicketCard } from "@/components/tickets/TicketCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NewTicketModal } from "@/components/tickets/NewTicketModal"; // <-- ADD
+import { NewTicketModal } from "@/components/tickets/NewTicketModal";
 
 const TicketsPage = () => {
   const navigate = useNavigate();
+  const { user } = useUser();
   const [activeTab, setActiveTab] = useState("active");
-
-  // New state for modal open/close
-  const [open, setOpen] = useState(false); // <-- ADD
+  const [open, setOpen] = useState(false);
 
   const { data: tickets = [], isLoading } = useQuery({
-    queryKey: ["tickets"],
-    queryFn: ticketsAPI.getByUserId,
+    queryKey: ["tickets", user?.clerkId],
+    queryFn: () => ticketsAPI.getByUserId(user?.clerkId || ""),
+    enabled: !!user?.clerkId,
   });
 
   const activeTickets = tickets.filter(
@@ -31,13 +33,12 @@ const TicketsPage = () => {
   );
 
   const handleNewTicket = () => {
-    setOpen(true); // open modal
+    setOpen(true);
   };
 
   return (
     <MainLayout title="My Tickets">
       <div className="max-w-3xl mx-auto">
-        {/* Updated: Button is in top right */}
         <div className="flex justify-end items-center mb-6">
           <Button onClick={handleNewTicket}>
             <Plus className="mr-2 h-4 w-4" />
@@ -100,7 +101,6 @@ const TicketsPage = () => {
           </TabsContent>
         </Tabs>
       </div>
-      {/* NewTicketModal with state */}
       <NewTicketModal open={open} onOpenChange={setOpen} />
     </MainLayout>
   );
