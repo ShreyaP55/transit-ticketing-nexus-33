@@ -16,12 +16,12 @@ const StationManagementPage = () => {
 
   const { data: stations = [], isLoading: stationsLoading, refetch: refetchStations } = useQuery({
     queryKey: ["stations"],
-    queryFn: stationsAPI.getAll,
+    queryFn: () => stationsAPI.getAll(),
   });
 
   const { data: buses = [] } = useQuery({
     queryKey: ["buses"],
-    queryFn: busesAPI.getAll,
+    queryFn: () => busesAPI.getAll(),
   });
 
   const handleEdit = (station: IStation) => {
@@ -78,8 +78,10 @@ const StationManagementPage = () => {
               <StationTable
                 stations={stations}
                 buses={buses}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
+                isLoading={stationsLoading}
+                onAddStation={handleAdd}
+                onEditStation={handleEdit}
+                onDeleteStation={handleDelete}
                 isAdmin={true}
               />
             )}
@@ -90,9 +92,11 @@ const StationManagementPage = () => {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-card rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
               <StationForm
-                station={selectedStation}
-                buses={buses}
+                isOpen={isFormOpen}
                 onClose={handleFormClose}
+                onSuccess={handleFormClose}
+                station={selectedStation}
+                selectedRouteId=""
               />
             </div>
           </div>

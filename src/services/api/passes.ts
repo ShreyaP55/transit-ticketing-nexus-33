@@ -8,6 +8,13 @@ export const passesAPI = {
     const userId = getAuthToken();
     return fetchAPI(`/passes?userId=${userId}`);
   },
+
+  getByUserId: (userId: string): Promise<IPass[]> => {
+    if (!userId) {
+      return Promise.resolve([]);
+    }
+    return fetchAPI(`/passes?userId=${userId}`);
+  },
     
   createPass: (pass: { routeId: string; fare: number; sessionId: string }): Promise<{ success: boolean; pass: IPass }> => {
     const userId = getAuthToken();
