@@ -26,52 +26,36 @@ const BusTableRow: React.FC<BusTableRowProps> = ({
   stationName
 }) => {
   return (
-    <TableRow className="hover:bg-transit-orange/5">
-      <TableCell className="font-medium text-white">{bus.name}</TableCell>
-      <TableCell>
-        <div className="flex items-center">
-          <Route className="h-4 w-4 mr-1 text-transit-orange" />
+    <TableRow className="hover:bg-gray-800/50 border-b border-gray-700">
+      <TableCell className="font-medium text-yellow-300 bg-gray-900">{bus.name}</TableCell>
+      <TableCell className="bg-gray-800">
+        <div className="flex items-center text-blue-300">
+          <Route className="h-4 w-4 mr-1 text-orange-500" />
           <span>{route ? `${route.start} - ${route.end}` : "—"}</span>
         </div>
       </TableCell>
-      <TableCell>
-        <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-transit-orange/20">
+      <TableCell className="bg-gray-900">
+        <Badge variant="outline" className="bg-green-900/30 text-green-300 border-green-500/30">
           {bus.capacity} seats
         </Badge>
       </TableCell>
-      <TableCell>
-        {route?.fare !== undefined ? (
-          <Badge variant="outline" className="bg-accent/20 text-primary-foreground border-transit-orange/20">
-            ₹{route.fare.toFixed(2)}
-          </Badge>
-        ) : (
-          <span>—</span>
-        )}
-      </TableCell>
-      <TableCell>
-        {stationName ? (
-          <span className="font-semibold">{stationName}</span>
-        ) : (
-          <span>—</span>
-        )}
-      </TableCell>
-      <TableCell>
+      <TableCell className="bg-gray-800">
         <div className="flex gap-2">
           <Button 
             size="sm" 
             variant="outline" 
-            className="h-8 p-2 text-transit-orange border-transit-orange/20 hover:bg-transit-orange/10" 
+            className="h-8 p-2 text-orange-400 border-orange-500/30 hover:bg-orange-900/20" 
             onClick={() => onGenerateQR(bus)}
           >
-            <QrCode className="h-4 w-4 mr-1" /> QR
+            <QrCode className="h-4 w-4 mr-1" /> QR: {bus._id.slice(-6)}
           </Button>
           
           {isAdmin && (
             <>
-              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-transit-orange" onClick={() => onEdit(bus)}>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-blue-400 hover:bg-blue-900/20" onClick={() => onEdit(bus)}>
                 <Edit className="h-4 w-4" />
               </Button>
-              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => onDelete(bus._id)}>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-400 hover:bg-red-900/20" onClick={() => onDelete(bus._id)}>
                 <Trash className="h-4 w-4" />
               </Button>
             </>

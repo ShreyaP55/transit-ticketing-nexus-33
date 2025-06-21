@@ -45,12 +45,40 @@ export const useQRScanner = () => {
     }
   }, []);
 
+  // Function to extract userId from QR data
+  const extractUserIdFromQR = (qrData: string): string | null => {
+    try {
+      // Try to parse as JSON first
+      const parsed = JSON.parse(qrData);
+      if (parsed.userId) {
+        return parsed.userId;
+      }
+    } catch (e) {
+      // If not JSON, treat as plain string
+      console.log("QR data is not JSON, treating as plain string");
+    }
+    
+    // If it's just a string that looks like a user ID, return it
+    if (typeof qrData === 'string' && qrData.trim().length > 0) {
+      return qrData.trim();
+    }
+    
+    return null;
+  };
+
   // Function to handle successful QR scan
   const handleScan = async (data: string | null) => {
     if (data && !scanned) {
       console.log("QR Code scanned:", data);
+      
+      const extractedUserId = extractUserIdFromQR(data);
+      if (!extractedUserId) {
+        toast.error("Invalid QR code format. Please scan a valid user QR code.");
+        return;
+      }
+      
       setScanned(true);
-      setUserId(data);
+      setUserId(extractedUserId);
       setConnectionError(false);
       
       if (!location) {
@@ -63,7 +91,9 @@ export const useQRScanner = () => {
       setIsLoading(true);
       try {
         const authToken = await getAuthToken() || "dummy-auth-token";
-        const trip = await getActiveTrip(data, authToken);
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const trip = await getActiveTrip(extractedUserId, authToken);
         setActiveTrip(trip);
 
         if (trip) {
@@ -76,6 +106,8 @@ export const useQRScanner = () => {
         if (error.message && error.message.includes("Server is not running")) {
           setConnectionError(true);
           toast.error("Backend server is not running. Please start the server first.");
+        } else if (error.message && error.message.includes("Too many requests")) {
+          toast.warning("Please wait a moment before scanning again.");
         } else {
           toast.error("Failed to check trip status. Please try again.");
         }
@@ -97,6 +129,8 @@ export const useQRScanner = () => {
     setIsLoading(true);
     try {
       const authToken = await getAuthToken() || "dummy-auth-token";
+      // Add delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
       await startTrip(userId, location.lat, location.lng, authToken);
       toast.success("Check-in successful! Trip started.");
       // Reset for next scan
@@ -110,6 +144,8 @@ export const useQRScanner = () => {
       if (error.message && error.message.includes("Server is not running")) {
         setConnectionError(true);
         toast.error("Backend server is not running. Please start the server first.");
+      } else if (error.message && error.message.includes("Too many requests")) {
+        toast.warning("Please wait a moment before trying again.");
       } else {
         toast.error(error.message || "Failed to check in user");
       }
@@ -123,6 +159,8 @@ export const useQRScanner = () => {
     setIsLoading(true);
     try {
       const authToken = await getAuthToken() || "dummy-auth-token";
+      // Add delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
       const result = await endTrip(activeTrip._id, location.lat, location.lng, authToken);
 
       if (result.success) {
@@ -156,6 +194,8 @@ export const useQRScanner = () => {
       if (error.message && error.message.includes("Server is not running")) {
         setConnectionError(true);
         toast.error("Backend server is not running. Please start the server first.");
+      } else if (error.message && error.message.includes("Too many requests")) {
+        toast.warning("Please wait a moment before trying again.");
       } else {
         toast.error(error.message || "Failed to check out user");
       }

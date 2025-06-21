@@ -37,11 +37,11 @@ const BusTable: React.FC<BusTableProps> = ({
 }) => {
   return (
     <div className="w-full flex flex-col">
-      <Card className="h-fit border-transit-orange/20 bg-card">
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between pb-2 border-b border-border gap-2">
+      <Card className="h-fit border-orange-500/20 bg-gray-900">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between pb-2 border-b border-gray-700 gap-2">
           <div>
-            <CardTitle className="text-xl font-bold text-white">Buses</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl font-bold text-yellow-300">Buses</CardTitle>
+            <CardDescription className="text-gray-400">
               {selectedRouteId ? 
                 "Buses for the selected route" : 
                 "All buses in the system"
@@ -55,13 +55,13 @@ const BusTable: React.FC<BusTableProps> = ({
               {Array(3)
                 .fill(0)
                 .map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
+                  <Skeleton key={i} className="h-16 w-full bg-gray-800" />
                 ))}
             </div>
           ) : !buses || buses.length === 0 ? (
-            <div className="text-center p-8 border rounded-lg border-dashed border-border bg-background/20">
-              <BusIcon className="mx-auto h-12 w-12 mb-2 text-muted-foreground/50" />
-              <p className="text-muted-foreground">
+            <div className="text-center p-8 border rounded-lg border-dashed border-gray-600 bg-gray-800/20">
+              <BusIcon className="mx-auto h-12 w-12 mb-2 text-gray-500" />
+              <p className="text-gray-400">
                 {isLoading
                   ? "Loading buses..."
                   : "No buses found"}
@@ -69,7 +69,7 @@ const BusTable: React.FC<BusTableProps> = ({
               {isAdmin && (
                 <Button 
                   variant="outline" 
-                  className="mt-4 border-transit-orange/40 hover:border-transit-orange hover:bg-transit-orange/10 text-transit-orange-light hover:text-transit-orange-light" 
+                  className="mt-4 border-orange-500/40 hover:border-orange-500 hover:bg-orange-900/10 text-orange-400" 
                   onClick={onAddBus}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add First Bus
@@ -77,16 +77,14 @@ const BusTable: React.FC<BusTableProps> = ({
               )}
             </div>
           ) : (
-            <div className="rounded-md border border-border overflow-x-auto">
+            <div className="rounded-md border border-gray-700 overflow-x-auto bg-gray-900">
               <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Route</TableHead>
-                    <TableHead>Capacity</TableHead>
-                    <TableHead>Fare</TableHead>
-                    <TableHead>Station</TableHead>
-                    <TableHead className="w-[150px]">Actions</TableHead>
+                <TableHeader className="bg-gray-800">
+                  <TableRow className="border-b border-gray-700">
+                    <TableHead className="text-yellow-300 font-semibold bg-gray-800">Name</TableHead>
+                    <TableHead className="text-yellow-300 font-semibold bg-gray-800">Route</TableHead>
+                    <TableHead className="text-yellow-300 font-semibold bg-gray-800">Capacity</TableHead>
+                    <TableHead className="text-yellow-300 font-semibold bg-gray-800 w-[150px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -119,7 +117,7 @@ const BusTable: React.FC<BusTableProps> = ({
                 </TableBody>
               </Table>
               {isLoadingStations && (
-                <div className="text-center p-2 text-sm text-muted-foreground">
+                <div className="text-center p-2 text-sm text-gray-400">
                   Loading stations...
                 </div>
               )}

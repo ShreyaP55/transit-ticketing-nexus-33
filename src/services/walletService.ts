@@ -7,6 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 export const walletService = {
   getBalance: async (userId: string, authToken: string): Promise<IWallet> => {
     try {
+      console.log('Fetching wallet balance for user:', userId);
       const response = await fetch(`${API_URL}/wallet/${userId}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -17,7 +18,7 @@ export const walletService = {
       if (!response.ok) {
         if (response.status === 404) {
           // Return default wallet structure if not found
-          return {
+          const defaultWallet = {
             _id: `wallet_${userId}`,
             userId,
             balance: 0,
@@ -25,16 +26,20 @@ export const walletService = {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
+          console.log('Wallet not found, returning default:', defaultWallet);
+          return defaultWallet;
         }
         throw new Error('Failed to fetch wallet');
       }
       
       const wallet = await response.json();
-      return {
+      const processedWallet = {
         ...wallet.wallet || wallet,
         transactions: (wallet.wallet || wallet).transactions || [],
         createdAt: (wallet.wallet || wallet).createdAt || new Date().toISOString(),
       };
+      console.log('Fetched wallet data:', processedWallet);
+      return processedWallet;
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
       throw error;
@@ -121,10 +126,12 @@ export const walletService = {
 export const useWallet = (userId: string, authToken: string) => {
   const queryClient = useQueryClient();
 
-  const { data: wallet, isLoading, error } = useQuery({
+  const { data: wallet, isLoading, error, refetch } = useQuery({
     queryKey: ['wallet', userId],
     queryFn: () => walletService.getBalance(userId, authToken || "dummy-auth-token"),
-    enabled: !!userId,
+    enabled: !!userId && !!authToken,
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchInterval: 60000, // Refetch every minute
   });
 
   const addFundsMutation = useMutation({
@@ -150,6 +157,7 @@ export const useWallet = (userId: string, authToken: string) => {
     deductFunds: deductFundsMutation.mutate,
     isAddingFunds: addFundsMutation.isPending,
     isDeductingFunds: deductFundsMutation.isPending,
+    refetchWallet: refetch,
   };
 };
 
