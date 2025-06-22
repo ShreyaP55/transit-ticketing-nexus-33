@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +8,7 @@ import { X, MapPin } from "lucide-react";
 import { stationsAPI, busesAPI, routesAPI } from "@/services/api";
 import { toast } from "sonner";
 import { IStation, IBus, IRoute } from "@/types";
+import { getRouteId, getBusId } from "@/utils/typeGuards";
 
 interface StationFormProps {
   isOpen: boolean;
@@ -74,8 +74,8 @@ const StationForm: React.FC<StationFormProps> = ({
       if (station) {
         setFormData({
           name: station.name,
-          routeId: station.routeId || "",
-          busId: station.busId || "",
+          routeId: getRouteId(station.routeId),
+          busId: getBusId(station.busId),
           latitude: station.latitude.toString(),
           longitude: station.longitude.toString(),
           fare: station.fare.toString(),

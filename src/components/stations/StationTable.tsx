@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, MapPin } from "lucide-react";
 import { IStation, IBus } from "@/types";
+import { getBusId } from "@/utils/typeGuards";
 
 interface StationTableProps {
   stations: IStation[];
@@ -24,8 +25,9 @@ const StationTable: React.FC<StationTableProps> = ({
   onDeleteStation,
   isAdmin
 }) => {
-  const getBusName = (busId: string) => {
-    const bus = buses.find(b => b._id === busId);
+  const getBusName = (busId: string | IBus) => {
+    const busIdString = getBusId(busId);
+    const bus = buses.find(b => b._id === busIdString);
     return bus ? bus.name : "Unknown Bus";
   };
 

@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,10 +14,20 @@ const WalletCard: React.FC = () => {
   const { getAuthToken } = useAuthService();
   const [addAmount, setAddAmount] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [authToken, setAuthToken] = useState<string | undefined>(undefined);
+
+  // Get auth token on component mount
+  useEffect(() => {
+    const fetchToken = async () => {
+      const token = await getAuthToken();
+      setAuthToken(token || undefined);
+    };
+    fetchToken();
+  }, [getAuthToken]);
 
   const { wallet, isLoading, addFunds, isAddingFunds, refetchWallet } = useWallet(
     userId || "",
-    getAuthToken() || undefined
+    authToken
   );
 
   const handleAddFunds = async () => {
