@@ -1,24 +1,20 @@
 
 import React, { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { routesAPI, busesAPI, stationsAPI } from "@/services/api";
-import { IStation, IRoute, IBus } from "@/types";
-import { getBusId } from "@/utils/typeGuards";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { X, MapPin } from "lucide-react";
+import { stationsAPI, busesAPI, routesAPI } from "@/services/api";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { IStation, IBus, IRoute } from "@/types";
 
 interface StationFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  station: IStation | null;
+  station?: IStation | null;
   selectedRouteId: string;
 }
 
@@ -27,317 +23,258 @@ const StationForm: React.FC<StationFormProps> = ({
   onClose,
   onSuccess,
   station,
-  selectedRouteId,
 }) => {
-  const queryClient = useQueryClient();
-  const [formValues, setFormValues] = useState({
-    id: station?._id || "",
-    name: station?.name || "",
-    busId: station ? getBusId(station.busId) : "",
-    latitude: station?.latitude || 0,
-    longitude: station?.longitude || 0,
-    fare: station?.fare || 0,
+  const [formData, setFormData] = useState({
+    name: "",
+    routeId: "",
+    busId: "",
+    latitude: "",
+    longitude: "",
+    fare: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [routes, setRoutes] = useState<IRoute[]>([]);
+  const [buses, setBuses] = useState<IBus[]>([]);
+  const [loadingRoutes, setLoadingRoutes] = useState(false);
+  const [loadingBuses, setLoadingBuses] = useState(false);
 
-  const { data: buses, isLoading: isLoadingBuses } = useQuery({
-    queryKey: ["buses", selectedRouteId],
-    queryFn: () => busesAPI.getAll(selectedRouteId),
-    enabled: !!selectedRouteId,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      console.log('Creating station with data:', data);
-      const result = await stationsAPI.create(data);
-      console.log('Station created successfully:', result);
-      return result;
-    },
-    onSuccess: (data) => {
-      console.log('Station creation success:', data);
-      queryClient.invalidateQueries({ queryKey: ["stations"] });
-      toast.success("Station created successfully!");
-      onSuccess();
-    },
-    onError: (error: Error) => {
-      console.error('Station creation error:', error);
-      toast.error(`Error creating station: ${error.message}`);
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: any) => {
-      console.log('Updating station with data:', data);
-      const result = await stationsAPI.update(data);
-      console.log('Station updated successfully:', result);
-      return result;
-    },
-    onSuccess: (data) => {
-      console.log('Station update success:', data);
-      queryClient.invalidateQueries({ queryKey: ["stations"] });
-      toast.success("Station updated successfully!");
-      onSuccess();
-    },
-    onError: (error: Error) => {
-      console.error('Station update error:', error);
-      toast.error(`Error updating station: ${error.message}`);
-    },
-  });
-
+  // Load routes
   useEffect(() => {
-    if (station) {
-      console.log('Setting form values for existing station:', station);
-      setFormValues({
-        id: station._id,
-        name: station.name,
-        busId: getBusId(station.busId),
-        latitude: station.latitude,
-        longitude: station.longitude,
-        fare: station.fare,
-      });
-    } else {
-      console.log('Resetting form for new station');
-      setFormValues({
-        id: "",
-        name: "",
-        busId: buses && buses.length > 0 ? buses[0]._id : "",
-        latitude: 0,
-        longitude: 0,
-        fare: 0,
-      });
+    if (isOpen) {
+      setLoadingRoutes(true);
+      routesAPI.getAll()
+        .then(setRoutes)
+        .catch(error => {
+          console.error("Error loading routes:", error);
+          toast.error("Failed to load routes");
+        })
+        .finally(() => setLoadingRoutes(false));
     }
-  }, [station, buses]);
+  }, [isOpen]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    console.log('Form field changed:', name, value);
-    setFormValues((prev) => ({
-      ...prev,
-      [name]: name === "fare" || name === "latitude" || name === "longitude" 
-        ? parseFloat(value) || 0
-        : value,
-    }));
-  };
+  // Load buses when route changes
+  useEffect(() => {
+    if (formData.routeId) {
+      setLoadingBuses(true);
+      busesAPI.getAll(formData.routeId)
+        .then(setBuses)
+        .catch(error => {
+          console.error("Error loading buses:", error);
+          toast.error("Failed to load buses");
+        })
+        .finally(() => setLoadingBuses(false));
+    } else {
+      setBuses([]);
+    }
+  }, [formData.routeId]);
 
-  const handleSelectChange = (name: string, value: string) => {
-    console.log('Select field changed:', name, value);
-    setFormValues((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  // Reset form when modal opens/closes or station changes
+  useEffect(() => {
+    if (isOpen) {
+      if (station) {
+        setFormData({
+          name: station.name,
+          routeId: station.routeId || "",
+          busId: station.busId || "",
+          latitude: station.latitude.toString(),
+          longitude: station.longitude.toString(),
+          fare: station.fare.toString(),
+        });
+      } else {
+        setFormData({
+          name: "",
+          routeId: "",
+          busId: "",
+          latitude: "",
+          longitude: "",
+          fare: "",
+        });
+      }
+    }
+  }, [isOpen, station]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isSubmitting) {
-      console.log('Form already submitting, ignoring duplicate submission');
-      return;
-    }
-
-    console.log('Submitting station form with values:', formValues);
-    
-    if (!isFormValid()) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    
     setIsSubmitting(true);
-    
+
     try {
-      const payload = {
-        ...formValues,
-        routeId: selectedRouteId,
-        latitude: Number(formValues.latitude),
-        longitude: Number(formValues.longitude),
-        fare: Number(formValues.fare),
+      const stationData = {
+        name: formData.name,
+        routeId: formData.routeId,
+        busId: formData.busId,
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude),
+        fare: parseFloat(formData.fare),
+        location: formData.name,
       };
 
-      console.log('Final payload for submission:', payload);
-
       if (station) {
-        await updateMutation.mutateAsync(payload);
+        await stationsAPI.update({ ...stationData, _id: station._id });
+        toast.success("Station updated successfully");
       } else {
-        await createMutation.mutateAsync(payload);
+        await stationsAPI.create(stationData);
+        toast.success("Station created successfully");
       }
+
+      onSuccess();
     } catch (error) {
-      console.error('Form submission error:', error);
+      console.error("Error saving station:", error);
+      toast.error("Failed to save station");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleGetCurrentLocation = () => {
-    console.log('Getting current location...');
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log('Location obtained:', position.coords);
-          setFormValues(prev => ({
-            ...prev,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          }));
-          toast.success("Location updated!");
-        }, 
-        (error) => {
-          console.error('Geolocation error:', error);
-          toast.error(`Location error: ${error.message}`);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    } else {
-      toast.error("Geolocation is not supported by this browser.");
-    }
-  };
-
-  const isFormValid = () => {
-    const valid = formValues.name.trim() !== "" &&
-      formValues.busId !== "" &&
-      formValues.latitude !== 0 &&
-      formValues.longitude !== 0 &&
-      formValues.fare > 0;
-    
-    console.log('Form validation result:', valid, formValues);
-    return valid;
-  };
+  if (!isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-card border-primary/30">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-primary neonText">
-            <MapPin className="h-5 w-5" />
+    <Card className="bg-gray-900 border-gray-700">
+      <CardHeader className="bg-gradient-to-r from-blue-600/20 to-transparent border-b border-gray-700">
+        <div className="flex justify-between items-center">
+          <CardTitle className="flex items-center text-white">
+            <MapPin className="mr-2 h-5 w-5 text-blue-400" />
             {station ? "Edit Station" : "Add New Station"}
-          </DialogTitle>
-          <DialogDescription>
-            {station
-              ? "Update the details for this station."
-              : "Enter the details for the new station."}
-          </DialogDescription>
-        </DialogHeader>
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-gray-400 hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="name" className="text-white">Station Name</Label>
+            <Input
+              id="name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+              className="bg-gray-800 border-gray-600 text-white"
+              placeholder="Enter station name"
+            />
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Station Name *</Label>
+          <div>
+            <Label htmlFor="routeId" className="text-white">Route</Label>
+            <Select 
+              value={formData.routeId} 
+              onValueChange={(value) => setFormData({ ...formData, routeId: value, busId: "" })}
+            >
+              <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                <SelectValue placeholder="Select a route" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-600">
+                {loadingRoutes ? (
+                  <SelectItem value="loading" disabled>Loading routes...</SelectItem>
+                ) : routes.length > 0 ? (
+                  routes.map((route) => (
+                    <SelectItem key={route._id} value={route._id} className="text-white">
+                      {route.start} - {route.end}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>No routes available</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="busId" className="text-white">Bus</Label>
+            <Select 
+              value={formData.busId} 
+              onValueChange={(value) => setFormData({ ...formData, busId: value })}
+              disabled={!formData.routeId}
+            >
+              <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                <SelectValue placeholder={!formData.routeId ? "Select a route first" : "Select a bus"} />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-600">
+                {loadingBuses ? (
+                  <SelectItem value="loading" disabled>Loading buses...</SelectItem>
+                ) : buses.length > 0 ? (
+                  buses.map((bus) => (
+                    <SelectItem key={bus._id} value={bus._id} className="text-white">
+                      {bus.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>No buses available for this route</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="latitude" className="text-white">Latitude</Label>
               <Input
-                id="name"
-                name="name"
-                value={formValues.name}
-                onChange={handleChange}
-                placeholder="Enter station name"
-                className="border-muted bg-background/50"
+                id="latitude"
+                type="number"
+                step="any"
+                value={formData.latitude}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
                 required
+                className="bg-gray-800 border-gray-600 text-white"
+                placeholder="0.000000"
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="busId">Select Bus *</Label>
-              {isLoadingBuses ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
-                <Select 
-                  value={formValues.busId} 
-                  onValueChange={(value) => handleSelectChange('busId', value)}
-                >
-                  <SelectTrigger className="border-muted bg-background/50">
-                    <SelectValue placeholder="Select a bus" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {buses?.map(bus => (
-                      <SelectItem key={bus._id} value={bus._id}>
-                        {bus.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude *</Label>
-                <Input
-                  id="latitude"
-                  name="latitude"
-                  type="number"
-                  step="0.000001"
-                  value={formValues.latitude}
-                  onChange={handleChange}
-                  placeholder="Latitude"
-                  className="border-muted bg-background/50"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude *</Label>
-                <Input
-                  id="longitude"
-                  name="longitude"
-                  type="number"
-                  step="0.000001"
-                  value={formValues.longitude}
-                  onChange={handleChange}
-                  placeholder="Longitude"
-                  className="border-muted bg-background/50"
-                  required
-                />
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full border-primary/30 hover:border-primary hover:bg-primary/20 text-primary"
-              onClick={handleGetCurrentLocation}
-            >
-              Get Current Location
-            </Button>
-
-            <div className="space-y-2">
-              <Label htmlFor="fare">Fare (₹) *</Label>
+            <div>
+              <Label htmlFor="longitude" className="text-white">Longitude</Label>
               <Input
-                id="fare"
-                name="fare"
+                id="longitude"
                 type="number"
-                min="0"
-                step="0.01"
-                value={formValues.fare}
-                onChange={handleChange}
-                placeholder="Enter fare amount"
-                className="border-muted bg-background/50"
+                step="any"
+                value={formData.longitude}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
                 required
+                className="bg-gray-800 border-gray-600 text-white"
+                placeholder="0.000000"
               />
             </div>
           </div>
 
-          <DialogFooter>
+          <div>
+            <Label htmlFor="fare" className="text-white">Fare (₹)</Label>
+            <Input
+              id="fare"
+              type="number"
+              step="0.01"
+              value={formData.fare}
+              onChange={(e) => setFormData({ ...formData, fare: e.target.value })}
+              required
+              className="bg-gray-800 border-gray-600 text-white"
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              disabled={isSubmitting}
+              className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="bg-primary hover:bg-primary/80 text-white"
-              disabled={!isFormValid() || isSubmitting}
+              disabled={isSubmitting}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {isSubmitting ? (
-                "Saving..."
-              ) : station ? (
-                "Update Station"
-              ) : (
-                "Add Station"
-              )}
+              {isSubmitting ? "Saving..." : station ? "Update" : "Create"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+    </Card>
   );
 };
 

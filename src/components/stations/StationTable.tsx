@@ -1,16 +1,14 @@
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, MapPin } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import StationTableRow from "./StationTableRow";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Trash2, MapPin } from "lucide-react";
 import { IStation, IBus } from "@/types";
 
 interface StationTableProps {
-  stations: IStation[] | undefined;
-  buses: IBus[] | undefined;
+  stations: IStation[];
+  buses: IBus[];
   isLoading: boolean;
   onAddStation: () => void;
   onEditStation: (station: IStation) => void;
@@ -22,74 +20,85 @@ const StationTable: React.FC<StationTableProps> = ({
   stations,
   buses,
   isLoading,
-  onAddStation,
   onEditStation,
   onDeleteStation,
   isAdmin
 }) => {
+  const getBusName = (busId: string) => {
+    const bus = buses.find(b => b._id === busId);
+    return bus ? bus.name : "Unknown Bus";
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+        <span className="ml-3 text-gray-400">Loading stations...</span>
+      </div>
+    );
+  }
+
   return (
-    <Card className="border-orange-500/20 bg-gray-900">
-      <CardHeader>
-        <CardTitle className="text-xl font-bold text-yellow-300">Stations</CardTitle>
-        <CardDescription className="text-gray-400">
-          Manage bus stations and their locations
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="space-y-2">
-            {Array(3)
-              .fill(0)
-              .map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full bg-gray-800" />
-              ))}
-          </div>
-        ) : !stations || stations.length === 0 ? (
-          <div className="text-center p-8 border rounded-lg border-dashed border-gray-600 bg-gray-800/20">
-            <MapPin className="mx-auto h-12 w-12 mb-2 text-gray-500" />
-            <p className="text-gray-400">No stations found</p>
-            {isAdmin && (
-              <Button 
-                variant="outline" 
-                className="mt-4 border-orange-500/40 hover:border-orange-500 hover:bg-orange-900/10 text-orange-400" 
-                onClick={onAddStation}
-              >
-                <Plus className="mr-2 h-4 w-4" /> Add First Station
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-md border border-gray-700 overflow-x-auto bg-gray-900">
-            <Table>
-              <TableHeader className="bg-gray-800">
-                <TableRow className="border-b border-gray-700">
-                  <TableHead className="text-yellow-300 font-semibold bg-gray-800">Station Name</TableHead>
-                  <TableHead className="text-yellow-300 font-semibold bg-gray-800">Bus</TableHead>
-                  <TableHead className="text-yellow-300 font-semibold bg-gray-800">Coordinates</TableHead>
-                  <TableHead className="text-yellow-300 font-semibold bg-gray-800">Fare</TableHead>
-                  <TableHead className="text-yellow-300 font-semibold bg-gray-800 w-[120px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stations?.map(station => {
-                  const bus = buses?.find(b => String(b._id) === String(station.busId));
-                  return (
-                    <StationTableRow
-                      key={station._id}
-                      station={station}
-                      bus={bus}
-                      onEdit={onEditStation}
-                      onDelete={onDeleteStation}
-                      isAdmin={isAdmin}
-                    />
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="bg-gray-900 rounded-lg overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-b border-gray-700">
+            <TableHead className="text-gray-300">Station Name</TableHead>
+            <TableHead className="text-gray-300">Assigned Bus</TableHead>
+            <TableHead className="text-gray-300">Location</TableHead>
+            <TableHead className="text-gray-300">Fare</TableHead>
+            {isAdmin && <TableHead className="text-gray-300">Actions</TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {stations.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={isAdmin ? 5 : 4} className="text-center py-8 text-gray-400">
+                <MapPin className="mx-auto h-12 w-12 text-gray-600 mb-4" />
+                <p>No stations found</p>
+              </TableCell>
+            </TableRow>
+          ) : (
+            stations.map((station) => (
+              <TableRow key={station._id} className="border-b border-gray-700 hover:bg-gray-800">
+                <TableCell className="font-medium text-white">{station.name}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="bg-blue-600/20 text-blue-400 border-blue-600">
+                    {getBusName(station.busId)}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-gray-300">
+                  {station.latitude.toFixed(4)}, {station.longitude.toFixed(4)}
+                </TableCell>
+                <TableCell className="text-green-400 font-medium">₹{station.fare}</TableCell>
+                {isAdmin && (
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onEditStation(station)}
+                        className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onDeleteStation(station._id)}
+                        className="bg-red-700 border-red-600 text-white hover:bg-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

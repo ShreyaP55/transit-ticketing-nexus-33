@@ -2,14 +2,13 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { routesAPI, busesAPI, stationsAPI } from "@/services/api";
 import { stripeService } from "@/services/stripeService";
 import { toast } from "sonner";
-import { MapPin, Bus, Navigation, AlertCircle, CreditCard } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { MapPin, Bus, Navigation, CreditCard } from "lucide-react";
+import { useUser } from "@/context/UserContext";
 
 interface NewTicketModalProps {
   open: boolean;
@@ -17,10 +16,11 @@ interface NewTicketModalProps {
 }
 
 export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChange }) => {
-  const navigate = useNavigate();
+  const { userId } = useUser();
   const [selectedRouteId, setSelectedRouteId] = useState("");
   const [selectedBusId, setSelectedBusId] = useState("");
-  const [selectedStationId, setSelectedStationId] = useState("");
+  const [startStation, setStartStation] = useState("");
+  const [endStation, setEndStation] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Data
@@ -38,7 +38,8 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
       routesAPI.getAll().then(r => setRoutes(r)).finally(() => setLoadingRoutes(false));
       setSelectedRouteId("");
       setSelectedBusId("");
-      setSelectedStationId("");
+      setStartStation("");
+      setEndStation("");
     }
   }, [open]);
 
@@ -48,46 +49,71 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
       setLoadingBuses(true);
       busesAPI.getAll(selectedRouteId).then(b => setBuses(b)).finally(() => setLoadingBuses(false));
       setSelectedBusId("");
-      setSelectedStationId("");
+      setStartStation("");
+      setEndStation("");
     }
   }, [selectedRouteId]);
 
-  // Load stations when bus (and route) changes
+  // Load stations when bus changes
   useEffect(() => {
     if (selectedRouteId && selectedBusId) {
       setLoadingStations(true);
       stationsAPI.getAll({ routeId: selectedRouteId, busId: selectedBusId }).then(s => setStations(s)).finally(() => setLoadingStations(false));
-      setSelectedStationId("");
+      setStartStation("");
+      setEndStation("");
     }
   }, [selectedBusId, selectedRouteId]);
 
   const selectedRoute = routes.find(r => r._id === selectedRouteId);
   const selectedBus = buses.find(b => b._id === selectedBusId);
-  const selectedStation = stations.find(s => s._id === selectedStationId);
+  const startStationData = stations.find(s => s.name === startStation);
+  const endStationData = stations.find(s => s.name === endStation);
+
+  // Calculate price based on station selection
+  const calculatePrice = () => {
+    if (!startStationData || !endStationData) return 0;
+    return Math.max(startStationData.fare, endStationData.fare);
+  };
+
+  const price = calculatePrice();
 
   // Booking
   const handleProceedToBuy = async () => {
-    if (!selectedRouteId || !selectedBusId || !selectedStationId) return;
+    if (!selectedRouteId || !selectedBusId || !startStation || !endStation || !userId) return;
 
     try {
       setIsProcessing(true);
-      toast.info("Redirecting to payment...");
+      toast.info("Creating ticket...");
 
-      // Create Stripe session
-      const response = await stripeService.createTicketCheckoutSession(
-        selectedStationId,
-        selectedBusId,
-        selectedStation.fare
-      );
-      if (response && response.url) {
-        // Redirect to Stripe checkout
-        await stripeService.redirectToCheckout(response.url);
+      // Create ticket in database first
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          routeId: selectedRouteId,
+          busId: selectedBusId,
+          startStation,
+          endStation,
+          price,
+          paymentIntentId: `pending_${Date.now()}`,
+          expiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success("Ticket created successfully!");
+        onOpenChange(false);
       } else {
-        toast.error("Failed to create checkout session.");
+        const error = await response.json();
+        toast.error(error.error || "Failed to create ticket");
       }
     } catch (error) {
-      console.error("Stripe error:", error);
-      toast.error("Failed to initiate payment");
+      console.error("Ticket creation error:", error);
+      toast.error("Failed to create ticket");
     } finally {
       setIsProcessing(false);
     }
@@ -95,35 +121,35 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[95vw] p-0 overflow-visible">
+      <DialogContent className="max-w-lg w-[95vw] p-0 overflow-visible bg-gray-900 border-gray-700">
         <form
-          className="bg-white rounded-lg shadow overflow-hidden"
+          className="bg-gray-900 rounded-lg shadow overflow-hidden"
           onSubmit={e => {
             e.preventDefault();
             handleProceedToBuy();
           }}>
-          <DialogHeader className="bg-gradient-to-r from-primary/10 to-transparent px-6 py-4 border-b">
-            <DialogTitle className="flex items-center text-lg sm:text-xl">
-              <MapPin className="mr-2 text-primary h-5 w-5" />
+          <DialogHeader className="bg-gradient-to-r from-blue-600/20 to-transparent px-6 py-4 border-b border-gray-700">
+            <DialogTitle className="flex items-center text-lg sm:text-xl text-white">
+              <MapPin className="mr-2 text-blue-400 h-5 w-5" />
               Book a New Ticket
             </DialogTitle>
-            <DialogDescription>Select route, bus, and station to proceed</DialogDescription>
+            <DialogDescription className="text-gray-400">Select route, bus, and stations to proceed</DialogDescription>
           </DialogHeader>
-          {/* Form fields */}
+          
           <div className="p-6 space-y-4">
             <div>
-              <label className="block mb-1 text-sm font-medium">Route</label>
+              <label className="block mb-1 text-sm font-medium text-white">Route</label>
               <Select value={selectedRouteId} onValueChange={setSelectedRouteId} disabled={loadingRoutes}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
                   <SelectValue placeholder="Select a route" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-gray-800 border-gray-600">
                   {loadingRoutes ? (
                     <SelectItem value="loading" disabled>Loading...</SelectItem>
                   ) : (
                     routes.length
                       ? routes.map(route =>
-                        <SelectItem key={route._id} value={route._id}>
+                        <SelectItem key={route._id} value={route._id} className="text-white">
                           {route.start} - {route.end} (₹{route.fare})
                         </SelectItem>)
                       : <SelectItem value="none" disabled>No routes available</SelectItem>
@@ -131,24 +157,25 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
                 </SelectContent>
               </Select>
             </div>
+
             <div>
-              <label className="block mb-1 text-sm font-medium">Bus</label>
+              <label className="block mb-1 text-sm font-medium text-white">Bus</label>
               <Select 
                 value={selectedBusId} 
                 onValueChange={setSelectedBusId} 
                 disabled={!selectedRouteId || loadingBuses}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
                   <SelectValue placeholder={!selectedRouteId ? "Select a route first" : "Select a bus"} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-gray-800 border-gray-600">
                   {loadingBuses ? (
                     <SelectItem value="loading" disabled>Loading...</SelectItem>
                   ) : (
                     buses.length 
                       ? buses.map(bus => 
-                        <SelectItem key={bus._id} value={bus._id}>
-                          {bus.name} <Badge className="ml-2" variant="outline">cap: {bus.capacity}</Badge>
+                        <SelectItem key={bus._id} value={bus._id} className="text-white">
+                          {bus.name} <Badge className="ml-2 bg-gray-700" variant="outline">cap: {bus.capacity}</Badge>
                         </SelectItem>
                       )
                       : <SelectItem value="none" disabled>No buses available</SelectItem>
@@ -156,42 +183,76 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
                 </SelectContent>
               </Select>
             </div>
+
             <div>
-              <label className="block mb-1 text-sm font-medium">Station</label>
+              <label className="block mb-1 text-sm font-medium text-white">Start Station</label>
               <Select
-                value={selectedStationId}
-                onValueChange={setSelectedStationId}
+                value={startStation}
+                onValueChange={setStartStation}
                 disabled={!selectedBusId || loadingStations}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={!selectedBusId ? "Select a bus first" : "Select a station"} />
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue placeholder={!selectedBusId ? "Select a bus first" : "Select start station"} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-gray-800 border-gray-600">
                   {loadingStations ? (
                     <SelectItem value="loading" disabled>Loading...</SelectItem>
                   ) : (
                     stations.length
                       ? stations.map(station =>
-                        <SelectItem key={station._id} value={station._id}>
-                          {station.name} <Badge className="ml-2" variant="outline">₹{station.fare}</Badge>
+                        <SelectItem key={station._id} value={station.name} className="text-white">
+                          {station.name} <Badge className="ml-2 bg-gray-700" variant="outline">₹{station.fare}</Badge>
                         </SelectItem>)
                       : <SelectItem value="none" disabled>No stations available</SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-medium text-white">End Station</label>
+              <Select
+                value={endStation}
+                onValueChange={setEndStation}
+                disabled={!selectedBusId || loadingStations}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue placeholder={!selectedBusId ? "Select a bus first" : "Select end station"} />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  {loadingStations ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : (
+                    stations.length
+                      ? stations.filter(station => station.name !== startStation).map(station =>
+                        <SelectItem key={station._id} value={station.name} className="text-white">
+                          {station.name} <Badge className="ml-2 bg-gray-700" variant="outline">₹{station.fare}</Badge>
+                        </SelectItem>)
+                      : <SelectItem value="none" disabled>No stations available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {price > 0 && (
+              <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
+                <div className="text-sm text-gray-400">Total Price</div>
+                <div className="text-xl font-bold text-green-400">₹{price}</div>
+              </div>
+            )}
           </div>
-          <DialogFooter className="flex flex-col sm:flex-row justify-between items-center border-t p-4">
+
+          <DialogFooter className="flex flex-col sm:flex-row justify-between items-center border-t border-gray-700 p-4 bg-gray-800">
             <DialogClose asChild>
-              <Button variant="outline" className="w-full sm:w-auto">Cancel</Button>
+              <Button variant="outline" className="w-full sm:w-auto bg-gray-700 border-gray-600 text-white hover:bg-gray-600">Cancel</Button>
             </DialogClose>
             <Button
               type="submit"
-              disabled={!selectedRouteId || !selectedBusId || !selectedStationId || isProcessing}
-              className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+              disabled={!selectedRouteId || !selectedBusId || !startStation || !endStation || isProcessing}
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
             >
               <CreditCard className="mr-2 h-4 w-4" />
-              {isProcessing ? "Processing..." : "Proceed to Buy"}
+              {isProcessing ? "Creating..." : "Create Ticket"}
             </Button>
           </DialogFooter>
         </form>

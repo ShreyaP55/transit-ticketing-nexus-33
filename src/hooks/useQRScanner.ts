@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { startTrip, endTrip, getActiveTrip } from "@/services/tripService";
+import { tripsAPI } from '@/services/api';
 import { useAuthService } from "@/services/authService";
 import { toast } from "sonner";
 
@@ -90,10 +90,8 @@ export const useQRScanner = () => {
 
       setIsLoading(true);
       try {
-        const authToken = await getAuthToken() || "dummy-auth-token";
-        // Add longer delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        const trip = await getActiveTrip(extractedUserId, authToken);
+        // Check if user has an active trip
+        const trip = await tripsAPI.getActiveTrip(extractedUserId);
         setActiveTrip(trip);
 
         if (trip) {
@@ -106,8 +104,6 @@ export const useQRScanner = () => {
         if (error.message && error.message.includes("Server is not running")) {
           setConnectionError(true);
           toast.error("Backend server is not running. Please start the server first.");
-        } else if (error.message && error.message.includes("Too many requests")) {
-          toast.warning("Please wait longer before scanning again.");
         } else {
           toast.error("Failed to check trip status. Please try again.");
         }
@@ -128,27 +124,18 @@ export const useQRScanner = () => {
     if (!userId || !location) return;
     setIsLoading(true);
     try {
-      const authToken = await getAuthToken() || "dummy-auth-token";
-      // Add longer delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      await startTrip(userId, location.lat, location.lng, authToken);
+      const result = await tripsAPI.startTrip(userId, location.lat, location.lng);
       toast.success("Check-in successful! Trip started.");
-      // Reset for next scan
+      
+      // Reset for next scan after showing success
       setTimeout(() => {
         setScanned(false);
         setUserId(null);
         setActiveTrip(null);
-      }, 3000);
+      }, 2000);
     } catch (error: any) {
       console.error("Check-in error:", error);
-      if (error.message && error.message.includes("Server is not running")) {
-        setConnectionError(true);
-        toast.error("Backend server is not running. Please start the server first.");
-      } else if (error.message && error.message.includes("Too many requests")) {
-        toast.warning("Rate limited. Please wait 30 seconds before trying again.");
-      } else {
-        toast.error(error.message || "Failed to check in user");
-      }
+      toast.error(error.message || "Failed to check in user");
     } finally {
       setIsLoading(false);
     }
@@ -158,11 +145,8 @@ export const useQRScanner = () => {
     if (!userId || !location || !activeTrip) return;
     setIsLoading(true);
     try {
-      const authToken = await getAuthToken() || "dummy-auth-token";
-      // Add longer delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      const result = await endTrip(activeTrip._id, location.lat, location.lng, authToken);
-
+      const result = await tripsAPI.endTrip(activeTrip._id, location.lat, location.lng);
+      
       if (result.success) {
         const fare = result.trip?.fare || 0;
         const distance = result.trip?.distance || 0;
@@ -188,17 +172,10 @@ export const useQRScanner = () => {
         setScanned(false);
         setUserId(null);
         setActiveTrip(null);
-      }, 6000);
+      }, 3000);
     } catch (error: any) {
       console.error("Check-out error:", error);
-      if (error.message && error.message.includes("Server is not running")) {
-        setConnectionError(true);
-        toast.error("Backend server is not running. Please start the server first.");
-      } else if (error.message && error.message.includes("Too many requests")) {
-        toast.warning("Rate limited. Please wait 30 seconds before trying again.");
-      } else {
-        toast.error(error.message || "Failed to check out user");
-      }
+      toast.error(error.message || "Failed to check out user");
     } finally {
       setIsLoading(false);
     }

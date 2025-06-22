@@ -5,20 +5,35 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export const walletService = {
-  getBalance: async (userId: string, authToken: string): Promise<IWallet> => {
+  getBalance: async (userId: string, authToken?: string): Promise<IWallet> => {
     try {
       console.log('Fetching wallet balance for user:', userId);
       const response = await fetch(`${API_URL}/wallet/${userId}`, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
         },
       });
       
       if (!response.ok) {
         if (response.status === 404) {
-          // Return default wallet structure if not found
-          const defaultWallet = {
+          // Create wallet if not found
+          const createResponse = await fetch(`${API_URL}/wallet/${userId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+            },
+            body: JSON.stringify({ initialBalance: 0 }),
+          });
+          
+          if (createResponse.ok) {
+            const newWallet = await createResponse.json();
+            return newWallet.wallet || newWallet;
+          }
+          
+          // Return default wallet if creation fails
+          return {
             _id: `wallet_${userId}`,
             userId,
             balance: 0,
@@ -26,10 +41,8 @@ export const walletService = {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
-          console.log('Wallet not found, returning default:', defaultWallet);
-          return defaultWallet;
         }
-        throw new Error('Failed to fetch wallet');
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const result = await response.json();
@@ -44,17 +57,25 @@ export const walletService = {
       return processedWallet;
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
-      throw error;
+      // Return default wallet instead of throwing
+      return {
+        _id: `wallet_${userId}`,
+        userId,
+        balance: 0,
+        transactions: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
     }
   },
 
-  addFunds: async (userId: string, amount: number, authToken: string): Promise<IWallet> => {
+  addFunds: async (userId: string, amount: number, authToken?: string): Promise<IWallet> => {
     try {
       const response = await fetch(`${API_URL}/wallet/${userId}/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
         },
         body: JSON.stringify({ amount }),
       });
@@ -78,13 +99,13 @@ export const walletService = {
     }
   },
 
-  deductFunds: async (userId: string, amount: number, description: string, authToken: string): Promise<IWallet> => {
+  deductFunds: async (userId: string, amount: number, description: string, authToken?: string): Promise<IWallet> => {
     try {
       const response = await fetch(`${API_URL}/wallet/${userId}/deduct`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
         },
         body: JSON.stringify({ amount, description }),
       });
@@ -107,55 +128,33 @@ export const walletService = {
       throw error;
     }
   },
-
-  getTransactions: async (userId: string, authToken: string): Promise<ITransaction[]> => {
-    try {
-      const response = await fetch(`${API_URL}/wallet/${userId}/transactions`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
-      });
-      
-      if (!response.ok) {
-        return [];
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      return [];
-    }
-  }
 };
 
-export const useWallet = (userId: string, authToken: string) => {
+export const useWallet = (userId: string, authToken?: string) => {
   const queryClient = useQueryClient();
 
   const { data: wallet, isLoading, error, refetch } = useQuery({
     queryKey: ['wallet', userId],
-    queryFn: () => walletService.getBalance(userId, authToken || "dummy-auth-token"),
-    enabled: !!userId && !!authToken,
-    staleTime: 10000, // Consider data fresh for 10 seconds
-    refetchInterval: 30000, // Refetch every 30 seconds
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    queryFn: () => walletService.getBalance(userId, authToken),
+    enabled: !!userId,
+    staleTime: 5000, // Consider data fresh for 5 seconds
+    refetchInterval: 15000, // Refetch every 15 seconds
+    refetchOnWindowFocus: true,
   });
 
   const addFundsMutation = useMutation({
-    mutationFn: (amount: number) => walletService.addFunds(userId, amount, authToken || "dummy-auth-token"),
+    mutationFn: (amount: number) => walletService.addFunds(userId, amount, authToken),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet', userId] });
-      // Force refetch immediately
       refetch();
     },
   });
 
   const deductFundsMutation = useMutation({
     mutationFn: ({ amount, description }: { amount: number; description: string }) => 
-      walletService.deductFunds(userId, amount, description, authToken || "dummy-auth-token"),
+      walletService.deductFunds(userId, amount, description, authToken),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet', userId] });
-      // Force refetch immediately
       refetch();
     },
   });
@@ -172,6 +171,6 @@ export const useWallet = (userId: string, authToken: string) => {
   };
 };
 
-export const deductFunds = async (userId: string, amount: number, description: string, authToken: string) => {
-  return walletService.deductFunds(userId, amount, description, authToken || "dummy-auth-token");
+export const deductFunds = async (userId: string, amount: number, description: string, authToken?: string) => {
+  return walletService.deductFunds(userId, amount, description, authToken);
 };
