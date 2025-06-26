@@ -21,7 +21,7 @@ const BusesPage = () => {
 
   const { data: buses = [], isLoading: busesLoading, refetch } = useQuery({
     queryKey: ["buses"],
-    queryFn: busesAPI.getAll,
+    queryFn: () => busesAPI.getAll(),
   });
 
   const { data: routes = [], isLoading: routesLoading } = useQuery({
@@ -38,6 +38,16 @@ const BusesPage = () => {
   const handleEdit = (bus: IBus) => {
     setEditingBus(bus);
     setIsFormOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    // Handle delete logic here
+    console.log('Delete bus:', id);
+  };
+
+  const handleGenerateQR = (bus: IBus) => {
+    // Handle QR generation logic here
+    console.log('Generate QR for bus:', bus);
   };
 
   const handleFormClose = () => {
@@ -91,8 +101,9 @@ const BusesPage = () => {
               <div className="mt-4 pt-4 border-t">
                 <BusFilters
                   routes={routes}
-                  selectedRoute={selectedRoute}
-                  onRouteChange={setSelectedRoute}
+                  isLoadingRoutes={routesLoading}
+                  selectedRouteId={selectedRoute}
+                  onRouteFilter={setSelectedRoute}
                 />
               </div>
             )}
@@ -115,17 +126,24 @@ const BusesPage = () => {
         ) : (
           <BusTable
             buses={filteredBuses}
-            onEdit={handleEdit}
-            onRefetch={refetch}
+            isLoading={false}
+            selectedRouteId={selectedRoute}
+            isAdmin={true}
+            onAddBus={() => setIsFormOpen(true)}
+            onEditBus={handleEdit}
+            onDeleteBus={handleDelete}
+            onGenerateQR={handleGenerateQR}
+            routes={routes}
           />
         )}
 
         {/* Bus Form Modal */}
         <BusForm
-          open={isFormOpen}
-          onOpenChange={setIsFormOpen}
-          bus={editingBus}
+          isOpen={isFormOpen}
+          onClose={handleFormClose}
           onSuccess={handleFormClose}
+          bus={editingBus}
+          selectedRouteId={selectedRoute}
         />
       </div>
     </MainLayout>
