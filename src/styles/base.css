@@ -1,0 +1,49 @@
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Ensure minimum contrast ratio */
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+  }
+  
+  html {
+    @apply bg-background;
+  }
+
+  /* Better contrast for form elements */
+  input, textarea, select {
+    @apply bg-gray-800 border-gray-600 text-white placeholder-gray-400;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    @apply border-orange-500 ring-orange-500;
+  }
+
+  /* Ensure sufficient contrast for all interactive elements */
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Mobile-first responsive design */
+  @media (max-width: 640px) {
+    .container {
+      @apply px-2;
+    }
+    
+    /* Ensure text is large enough on mobile */
+    body {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+  }
+}
