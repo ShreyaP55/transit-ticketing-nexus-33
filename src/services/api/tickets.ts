@@ -11,7 +11,16 @@ export const ticketsAPI = {
     return fetchAPI(`/tickets?userId=${userId}`);
   },
     
-  create: (ticket: { sessionId: string; stationId: string; busId: string; userId: string }): Promise<{ success: boolean; ticket: ITicket }> =>
+  create: (ticket: { 
+    userId: string; 
+    routeId: string; 
+    busId: string; 
+    startStation: string; 
+    endStation: string; 
+    price: number; 
+    paymentIntentId: string; 
+    expiryDate: Date 
+  }): Promise<{ success: boolean; ticket: ITicket }> =>
     fetchAPI("/tickets", {
       method: "POST",
       body: JSON.stringify(ticket),

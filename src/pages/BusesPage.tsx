@@ -1,203 +1,132 @@
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Plus, Search, Filter, Bus } from "lucide-react";
+import { busesAPI, routesAPI } from "@/services/api";
+import { IBus, IRoute } from "@/types";
 import MainLayout from "@/components/layout/MainLayout";
-import { busesAPI, routesAPI, stationsAPI } from "@/services/api";
-import BusForm from "@/components/buses/BusForm";
-import BusQRCode from "@/components/buses/BusQRCode";
-import BusFilters from "@/components/buses/BusFilters";
-import BusTable from "@/components/buses/BusTable";
-import { useUser } from "@/context/UserContext";
-import { IBus } from "@/types";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Bus as BusIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { BusTable } from "@/components/buses/BusTable";
+import { BusForm } from "@/components/buses/BusForm";
+import { BusFilters } from "@/components/buses/BusFilters";
+import { Card, CardContent } from "@/components/ui/card";
 
 const BusesPage = () => {
-  const { isAdmin } = useUser();
-  const queryClient = useQueryClient();
-  const [isBusFormOpen, setIsBusFormOpen] = useState(false);
-  const [selectedBus, setSelectedBus] = useState<IBus | null>(null);
-  const [selectedRouteId, setSelectedRouteId] = useState<string>("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingBusId, setDeletingBusId] = useState<string>("");
-  const [isQRDialogOpen, setIsQRDialogOpen] = useState(false);
-  const [busForQR, setBusForQR] = useState<IBus | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingBus, setEditingBus] = useState<IBus | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRoute, setSelectedRoute] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch routes for filter
-  const { 
-    data: routes,
-    isLoading: isLoadingRoutes,
-    error: routesError 
-  } = useQuery({
-    queryKey: ['routes'],
+  const { data: buses = [], isLoading: busesLoading, refetch } = useQuery({
+    queryKey: ["buses"],
+    queryFn: busesAPI.getAll,
+  });
+
+  const { data: routes = [], isLoading: routesLoading } = useQuery({
+    queryKey: ["routes"],
     queryFn: routesAPI.getAll,
-    retry: 3,
-    staleTime: 1000 * 60 * 2
   });
 
-  // Fetch stations for mapping busId -> station
-  const { data: stations, isLoading: isLoadingStations, error: stationsError } = useQuery({
-    queryKey: ['stations'],
-    queryFn: () => stationsAPI.getAll(),
-    staleTime: 1000 * 60
+  const filteredBuses = buses.filter((bus) => {
+    const matchesSearch = bus.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRoute = !selectedRoute || (typeof bus.route === 'object' && bus.route?._id === selectedRoute);
+    return matchesSearch && matchesRoute;
   });
-
-  // Do not pass routeId to API if blank to avoid erroneous filtering.
-  const routeForApi = selectedRouteId && selectedRouteId !== "undefined" ? selectedRouteId : undefined;
-
-  // Fetch buses data
-  const { 
-    data: buses, 
-    isLoading,
-    error: busesError 
-  } = useQuery({
-    queryKey: ['buses', routeForApi],
-    queryFn: () => busesAPI.getAll(routeForApi),
-    enabled: !!routes,
-    retry: 2,
-    staleTime: 1000 * 60,
-  });
-
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: busesAPI.delete,
-    onSuccess: () => {
-      toast.success("Bus deleted successfully");
-      queryClient.invalidateQueries({ queryKey: ['buses'] });
-    },
-    onError: (error: Error) => {
-      toast.error(`Error: ${error.message}`);
-    }
-  });
-
-  // QR code
-  const handleGenerateQR = (bus: IBus) => {
-    setBusForQR(bus);
-    setIsQRDialogOpen(true);
-  };
-
-  const handleDeleteClick = (id: string) => {
-    setDeletingBusId(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = () => {
-    deleteMutation.mutate(deletingBusId);
-    setDeleteDialogOpen(false);
-  };
 
   const handleEdit = (bus: IBus) => {
-    setSelectedBus(bus);
-    setIsBusFormOpen(true);
+    setEditingBus(bus);
+    setIsFormOpen(true);
   };
 
-  const handleBusFormClose = () => {
-    setIsBusFormOpen(false);
-    setSelectedBus(null);
+  const handleFormClose = () => {
+    setIsFormOpen(false);
+    setEditingBus(null);
+    refetch();
   };
 
-  const handleBusFormSuccess = () => {
-    setIsBusFormOpen(false);
-    setSelectedBus(null);
-    queryClient.invalidateQueries({ queryKey: ['buses'] });
-    toast.success(`Bus ${selectedBus ? 'updated' : 'created'} successfully`);
-  };
-
-  const handleRouteFilter = (routeId: string) => {
-    setSelectedRouteId(routeId === selectedRouteId ? "" : routeId);
-  };
-
-  // Error Toast on load error
-  React.useEffect(() => {
-    if (routesError || busesError || stationsError) {
-      const err = (routesError || busesError || stationsError) as Error;
-      toast.error(`Error loading data: ${err?.message || "Unknown"}`);
-    }
-  }, [routesError, busesError, stationsError]);
+  const isLoading = busesLoading || routesLoading;
 
   return (
     <MainLayout title="Bus Management">
-      <div className="max-w-6xl mx-auto w-full px-2">
-        <div className="mb-6 flex flex-col md:flex-row md:justify-end md:items-center gap-2">
-          {isAdmin && (
-            <Button 
-              onClick={() => setIsBusFormOpen(true)} 
-              className="bg-transit-orange hover:bg-transit-orange-dark text-white shadow-[0_0_10px_rgba(255,126,29,0.5)] w-full md:w-auto"
-            >
-              <Plus className="mr-2 h-4 w-4" /> Add Bus
-            </Button>
-          )}
-        </div>
-        
-        <div className="flex flex-wrap gap-4 w-full min-h-[300px]">
-          <div className="flex-1 min-w-[250px]">
-            <BusFilters
-              routes={routes}
-              isLoadingRoutes={isLoadingRoutes}
-              selectedRouteId={selectedRouteId}
-              onRouteFilter={handleRouteFilter}
-            />
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Bus className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold">Bus Management</h1>
           </div>
-          <div className="flex-[3] min-w-[300px]">
-            <BusTable
-              buses={buses}
-              isLoading={isLoading}
-              selectedRouteId={selectedRouteId}
-              isAdmin={isAdmin}
-              onAddBus={() => setIsBusFormOpen(true)}
-              onEditBus={handleEdit}
-              onDeleteBus={handleDeleteClick}
-              onGenerateQR={handleGenerateQR}
-              stations={stations}
-              isLoadingStations={isLoadingStations}
-              routes={routes}
-            />
-          </div>
+          <Button onClick={() => setIsFormOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Bus
+          </Button>
         </div>
 
-        {/* Bus Form Dialog */}
-        {isBusFormOpen && (
-          <BusForm
-            isOpen={isBusFormOpen}
-            onClose={handleBusFormClose}
-            onSuccess={handleBusFormSuccess}
-            bus={selectedBus}
-            selectedRouteId={selectedRouteId}
+        {/* Search and Filters */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search buses..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                Filters
+              </Button>
+            </div>
+
+            {showFilters && (
+              <div className="mt-4 pt-4 border-t">
+                <BusFilters
+                  routes={routes}
+                  selectedRoute={selectedRoute}
+                  onRouteChange={setSelectedRoute}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Loading State */}
+        {isLoading ? (
+          <Card>
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                <div className="text-center">
+                  <h3 className="text-lg font-medium">Loading Buses</h3>
+                  <p className="text-muted-foreground">Please wait while we fetch the bus data...</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <BusTable
+            buses={filteredBuses}
+            onEdit={handleEdit}
+            onRefetch={refetch}
           />
         )}
 
-        {/* QR Code Dialog */}
-        <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
-          <DialogContent className="bg-card max-w-sm">
-            <DialogHeader>
-              <DialogTitle>QR Code for Bus</DialogTitle>
-            </DialogHeader>
-            {busForQR && <BusQRCode bus={busForQR} />}
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent className="bg-card border-destructive/30">
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete the bus. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleConfirmDelete}
-                className="bg-destructive hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Bus Form Modal */}
+        <BusForm
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          bus={editingBus}
+          onSuccess={handleFormClose}
+        />
       </div>
     </MainLayout>
   );

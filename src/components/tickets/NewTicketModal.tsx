@@ -4,11 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { routesAPI, busesAPI, stationsAPI } from "@/services/api";
-import { stripeService } from "@/services/stripeService";
+import { routesAPI, busesAPI, stationsAPI, ticketsAPI } from "@/services/api";
 import { toast } from "sonner";
-import { MapPin, Bus, Navigation, CreditCard } from "lucide-react";
+import { MapPin, Bus, CreditCard } from "lucide-react";
 import { useUser } from "@/context/UserContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NewTicketModalProps {
   open: boolean;
@@ -17,10 +17,10 @@ interface NewTicketModalProps {
 
 export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChange }) => {
   const { userId } = useUser();
+  const queryClient = useQueryClient();
   const [selectedRouteId, setSelectedRouteId] = useState("");
   const [selectedBusId, setSelectedBusId] = useState("");
-  const [startStation, setStartStation] = useState("");
-  const [endStation, setEndStation] = useState("");
+  const [selectedStationId, setSelectedStationId] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Data
@@ -38,8 +38,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
       routesAPI.getAll().then(r => setRoutes(r)).finally(() => setLoadingRoutes(false));
       setSelectedRouteId("");
       setSelectedBusId("");
-      setStartStation("");
-      setEndStation("");
+      setSelectedStationId("");
     }
   }, [open]);
 
@@ -49,8 +48,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
       setLoadingBuses(true);
       busesAPI.getAll(selectedRouteId).then(b => setBuses(b)).finally(() => setLoadingBuses(false));
       setSelectedBusId("");
-      setStartStation("");
-      setEndStation("");
+      setSelectedStationId("");
     }
   }, [selectedRouteId]);
 
@@ -59,57 +57,41 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
     if (selectedRouteId && selectedBusId) {
       setLoadingStations(true);
       stationsAPI.getAll({ routeId: selectedRouteId, busId: selectedBusId }).then(s => setStations(s)).finally(() => setLoadingStations(false));
-      setStartStation("");
-      setEndStation("");
+      setSelectedStationId("");
     }
   }, [selectedBusId, selectedRouteId]);
 
   const selectedRoute = routes.find(r => r._id === selectedRouteId);
   const selectedBus = buses.find(b => b._id === selectedBusId);
-  const startStationData = stations.find(s => s.name === startStation);
-  const endStationData = stations.find(s => s.name === endStation);
+  const selectedStation = stations.find(s => s._id === selectedStationId);
 
-  // Calculate price based on station selection
-  const calculatePrice = () => {
-    if (!startStationData || !endStationData) return 0;
-    return Math.max(startStationData.fare, endStationData.fare);
-  };
-
-  const price = calculatePrice();
+  const price = selectedStation?.fare || 0;
 
   // Booking
   const handleProceedToBuy = async () => {
-    if (!selectedRouteId || !selectedBusId || !startStation || !endStation || !userId) return;
+    if (!selectedRouteId || !selectedBusId || !selectedStationId || !userId) return;
 
     try {
       setIsProcessing(true);
       toast.info("Creating ticket...");
 
-      // Create ticket in database first
-      const response = await fetch('/api/tickets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          routeId: selectedRouteId,
-          busId: selectedBusId,
-          startStation,
-          endStation,
-          price,
-          paymentIntentId: `pending_${Date.now()}`,
-          expiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
-        }),
+      const response = await ticketsAPI.create({
+        userId,
+        routeId: selectedRouteId,
+        busId: selectedBusId,
+        startStation: selectedStation?.name || "Selected Station",
+        endStation: selectedStation?.name || "Selected Station",
+        price,
+        paymentIntentId: `ticket_${Date.now()}`,
+        expiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        toast.success("Ticket created successfully!");
+      if (response.success) {
+        toast.success("Ticket purchased successfully!");
+        queryClient.invalidateQueries({ queryKey: ["tickets", userId] });
         onOpenChange(false);
       } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to create ticket");
+        toast.error("Failed to create ticket");
       }
     } catch (error) {
       console.error("Ticket creation error:", error);
@@ -131,9 +113,9 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
           <DialogHeader className="bg-gradient-to-r from-blue-600/20 to-transparent px-6 py-4 border-b border-gray-700">
             <DialogTitle className="flex items-center text-lg sm:text-xl text-white">
               <MapPin className="mr-2 text-blue-400 h-5 w-5" />
-              Book a New Ticket
+              Buy a New Ticket
             </DialogTitle>
-            <DialogDescription className="text-gray-400">Select route, bus, and stations to proceed</DialogDescription>
+            <DialogDescription className="text-gray-400">Select route, bus, and station to purchase</DialogDescription>
           </DialogHeader>
           
           <div className="p-6 space-y-4">
@@ -185,14 +167,14 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-medium text-white">Start Station</label>
+              <label className="block mb-1 text-sm font-medium text-white">Station</label>
               <Select
-                value={startStation}
-                onValueChange={setStartStation}
+                value={selectedStationId}
+                onValueChange={setSelectedStationId}
                 disabled={!selectedBusId || loadingStations}
               >
                 <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                  <SelectValue placeholder={!selectedBusId ? "Select a bus first" : "Select start station"} />
+                  <SelectValue placeholder={!selectedBusId ? "Select a bus first" : "Select station"} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
                   {loadingStations ? (
@@ -200,32 +182,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
                   ) : (
                     stations.length
                       ? stations.map(station =>
-                        <SelectItem key={station._id} value={station.name} className="text-white">
-                          {station.name} <Badge className="ml-2 bg-gray-700" variant="outline">₹{station.fare}</Badge>
-                        </SelectItem>)
-                      : <SelectItem value="none" disabled>No stations available</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block mb-1 text-sm font-medium text-white">End Station</label>
-              <Select
-                value={endStation}
-                onValueChange={setEndStation}
-                disabled={!selectedBusId || loadingStations}
-              >
-                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                  <SelectValue placeholder={!selectedBusId ? "Select a bus first" : "Select end station"} />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {loadingStations ? (
-                    <SelectItem value="loading" disabled>Loading...</SelectItem>
-                  ) : (
-                    stations.length
-                      ? stations.filter(station => station.name !== startStation).map(station =>
-                        <SelectItem key={station._id} value={station.name} className="text-white">
+                        <SelectItem key={station._id} value={station._id} className="text-white">
                           {station.name} <Badge className="ml-2 bg-gray-700" variant="outline">₹{station.fare}</Badge>
                         </SelectItem>)
                       : <SelectItem value="none" disabled>No stations available</SelectItem>
@@ -236,7 +193,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
 
             {price > 0 && (
               <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
-                <div className="text-sm text-gray-400">Total Price</div>
+                <div className="text-sm text-gray-400">Ticket Price</div>
                 <div className="text-xl font-bold text-green-400">₹{price}</div>
               </div>
             )}
@@ -248,11 +205,11 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
             </DialogClose>
             <Button
               type="submit"
-              disabled={!selectedRouteId || !selectedBusId || !startStation || !endStation || isProcessing}
+              disabled={!selectedRouteId || !selectedBusId || !selectedStationId || isProcessing}
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
             >
               <CreditCard className="mr-2 h-4 w-4" />
-              {isProcessing ? "Creating..." : "Create Ticket"}
+              {isProcessing ? "Purchasing..." : "Buy Ticket"}
             </Button>
           </DialogFooter>
         </form>

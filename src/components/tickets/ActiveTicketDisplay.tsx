@@ -1,64 +1,63 @@
 
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Ticket, Calendar, MapPin, Bus } from 'lucide-react';
-import { ticketsAPI, passesAPI } from '@/services/api';
-import { useUser } from '@/context/UserContext';
-import { getRouteDisplay } from '@/utils/typeGuards';
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Clock, MapPin, Navigation, TicketX } from "lucide-react";
+import { useUser } from "@/context/UserContext";
+import { ticketsAPI } from "@/services/api";
+import { ITicket } from "@/types";
+import { format } from "date-fns";
 
 const ActiveTicketDisplay: React.FC = () => {
   const { userId } = useUser();
 
-  const { data: tickets = [], isLoading: ticketsLoading } = useQuery({
+  const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["tickets", userId],
     queryFn: () => ticketsAPI.getByUserId(userId || ""),
     enabled: !!userId,
   });
 
-  const { data: passes = [], isLoading: passesLoading } = useQuery({
-    queryKey: ["passes", userId],
-    queryFn: () => passesAPI.getByUserId(userId || ""),
-    enabled: !!userId,
-  });
-
-  const activeTickets = tickets.filter(
-    (ticket) => new Date(ticket.expiryDate) > new Date()
-  );
-
-  const activePasses = passes.filter(
-    (pass) => new Date(pass.expiryDate) > new Date()
-  );
-
-  const isLoading = ticketsLoading || passesLoading;
+  // Filter for active tickets only
+  const activeTickets = Array.isArray(tickets) 
+    ? tickets.filter((ticket: ITicket) => new Date(ticket.expiryDate) > new Date())
+    : [];
 
   if (isLoading) {
     return (
-      <Card className="bg-card border-border">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center">
+      <Card className="bg-card border-border shadow-md">
+        <CardHeader>
+          <CardTitle className="flex items-center text-card-foreground">
+            <Navigation className="mr-2 h-5 w-5 text-primary" />
+            Active Tickets
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
             <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
-            <span className="ml-2 text-muted-foreground">Loading active tickets...</span>
+            <span className="ml-2 text-muted-foreground">Loading tickets...</span>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (activeTickets.length === 0 && activePasses.length === 0) {
+  if (activeTickets.length === 0) {
     return (
-      <Card className="bg-card border-border">
+      <Card className="bg-card border-border shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center text-card-foreground">
-            <Ticket className="mr-2 h-5 w-5 text-primary" />
-            Active Tickets & Passes
+            <Navigation className="mr-2 h-5 w-5 text-primary" />
+            Active Tickets
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent>
           <div className="text-center py-8">
-            <Ticket className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No active tickets or passes</p>
+            <TicketX className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-1 text-card-foreground">No Active Tickets</h3>
+            <p className="text-muted-foreground">
+              You don't have any active tickets at the moment
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -66,61 +65,63 @@ const ActiveTicketDisplay: React.FC = () => {
   }
 
   return (
-    <Card className="bg-card border-border">
+    <Card className="bg-card border-border shadow-md">
       <CardHeader>
         <CardTitle className="flex items-center text-card-foreground">
-          <Ticket className="mr-2 h-5 w-5 text-primary" />
-          Active Tickets & Passes
+          <Navigation className="mr-2 h-5 w-5 text-primary" />
+          Active Tickets ({activeTickets.length})
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {activeTickets.map((ticket) => (
-          <div key={ticket._id} className="bg-secondary/50 rounded-lg p-4 border border-border">
-            <div className="flex justify-between items-start mb-2">
-              <Badge className="bg-primary text-primary-foreground">
-                Single Ticket
-              </Badge>
-              <span className="text-sm text-muted-foreground">
-                Expires: {new Date(ticket.expiryDate).toLocaleDateString()}
-              </span>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center text-sm text-card-foreground">
-                <MapPin className="h-4 w-4 mr-2 text-primary" />
-                <span>{ticket.startStation} → {ticket.endStation}</span>
-              </div>
-              <div className="flex items-center text-sm text-card-foreground">
-                <Bus className="h-4 w-4 mr-2 text-primary" />
-                <span>Route: {getRouteDisplay(ticket.routeId)}</span>
-              </div>
-              <div className="flex items-center text-sm text-card-foreground">
-                <span className="font-medium">Price: ₹{ticket.price}</span>
-              </div>
-            </div>
-          </div>
-        ))}
+      <CardContent>
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {activeTickets.map((ticket: ITicket) => (
+            <Card key={ticket._id} className="bg-secondary/50 border-border shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-card-foreground">
+                      {typeof ticket.routeId === 'object' && ticket.routeId 
+                        ? `${ticket.routeId.start} → ${ticket.routeId.end}`
+                        : 'Route Information'
+                      }
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Bus: {typeof ticket.busId === 'object' && ticket.busId 
+                        ? ticket.busId.name 
+                        : 'Bus Information'
+                      }
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                    ₹{ticket.price}
+                  </Badge>
+                </div>
 
-        {activePasses.map((pass) => (
-          <div key={pass._id} className="bg-primary/10 rounded-lg p-4 border border-primary/20">
-            <div className="flex justify-between items-start mb-2">
-              <Badge className="bg-primary text-primary-foreground">
-                Monthly Pass
-              </Badge>
-              <span className="text-sm text-muted-foreground">
-                Expires: {new Date(pass.expiryDate).toLocaleDateString()}
-              </span>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center text-sm text-card-foreground">
-                <Calendar className="h-4 w-4 mr-2 text-primary" />
-                <span>Route: {getRouteDisplay(pass.routeId)}</span>
-              </div>
-              <div className="flex items-center text-sm text-card-foreground">
-                <span className="font-medium">Price: ₹{pass.fare}</span>
-              </div>
-            </div>
-          </div>
-        ))}
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">
+                      Station: {ticket.startStation}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">
+                      Valid until: {format(new Date(ticket.expiryDate), "MMM d, yyyy h:mm a")}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-border">
+                  <div className="text-xs text-muted-foreground">
+                    Ticket ID: {ticket._id.substring(0, 8)}...
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

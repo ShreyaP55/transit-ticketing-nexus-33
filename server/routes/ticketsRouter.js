@@ -18,7 +18,8 @@ router.get('/', async (req, res) => {
     
     const tickets = await Ticket.find({ userId })
       .populate('routeId')
-      .populate('busId');
+      .populate('busId')
+      .sort({ createdAt: -1 });
     
     res.json(tickets);
   } catch (error) {
@@ -32,7 +33,7 @@ router.post('/', async (req, res) => {
   try {
     const { userId, routeId, busId, startStation, endStation, price, paymentIntentId, expiryDate } = req.body;
     
-    if (!userId || !routeId || !busId || !startStation || !endStation || !price || !paymentIntentId) {
+    if (!userId || !routeId || !busId || !startStation || !price || !paymentIntentId) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -62,7 +63,7 @@ router.post('/', async (req, res) => {
       routeId,
       busId,
       startStation,
-      endStation,
+      endStation: endStation || startStation,
       price: parseFloat(price),
       paymentIntentId,
       expiryDate: expiryDate || new Date(Date.now() + 24 * 60 * 60 * 1000) // Default to 24hrs from now
@@ -70,7 +71,9 @@ router.post('/', async (req, res) => {
     
     await newTicket.save();
 
-    const populatedTicket = await Ticket.findById(newTicket._id).populate('routeId').populate('busId');
+    const populatedTicket = await Ticket.findById(newTicket._id)
+      .populate('routeId')
+      .populate('busId');
     
     res.status(201).json({
       success: true,
