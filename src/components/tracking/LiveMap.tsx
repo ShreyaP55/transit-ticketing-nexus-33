@@ -1,9 +1,10 @@
+
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Navigation, MapPin } from "lucide-react";
-import { locationService, LocationData } from "@/services/locationService";
+import { getHighAccuracyLocation, LocationData } from "@/services/locationService";
 import { IBus } from "@/types";
 
 const defaultCenter = {
@@ -115,14 +116,30 @@ const LiveMap: React.FC<LiveMapProps> = ({
   const toggleLocationTracking = useCallback(async () => {
     if (!isTracking) {
       try {
-        const location = await locationService.getCurrentPosition();
+        const location = await getHighAccuracyLocation();
         setUserLocation(location);
         setIsTracking(true);
         
-        locationService.startWatching((newLocation) => {
-          setUserLocation(newLocation);
-          locationService.sendLocationToServer(newLocation);
-        });
+        // Start watching location changes
+        const watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            const newLocation: LocationData = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              timestamp: position.timestamp,
+            };
+            setUserLocation(newLocation);
+          },
+          (error) => {
+            console.error("Error watching location:", error);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 60000
+          }
+        );
         
         toast.success("Location tracking started");
       } catch (error) {
@@ -130,7 +147,6 @@ const LiveMap: React.FC<LiveMapProps> = ({
         toast.error("Failed to start location tracking. Please enable location access.");
       }
     } else {
-      locationService.stopWatching();
       setIsTracking(false);
       toast.info("Location tracking stopped");
     }
@@ -142,14 +158,14 @@ const LiveMap: React.FC<LiveMapProps> = ({
 
     if (userMarker) {
       userMarker.setPosition({
-        lat: userLocation.latitude,
-        lng: userLocation.longitude
+        lat: userLocation.lat,
+        lng: userLocation.lng
       });
     } else {
       const newUserMarker = new google.maps.Marker({
         position: {
-          lat: userLocation.latitude,
-          lng: userLocation.longitude
+          lat: userLocation.lat,
+          lng: userLocation.lng
         },
         map,
         icon: {
@@ -299,8 +315,8 @@ const LiveMap: React.FC<LiveMapProps> = ({
       return;
     }
     map.panTo({
-      lat: userLocation.latitude,
-      lng: userLocation.longitude
+      lat: userLocation.lat,
+      lng: userLocation.lng
     });
     map.setZoom(15);
   };
