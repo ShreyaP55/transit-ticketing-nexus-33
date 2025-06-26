@@ -34,11 +34,7 @@ const WalletPage = () => {
         console.error("Error fetching ride history:", error);
         setError("Failed to load ride history");
         setRides([]);
-        toast({
-          title: "Error",
-          description: "Failed to load ride history",
-          variant: "destructive",
-        });
+        toast.error("Failed to load ride history");
       } finally {
         setIsLoading(false);
       }

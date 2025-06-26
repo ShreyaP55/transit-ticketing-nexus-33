@@ -7,9 +7,9 @@ import { IBus, IRoute } from "@/types";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BusTable } from "@/components/buses/BusTable";
-import { BusForm } from "@/components/buses/BusForm";
-import { BusFilters } from "@/components/buses/BusFilters";
+import BusTable from "@/components/buses/BusTable";
+import BusForm from "@/components/buses/BusForm";
+import BusFilters from "@/components/buses/BusFilters";
 import { Card, CardContent } from "@/components/ui/card";
 
 const BusesPage = () => {
