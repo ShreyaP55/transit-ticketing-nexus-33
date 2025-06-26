@@ -1,20 +1,18 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, Check, X } from "lucide-react";
-import { startTrip, getActiveTrip, endTrip } from "@/services/tripService";
+import { MapPin, Navigation, Check, X, Loader2 } from "lucide-react";
+import { tripsAPI } from "@/services/api/trips";
 import { useUser } from "@/context/UserContext";
-import { deductFunds } from "@/services/walletService";
 import { useAuthService } from "@/services/authService";
 import { validateQRCode } from "@/utils/qrSecurity";
 
 const QRScanPage = () => {
   const { userId } = useParams<{ userId: string }>();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -24,7 +22,7 @@ const QRScanPage = () => {
   const { isAuthenticated, userId: currentUserId } = useUser();
   const { getAuthToken } = useAuthService();
 
-  // Get current location
+  // Get current location with high accuracy
   useEffect(() => {
     if (!userId) return;
     
@@ -38,20 +36,27 @@ const QRScanPage = () => {
         return;
       }
       
+      console.log("Requesting high-accuracy location...");
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setLocation({
+          const coords = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
-          });
+          };
+          console.log("Location obtained:", coords, "Accuracy:", position.coords.accuracy, "meters");
+          setLocation(coords);
           setIsLoading(false);
         },
         (error) => {
           console.error("Error getting location:", error);
-          setError("Failed to get your current location");
+          setError(`Failed to get your current location: ${error.message}`);
           setIsLoading(false);
         },
-        { enableHighAccuracy: true }
+        { 
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 30000
+        }
       );
     };
     
@@ -61,11 +66,10 @@ const QRScanPage = () => {
     const checkActiveTrip = async () => {
       try {
         if (userId && isAuthenticated) {
-          const authToken = await getAuthToken();
-          if (authToken) {
-            const trip = await getActiveTrip(userId, authToken);
-            setActiveTrip(trip);
-          }
+          console.log("Checking for active trip for user:", userId);
+          const trip = await tripsAPI.getActiveTrip(userId);
+          console.log("Active trip result:", trip);
+          setActiveTrip(trip);
         }
       } catch (error) {
         console.error("Error checking active trip:", error);
@@ -73,7 +77,7 @@ const QRScanPage = () => {
     };
     
     checkActiveTrip();
-  }, [userId, isAuthenticated, getAuthToken]);
+  }, [userId, isAuthenticated]);
   
   // Handle check-in
   const handleCheckIn = async () => {
@@ -81,6 +85,7 @@ const QRScanPage = () => {
     
     try {
       setIsProcessing(true);
+      console.log("Starting check-in process for user:", userId, "at location:", location);
       
       // Validate QR code if userId is encrypted
       if (userId.length > 50) {
@@ -90,27 +95,19 @@ const QRScanPage = () => {
         }
       }
       
-      const authToken = await getAuthToken();
-      if (!authToken) {
-        throw new Error('Authentication required');
-      }
-      
       // Start a new trip
-      const trip = await startTrip(userId, location.lat, location.lng, authToken);
+      const result = await tripsAPI.startTrip(userId, location.lat, location.lng);
+      console.log("Trip started successfully:", result);
       
-      setActiveTrip(trip.trip || trip);
+      setActiveTrip(result.trip || result);
       
-      toast({
-        title: "Check-in Successful",
+      toast.success("Check-in Successful", {
         description: `Your trip has started at ${new Date().toLocaleTimeString()}`,
-        variant: "default",
       });
     } catch (error) {
       console.error("Check-in error:", error);
-      toast({
-        title: "Check-in Failed",
+      toast.error("Check-in Failed", {
         description: error instanceof Error ? error.message : "Failed to start trip",
-        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -123,53 +120,40 @@ const QRScanPage = () => {
     
     try {
       setIsProcessing(true);
-      
-      const authToken = await getAuthToken();
-      if (!authToken) {
-        throw new Error('Authentication required');
-      }
+      console.log("Starting check-out process for trip:", activeTrip._id, "at location:", location);
       
       // End the trip
-      const result = await endTrip(activeTrip._id, location.lat, location.lng, authToken);
-      const trip = result.trip || result;
+      const result = await tripsAPI.endTrip(activeTrip._id, location.lat, location.lng);
+      console.log("Trip ended successfully:", result);
       
-      // Deduct fare from wallet if fare exists
-      if (trip.fare && trip.fare > 0) {
-        try {
-          await deductFunds(userId, trip.fare, "Bus ride fare", authToken);
-          toast({
-            title: "Payment Successful",
-            description: `₹${trip.fare} has been deducted from your wallet`,
-            variant: "default",
-          });
-        } catch (error) {
-          console.error("Error deducting funds:", error);
-          toast({
-            title: "Payment Warning",
-            description: "Trip completed but payment failed. Please check your wallet balance.",
-            variant: "destructive",
-          });
-        }
-      }
+      const trip = result.trip || result;
       
       setActiveTrip(null);
       
-      toast({
-        title: "Check-out Successful",
-        description: `Trip completed. Distance: ${trip.distance || 0}km, Fare: ₹${trip.fare || 0}`,
-        variant: "default",
-      });
+      // Show success message with trip details
+      const distance = trip.distance || 0;
+      const fare = trip.fare || 0;
+      
+      if (result.deduction?.status === 'success') {
+        toast.success("Check-out Successful", {
+          description: `Trip completed! Distance: ${distance.toFixed(2)}km, Fare: ₹${fare.toFixed(2)}. ${result.deduction.message}`,
+          duration: 6000,
+        });
+      } else {
+        toast.warning("Trip Completed", {
+          description: `Distance: ${distance.toFixed(2)}km, Fare: ₹${fare.toFixed(2)}. ${result.deduction?.message || 'Payment processing issue.'}`,
+          duration: 8000,
+        });
+      }
       
       // Navigate to wallet page after a delay
       setTimeout(() => {
         navigate(`/wallet`);
-      }, 2000);
+      }, 3000);
     } catch (error) {
       console.error("Check-out error:", error);
-      toast({
-        title: "Check-out Failed",
+      toast.error("Check-out Failed", {
         description: error instanceof Error ? error.message : "Failed to end trip",
-        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -192,42 +176,42 @@ const QRScanPage = () => {
   return (
     <MainLayout title={activeTrip ? "Trip in Progress" : "Start Your Trip"}>
       <div className="max-w-lg mx-auto p-4">
-        <Card className="bg-white shadow-md border-primary overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-white">
-            <CardTitle className="flex items-center">
+        <Card className="bg-gray-900 border-gray-700 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-orange-600/20 to-transparent border-b border-gray-700">
+            <CardTitle className="flex items-center text-white">
               {activeTrip ? (
-                <Navigation className="mr-2 h-5 w-5" />
+                <Navigation className="mr-2 h-5 w-5 text-orange-400" />
               ) : (
-                <MapPin className="mr-2 h-5 w-5" />
+                <MapPin className="mr-2 h-5 w-5 text-orange-400" />
               )}
               {activeTrip ? "Trip in Progress" : "Start Trip"}
             </CardTitle>
-            <CardDescription className="text-white/80">
+            <CardDescription className="text-gray-300">
               {activeTrip 
                 ? "You're currently on a trip. Check-out when you reach your destination." 
                 : "Tap check-in to start your journey"}
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="pt-6 pb-4">
+          <CardContent className="pt-6 pb-4 bg-gray-900">
             {!isAuthenticated && (
-              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-700 text-sm">
+              <div className="mb-4 p-3 bg-amber-900/50 border border-amber-600 rounded-md text-amber-200 text-sm">
                 <p>Please log in to use this feature</p>
               </div>
             )}
             
             {isLoading ? (
               <div className="py-8 text-center">
-                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-                <p className="mt-4 text-muted-foreground">Getting your location...</p>
+                <Loader2 className="animate-spin h-8 w-8 text-orange-400 mx-auto" />
+                <p className="mt-4 text-gray-300">Getting your location...</p>
               </div>
             ) : error ? (
               <div className="py-8 text-center">
-                <X className="h-12 w-12 text-red-500 mx-auto" />
-                <p className="mt-2 text-red-500">{error}</p>
+                <X className="h-12 w-12 text-red-400 mx-auto" />
+                <p className="mt-2 text-red-400 font-medium">{error}</p>
                 <Button 
                   variant="outline" 
-                  className="mt-4"
+                  className="mt-4 bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700"
                   onClick={handleCancel}
                 >
                   Go Back
@@ -236,34 +220,34 @@ const QRScanPage = () => {
             ) : (
               <>
                 <div className="text-center mb-6">
-                  <div className="inline-block p-3 bg-muted rounded-full">
+                  <div className="inline-block p-3 bg-gray-800 rounded-full">
                     {activeTrip ? (
-                      <Navigation className="h-8 w-8 text-primary" />
+                      <Navigation className="h-8 w-8 text-orange-400" />
                     ) : (
-                      <MapPin className="h-8 w-8 text-primary" />
+                      <MapPin className="h-8 w-8 text-orange-400" />
                     )}
                   </div>
                   
-                  <h3 className="mt-2 font-semibold text-lg">
+                  <h3 className="mt-2 font-semibold text-lg text-white">
                     {activeTrip ? "Trip in Progress" : "Ready to Start"}
                   </h3>
                   
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-sm text-gray-400 mt-1">
                     {activeTrip
                       ? `Trip started at ${getTripStartTime()}`
                       : "Your location has been detected"}
                   </p>
                   
                   {location && (
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs text-gray-500 mt-2 font-mono">
                       Location: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
                     </p>
                   )}
                 </div>
                 
                 {activeTrip ? (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                    <p className="text-sm text-green-700">
+                  <div className="p-3 bg-green-900/50 border border-green-600 rounded-md">
+                    <p className="text-sm text-green-200">
                       Trip started at {getTripStartTime()}.
                       Check out when you reach your destination.
                     </p>
@@ -273,24 +257,25 @@ const QRScanPage = () => {
             )}
           </CardContent>
           
-          <CardFooter className="bg-accent/50 flex justify-between">
+          <CardFooter className="bg-gray-800/50 flex justify-between border-t border-gray-700">
             <Button
               variant="outline"
               onClick={handleCancel}
               disabled={isProcessing}
+              className="bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700"
             >
               Cancel
             </Button>
             
             <Button
               variant={activeTrip ? "destructive" : "default"}
-              className={activeTrip ? "" : "bg-primary hover:bg-primary/90"}
+              className={activeTrip ? "bg-red-600 hover:bg-red-700" : "bg-orange-600 hover:bg-orange-700"}
               onClick={activeTrip ? handleCheckOut : handleCheckIn}
               disabled={isLoading || !!error || isProcessing || !isAuthenticated}
             >
               {isProcessing ? (
                 <span className="flex items-center">
-                  <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
                   Processing...
                 </span>
               ) : activeTrip ? (

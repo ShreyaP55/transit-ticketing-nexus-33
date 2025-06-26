@@ -29,17 +29,17 @@ const QRScannerPage: React.FC = () => {
   return (
     <MainLayout title="QR Scanner">
       <div className="max-w-md mx-auto p-4">
-        <Card className="bg-white shadow-md border-transit-orange overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
-            <CardTitle className="text-center">
+        <Card className="bg-gray-900 shadow-lg border-gray-700 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-orange-600/20 to-transparent border-b border-gray-700">
+            <CardTitle className="text-center text-high-contrast">
               {scanned ? "User QR Scanned" : "Scan User QR Code"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4">
+          <CardContent className="p-4 bg-gray-900">
             {connectionError && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
-                <p className="text-red-700 text-sm">
-                  ⚠️ Backend server connection failed. Please ensure the server is running on port 3000.
+              <div className="mb-4 p-3 bg-red-900/50 border border-red-600 rounded-md">
+                <p className="text-error-high-contrast text-sm">
+                  ⚠️ Backend server connection failed. Please ensure the server is running on port 3001.
                 </p>
               </div>
             )}
@@ -72,9 +72,9 @@ const QRScannerPage: React.FC = () => {
             )}
           </CardContent>
         </Card>
-        <div className="mt-4 p-3 bg-blue-50 rounded-md">
-          <p className="text-sm text-blue-800">
-            💡 <strong>How to use:</strong> Users should show their QR code from the wallet page to check in/out of trips.
+        <div className="mt-4 p-3 bg-blue-900/50 border border-blue-600 rounded-md">
+          <p className="text-sm text-blue-200">
+            💡 <strong className="text-blue-100">How to use:</strong> Users should show their QR code from the wallet page to check in/out of trips.
           </p>
         </div>
       </div>

@@ -16,26 +16,34 @@ export const useQRScanner = () => {
   
   const { getAuthToken } = useAuthService();
 
-  // Fetch location once at mount
+  // Fetch location with high accuracy on mount
   useEffect(() => {
     setIsLoadingLocation(true);
     setLocationError(null);
+    
     if (navigator.geolocation) {
+      console.log("Requesting high-accuracy location for QR scanner...");
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setLocation({
+          const coords = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
-          });
+          };
+          setLocation(coords);
           setIsLoadingLocation(false);
           setLocationError(null);
-          console.log("Location obtained:", position.coords.latitude, position.coords.longitude);
+          console.log("QR Scanner location obtained:", coords, "Accuracy:", position.coords.accuracy, "meters");
         },
         (error) => {
-          console.error("Error getting location:", error);
+          console.error("Error getting location for QR scanner:", error);
           setLocation(null);
-          setLocationError("Unable to get your current location. Please enable location services.");
+          setLocationError(`Unable to get your current location: ${error.message}. Please enable location services.`);
           setIsLoadingLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 60000
         }
       );
     } else {
@@ -82,7 +90,7 @@ export const useQRScanner = () => {
       setConnectionError(false);
       
       if (!location) {
-        toast.error("Unable to get current location. Please try again.");
+        toast.error("Unable to get current location. Please enable location services and try again.");
         setScanned(false);
         setUserId(null);
         return;
@@ -90,14 +98,17 @@ export const useQRScanner = () => {
 
       setIsLoading(true);
       try {
+        console.log("Checking trip status for user:", extractedUserId);
         // Check if user has an active trip
         const trip = await tripsAPI.getActiveTrip(extractedUserId);
         setActiveTrip(trip);
 
         if (trip) {
-          toast.success(`Active trip found. Ready for check-out.`);
+          toast.success(`Active trip found for user. Ready for check-out.`);
+          console.log("Active trip details:", trip);
         } else {
           toast.success(`User scanned successfully. Ready for check-in.`);
+          console.log("No active trip found, ready for check-in");
         }
       } catch (error: any) {
         console.error("Error checking trip status:", error);
@@ -123,9 +134,15 @@ export const useQRScanner = () => {
   const handleCheckIn = async () => {
     if (!userId || !location) return;
     setIsLoading(true);
+    
     try {
+      console.log("Starting check-in for user:", userId, "at coordinates:", location);
       const result = await tripsAPI.startTrip(userId, location.lat, location.lng);
-      toast.success("Check-in successful! Trip started.");
+      console.log("Check-in successful:", result);
+      
+      toast.success("Check-in successful! Trip started.", {
+        description: `Started at ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`,
+      });
       
       // Reset for next scan after showing success
       setTimeout(() => {
@@ -135,7 +152,9 @@ export const useQRScanner = () => {
       }, 2000);
     } catch (error: any) {
       console.error("Check-in error:", error);
-      toast.error(error.message || "Failed to check in user");
+      toast.error("Check-in failed", {
+        description: error.message || "Failed to check in user"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -144,27 +163,32 @@ export const useQRScanner = () => {
   const handleCheckOut = async () => {
     if (!userId || !location || !activeTrip) return;
     setIsLoading(true);
+    
     try {
+      console.log("Starting check-out for trip:", activeTrip._id, "at coordinates:", location);
       const result = await tripsAPI.endTrip(activeTrip._id, location.lat, location.lng);
+      console.log("Check-out successful:", result);
       
       if (result.success) {
         const fare = result.trip?.fare || 0;
         const distance = result.trip?.distance || 0;
-        const tripDetails = `Distance: ${distance.toFixed(2)} km, Fare: ₹${fare.toFixed(2)}.`;
+        const tripDetails = `Distance: ${distance.toFixed(2)} km, Fare: ₹${fare.toFixed(2)}`;
 
         if (result.deduction?.status === 'success') {
           toast.success("Check-out successful!", {
-            description: `${tripDetails} ${result.deduction.message}`,
+            description: `${tripDetails}. ${result.deduction.message}`,
             duration: 6000,
           });
         } else {
-          toast.warning("Check-out complete, but payment failed.", {
-            description: `${tripDetails} ${result.deduction.message}`,
+          toast.warning("Trip completed, but payment issue occurred.", {
+            description: `${tripDetails}. ${result.deduction?.message || 'Payment processing failed.'}`,
             duration: 8000,
           });
         }
       } else {
-        toast.error(result.error || "Check-out failed. Please try again.");
+        toast.error("Check-out failed", {
+          description: result.error || "Please try again."
+        });
       }
 
       // Reset for next scan
@@ -175,7 +199,9 @@ export const useQRScanner = () => {
       }, 3000);
     } catch (error: any) {
       console.error("Check-out error:", error);
-      toast.error(error.message || "Failed to check out user");
+      toast.error("Check-out failed", {
+        description: error.message || "Failed to check out user"
+      });
     } finally {
       setIsLoading(false);
     }
