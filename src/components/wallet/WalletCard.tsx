@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CreditCard, IndianRupee, History } from "lucide-react";
+import { Plus, CreditCard, IndianRupee, History, Loader2 } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useWallet } from "@/services/walletService";
 import { useAuthService } from "@/services/authService";
+import { paymentAPI } from "@/services/api/payments";
 import { toast } from "sonner";
 
 const WalletCard: React.FC = () => {
@@ -25,7 +27,7 @@ const WalletCard: React.FC = () => {
     fetchToken();
   }, [getAuthToken]);
 
-  const { wallet, isLoading, addFunds, isAddingFunds, refetchWallet } = useWallet(
+  const { wallet, isLoading, refetchWallet } = useWallet(
     userId || "",
     authToken
   );
@@ -39,25 +41,68 @@ const WalletCard: React.FC = () => {
 
     try {
       setIsAdding(true);
-      await addFunds(amount);
-      toast.success(`₹${amount} added to wallet successfully!`);
-      setAddAmount("");
-      // Force immediate refetch
-      setTimeout(() => refetchWallet(), 500);
+      
+      // Create Stripe checkout session for wallet top-up
+      const { url } = await paymentAPI.createWalletCheckoutSession(amount);
+      
+      if (url) {
+        // Store the amount for potential success handling
+        sessionStorage.setItem('pendingWalletAmount', amount.toString());
+        // Redirect to Stripe checkout
+        window.location.href = url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
     } catch (error) {
-      console.error("Error adding funds:", error);
-      toast.error("Failed to add funds. Please try again.");
-    } finally {
+      console.error("Error creating wallet checkout:", error);
+      toast.error("Failed to start payment process. Please try again.");
       setIsAdding(false);
     }
   };
+
+  // Handle successful payment return
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const sessionId = urlParams.get('session_id');
+    
+    if (status === 'success' && sessionId) {
+      const handlePaymentSuccess = async () => {
+        try {
+          await paymentAPI.verifyPayment(sessionId);
+          const pendingAmount = sessionStorage.getItem('pendingWalletAmount');
+          
+          toast.success(`Wallet top-up successful!${pendingAmount ? ` ₹${pendingAmount} added.` : ''}`);
+          sessionStorage.removeItem('pendingWalletAmount');
+          
+          // Force immediate wallet refresh
+          setTimeout(() => {
+            refetchWallet();
+          }, 1000);
+          
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (error) {
+          console.error('Error verifying payment:', error);
+          toast.error('Payment verification failed. Please contact support.');
+        }
+      };
+      
+      handlePaymentSuccess();
+    } else if (status === 'cancel') {
+      toast.error('Payment was cancelled.');
+      sessionStorage.removeItem('pendingWalletAmount');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [refetchWallet]);
 
   if (isLoading) {
     return (
       <Card className="bg-gray-900 border-gray-700">
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
-            <div className="animate-spin h-6 w-6 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+            <Loader2 className="animate-spin h-6 w-6 text-blue-400" />
             <span className="ml-2 text-gray-400">Loading wallet...</span>
           </div>
         </CardContent>
@@ -97,14 +142,15 @@ const WalletCard: React.FC = () => {
               className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
               step="0.01"
               min="1"
+              disabled={isAdding}
             />
             <Button
               onClick={handleAddFunds}
-              disabled={isAddingFunds || isAdding || !addAmount}
+              disabled={isAdding || !addAmount}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {isAddingFunds || isAdding ? (
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+              {isAdding ? (
+                <Loader2 className="animate-spin h-4 w-4" />
               ) : (
                 <Plus className="h-4 w-4" />
               )}
@@ -119,6 +165,7 @@ const WalletCard: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setAddAmount(amount.toString())}
+                disabled={isAdding}
                 className="bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 ₹{amount}

@@ -5,6 +5,10 @@ import { connect } from '../utils/mongoConnect.js';
 import User from '../models/User.js';
 import Wallet from '../models/Wallet.js';
 import Payment from '../models/Payment.js';
+import Pass from '../models/Pass.js';
+import Ticket from '../models/Ticket.js';
+import Route from '../models/Route.js';
+import Bus from '../models/Bus.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -41,6 +45,12 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
         return res.status(404).send('Payment not found');
       }
 
+      // Skip if already processed
+      if (payment.status === 'completed') {
+        console.log('✅ Payment already processed:', session.id);
+        return res.status(200).send('Already processed');
+      }
+
       // Find user by payment.userId
       const user = await User.findOne({ clerkId: payment.userId });
       if (!user) {
@@ -48,24 +58,65 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
         return res.status(404).send('User not found');
       }
 
-      // Get or create wallet
-      let wallet = await Wallet.findOne({ userId: payment.userId });
-      if (!wallet) {
-        wallet = new Wallet({ 
-          userId: payment.userId, 
-          balance: 0, 
-          transactions: [] 
-        });
-      }
+      console.log(`🔄 Processing ${payment.type} payment for user: ${user.clerkId}`);
 
-      // ✅ Update wallet balance based on payment type
+      // Process based on payment type
       if (payment.type === 'wallet') {
-        // For wallet top-up, add funds
+        // Get or create wallet
+        let wallet = await Wallet.findOne({ userId: payment.userId });
+        if (!wallet) {
+          wallet = new Wallet({ 
+            userId: payment.userId, 
+            balance: 0, 
+            transactions: [] 
+          });
+        }
+
+        // Add funds to wallet
         await wallet.addFunds(payment.fare, 'Wallet top-up via Stripe');
         console.log(`✅ Wallet updated for ${user.clerkId}: ₹${payment.fare}`);
+        
+      } else if (payment.type === 'pass') {
+        // Create monthly pass
+        const expiryDate = new Date();
+        expiryDate.setMonth(expiryDate.getMonth() + 1);
+        
+        const newPass = new Pass({
+          userId: payment.userId,
+          routeId: payment.routeId,
+          fare: payment.fare,
+          expiryDate
+        });
+        
+        await newPass.save();
+        console.log(`✅ Pass created for ${user.clerkId}: ${newPass._id}`);
+        
+      } else if (payment.type === 'ticket') {
+        // Create ticket
+        const route = await Route.findById(payment.routeId);
+        const bus = await Bus.findOne({ routeId: payment.routeId });
+        
+        if (route && bus) {
+          const expiryDate = new Date();
+          expiryDate.setHours(expiryDate.getHours() + 24); // 24 hour validity
+          
+          const newTicket = new Ticket({
+            userId: payment.userId,
+            routeId: payment.routeId,
+            busId: bus._id,
+            startStation: route.start,
+            endStation: route.end,
+            price: payment.fare,
+            paymentIntentId: session.id,
+            expiryDate
+          });
+          
+          await newTicket.save();
+          console.log(`✅ Ticket created for ${user.clerkId}: ${newTicket._id}`);
+        }
       }
 
-      // ✅ Mark payment as completed
+      // Mark payment as completed
       payment.status = 'completed';
       await payment.save();
 

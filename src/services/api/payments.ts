@@ -1,7 +1,7 @@
 
 import { fetchAPI, getAuthToken } from "./base";
 
-// Payment API with Stripe integration
+// Unified Payment API with Stripe integration
 export const paymentAPI = {
   createTicketCheckoutSession: async (
     stationId: string,
@@ -64,7 +64,7 @@ export const paymentAPI = {
   confirmPayment: async (sessionId: string): Promise<{ success: boolean; data?: any }> => {
     try {
       const userId = getAuthToken();
-      return await fetchAPI("/payments", {
+      return await fetchAPI("/payments/confirm", {
         method: "POST",
         body: JSON.stringify({
           userId,
@@ -73,6 +73,22 @@ export const paymentAPI = {
       });
     } catch (error) {
       console.error("paymentAPI.confirmPayment error:", error);
+      throw error;
+    }
+  },
+
+  verifyPayment: async (sessionId: string): Promise<{ success: boolean; data?: any }> => {
+    try {
+      const userId = getAuthToken();
+      return await fetchAPI("/payments/verify", {
+        method: "POST",
+        body: JSON.stringify({
+          userId,
+          sessionId
+        }),
+      });
+    } catch (error) {
+      console.error("paymentAPI.verifyPayment error:", error);
       throw error;
     }
   }

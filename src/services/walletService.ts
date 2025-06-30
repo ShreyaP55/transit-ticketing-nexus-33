@@ -137,13 +137,43 @@ export const useWallet = (userId: string, authToken?: string) => {
     queryKey: ['wallet', userId],
     queryFn: () => walletService.getBalance(userId, authToken),
     enabled: !!userId,
-    staleTime: 5000, // Consider data fresh for 5 seconds
-    refetchInterval: 15000, // Refetch every 15 seconds
+    staleTime: 1000, // Consider data fresh for 1 second only
+    refetchInterval: 5000, // Refetch every 5 seconds for reactivity
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const addFundsMutation = useMutation({
     mutationFn: (amount: number) => walletService.addFunds(userId, amount, authToken),
+    onMutate: async (amount) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['wallet', userId] });
+      const previousWallet = queryClient.getQueryData(['wallet', userId]);
+      
+      if (previousWallet) {
+        queryClient.setQueryData(['wallet', userId], (old: IWallet) => ({
+          ...old,
+          balance: old.balance + amount,
+          transactions: [
+            {
+              type: 'credit',
+              amount,
+              description: 'Wallet top-up',
+              createdAt: new Date().toISOString()
+            },
+            ...old.transactions
+          ]
+        }));
+      }
+      
+      return { previousWallet };
+    },
+    onError: (err, amount, context) => {
+      // Rollback on error
+      if (context?.previousWallet) {
+        queryClient.setQueryData(['wallet', userId], context.previousWallet);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet', userId] });
       refetch();
@@ -153,6 +183,35 @@ export const useWallet = (userId: string, authToken?: string) => {
   const deductFundsMutation = useMutation({
     mutationFn: ({ amount, description }: { amount: number; description: string }) => 
       walletService.deductFunds(userId, amount, description, authToken),
+    onMutate: async ({ amount, description }) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['wallet', userId] });
+      const previousWallet = queryClient.getQueryData(['wallet', userId]);
+      
+      if (previousWallet) {
+        queryClient.setQueryData(['wallet', userId], (old: IWallet) => ({
+          ...old,
+          balance: Math.max(0, old.balance - amount),
+          transactions: [
+            {
+              type: 'debit',
+              amount,
+              description,
+              createdAt: new Date().toISOString()
+            },
+            ...old.transactions
+          ]
+        }));
+      }
+      
+      return { previousWallet };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousWallet) {
+        queryClient.setQueryData(['wallet', userId], context.previousWallet);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet', userId] });
       refetch();

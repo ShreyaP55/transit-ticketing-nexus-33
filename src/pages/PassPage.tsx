@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,42 +30,48 @@ const PassPage = () => {
   const [activeTab, setActiveTab] = useState("current");
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Confirm payment after successful checkout
-  const confirmPayment = async (sessionId) => {
-    try {
-      setIsProcessing(true);
-      // After successful payment, finalize the pass purchase here
-      const result = await passesAPI.confirmPassPayment(sessionId);
-      if (result.success) {
-        toast.success("Monthly pass purchased successfully!");
-        queryClient.invalidateQueries({ queryKey: ["activePass"] });
-        navigate("/pass"); // Remove query params
-      } else {
-        toast.error("Failed to create pass after payment");
-      }
-    } catch (error) {
-      toast.error("Failed to process payment confirmation");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
-  // Listen for ?status=success&session_id=X and confirm payment
+  // Handle payment success/cancel from URL params
   useEffect(() => {
     if (status === "success" && sessionId) {
-      toast.success("Payment successful! Processing your pass...");
-      confirmPayment(sessionId);
+      const handlePaymentSuccess = async () => {
+        try {
+          setIsProcessing(true);
+          toast.success("Payment successful! Processing your pass...");
+          
+          const result = await paymentAPI.verifyPayment(sessionId);
+          
+          if (result.success) {
+            toast.success("Monthly pass purchased successfully!");
+            queryClient.invalidateQueries({ queryKey: ["activePass"] });
+            queryClient.invalidateQueries({ queryKey: ["passes"] });
+            
+            // Clean up URL
+            window.history.replaceState({}, document.title, '/pass');
+          } else {
+            toast.error("Failed to create pass after payment");
+          }
+        } catch (error) {
+          console.error('Payment verification error:', error);
+          toast.error("Failed to process payment confirmation");
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+      
+      handlePaymentSuccess();
     } else if (status === "cancel") {
       toast.error("Payment was canceled.");
+      // Clean up URL
+      window.history.replaceState({}, document.title, '/pass');
     }
-  }, [status, sessionId]);
+  }, [status, sessionId, queryClient]);
   
   // Fetch routes
   const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
     queryKey: ["routes"],
     queryFn: routesAPI.getAll,
     retry: 2,
-    staleTime: 1000 * 60 * 2, // cache for speed
+    staleTime: 1000 * 60 * 2,
   });
   
   // Fetch active pass
@@ -111,21 +118,21 @@ const PassPage = () => {
     
     try {
       setIsProcessing(true);
+      toast.loading("Creating checkout session...");
 
-      // Updated paymentAPI will throw if backend fails; catch and show specific error
       const response = await paymentAPI.createPassCheckoutSession(
         selectedRouteId,
         selectedRoute.fare * 20 // Monthly pass discount
       );
       
       if (response && response.url) {
+        // Redirect to Stripe checkout
         window.location.href = response.url;
       } else {
         toast.error("Failed to create checkout session");
       }
     } catch (error: any) {
-      console.error(error);
-      // Show backend message if exists
+      console.error('Pass purchase error:', error);
       toast.error(error?.message || "Failed to process payment");
     } finally {
       setIsProcessing(false);
@@ -224,7 +231,7 @@ const PassPage = () => {
                     <Select
                       value={selectedRouteId}
                       onValueChange={setSelectedRouteId}
-                      disabled={isLoadingRoutes}
+                      disabled={isLoadingRoutes || isProcessing}
                     >
                       <SelectTrigger id="route" className="w-full">
                         <SelectValue placeholder="Choose a route" />
