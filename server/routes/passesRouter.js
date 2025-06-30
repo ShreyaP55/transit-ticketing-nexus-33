@@ -33,6 +33,57 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Validate pass by QR code
+router.post('/validate', async (req, res) => {
+  try {
+    const { qrData, location } = req.body;
+    
+    if (!qrData) {
+      return res.status(400).json({ error: 'QR data is required' });
+    }
+    
+    let parsedData;
+    try {
+      parsedData = JSON.parse(qrData);
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid QR code format' });
+    }
+    
+    if (parsedData.type !== 'pass') {
+      return res.status(400).json({ error: 'Invalid pass QR code' });
+    }
+    
+    const pass = await Pass.findById(parsedData.passId).populate('routeId');
+    
+    if (!pass) {
+      return res.status(404).json({ error: 'Pass not found' });
+    }
+    
+    if (!pass.isValid()) {
+      return res.status(400).json({ error: 'Pass is expired or inactive' });
+    }
+    
+    // Record usage
+    await pass.recordUsage();
+    
+    res.json({
+      valid: true,
+      pass: {
+        _id: pass._id,
+        userId: pass.userId,
+        routeId: pass.routeId,
+        fare: pass.fare,
+        expiryDate: pass.expiryDate,
+        usageCount: pass.usageCount
+      },
+      message: 'Pass validated successfully'
+    });
+  } catch (error) {
+    console.error('Error validating pass:', error);
+    res.status(500).json({ error: 'Failed to validate pass' });
+  }
+});
+
 // Create pass
 router.post('/', async (req, res) => {
   try {

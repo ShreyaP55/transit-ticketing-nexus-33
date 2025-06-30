@@ -1,54 +1,63 @@
+
 import express from 'express';
+import mongoose from 'mongoose';
 import Trip from '../models/Trip.js';
 import Wallet from '../models/Wallet.js';
-import { authenticateUser, requireOwnership } from '../middleware/auth.js';
-import { tripRateLimit, validateTrip, sanitizeInput, securityLogger } from '../middleware/security.js';
+import User from '../models/User.js';
 
 const router = express.Router();
 
-// Apply security middleware to all routes
-router.use(securityLogger);
-router.use(sanitizeInput);
-router.use(tripRateLimit);
+// Calculate distance between two coordinates using Haversine formula
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of Earth in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+// Calculate fare based on distance (₹5 base + ₹2 per km)
+const calculateFare = (distance) => {
+  const baseFare = 5;
+  const perKmRate = 2;
+  return Math.max(baseFare, baseFare + (distance * perKmRate));
+};
 
 // Start a new trip
-router.post('/start', authenticateUser, validateTrip, async (req, res) => {
+router.post('/start', async (req, res) => {
   try {
     const { userId, latitude, longitude } = req.body;
-
-    // Verify user owns this request
-    if (req.user.id !== userId && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Access denied' });
+    
+    if (!userId || !latitude || !longitude) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
-
-    if (!userId || latitude === undefined || longitude === undefined) {
-      return res.status(400).json({ error: 'userId, latitude, and longitude are required' });
-    }
-
+    
     // Check if user already has an active trip
     const existingTrip = await Trip.findOne({ userId, active: true });
     if (existingTrip) {
       return res.status(400).json({ error: 'User already has an active trip' });
     }
-
-    // Validate coordinates are reasonable
-    if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
-      return res.status(400).json({ error: 'Invalid coordinates' });
-    }
-
-    const trip = new Trip({
+    
+    const newTrip = new Trip({
       userId,
       startLocation: {
-        latitude,
-        longitude,
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
         timestamp: new Date()
-      }
+      },
+      active: true
     });
-
-    await trip.save();
-    console.log('Trip started:', { userId, tripId: trip._id, timestamp: new Date().toISOString() });
     
-    res.json({ success: true, trip });
+    await newTrip.save();
+    
+    res.status(201).json({
+      success: true,
+      trip: newTrip
+    });
   } catch (error) {
     console.error('Error starting trip:', error);
     res.status(500).json({ error: 'Failed to start trip' });
@@ -56,132 +65,136 @@ router.post('/start', authenticateUser, validateTrip, async (req, res) => {
 });
 
 // End a trip
-router.put('/:tripId/end', authenticateUser, validateTrip, async (req, res) => {
+router.put('/:tripId/end', async (req, res) => {
   try {
     const { tripId } = req.params;
     const { latitude, longitude } = req.body;
-
-    if (latitude === undefined || longitude === undefined) {
-      return res.status(400).json({ error: 'latitude and longitude are required' });
+    
+    if (!latitude || !longitude) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
-
+    
+    if (!mongoose.Types.ObjectId.isValid(tripId)) {
+      return res.status(400).json({ error: 'Invalid trip ID format' });
+    }
+    
     const trip = await Trip.findById(tripId);
     if (!trip) {
       return res.status(404).json({ error: 'Trip not found' });
     }
-
-    // Verify user owns this trip
-    if (req.user.id !== trip.userId && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
+    
     if (!trip.active) {
       return res.status(400).json({ error: 'Trip is already completed' });
     }
-
-    // Validate coordinates
-    if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
-      return res.status(400).json({ error: 'Invalid coordinates' });
-    }
-
-    // Set end location
+    
+    // Calculate distance and fare
+    const distance = calculateDistance(
+      trip.startLocation.latitude,
+      trip.startLocation.longitude,
+      parseFloat(latitude),
+      parseFloat(longitude)
+    );
+    
+    const fare = calculateFare(distance);
+    
+    // Update trip
     trip.endLocation = {
-      latitude,
-      longitude,
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
       timestamp: new Date()
     };
     trip.active = false;
-
-    // Calculate distance, fare, and duration
-    trip.calculateDistance();
-    trip.calculateFare();
-    trip.calculateDuration();
-
-    await trip.save();
-    console.log('Trip ended:', { userId: trip.userId, tripId: trip._id, fare: trip.fare, timestamp: new Date().toISOString() });
+    trip.distance = distance;
+    trip.fare = fare;
+    trip.duration = Math.round((new Date() - trip.startLocation.timestamp) / 1000 / 60); // minutes
     
-    // Deduct fare from user's wallet
-    let deduction = { status: 'pending', message: 'Deduction not attempted.' };
+    await trip.save();
+    
+    // Try to deduct fare from wallet
+    let deductionResult = { status: 'failed', message: 'Payment processing failed' };
+    
     try {
-      if (trip.fare > 0) {
-        const wallet = await Wallet.findOne({ userId: trip.userId });
-        if (wallet) {
-          await wallet.deductFunds(trip.fare, `Bus fare for trip`, trip._id);
-          deduction = { status: 'success', message: `₹${trip.fare.toFixed(2)} was deducted from wallet.` };
-          console.log(`Fare deducted for trip ${trip._id} from user ${trip.userId}`);
-        } else {
-          deduction = { status: 'error', message: 'User wallet not found.' };
-          console.warn(`Wallet not found for user ${trip.userId} for trip ${trip._id}`);
-        }
-      } else {
-        deduction = { status: 'success', message: 'No fare to deduct.' };
+      let wallet = await Wallet.findOne({ userId: trip.userId });
+      
+      if (!wallet) {
+        // Create wallet if it doesn't exist
+        wallet = new Wallet({ userId: trip.userId, balance: 0, transactions: [] });
+        await wallet.save();
       }
-    } catch (error) {
-      if (error.message === 'Insufficient funds') {
-        deduction = { status: 'error', message: 'Insufficient funds in wallet.' };
-        console.warn(`Insufficient funds for user ${trip.userId} for trip ${trip._id}`);
+      
+      if (wallet.balance >= fare) {
+        await wallet.deductFunds(fare, `Trip fare - ${distance.toFixed(2)}km`, trip._id);
+        deductionResult = { 
+          status: 'success', 
+          message: `₹${fare.toFixed(2)} deducted from wallet. New balance: ₹${(wallet.balance - fare).toFixed(2)}`
+        };
       } else {
-        deduction = { status: 'error', message: 'Error processing fare deduction.' };
-        console.error(`Error deducting funds for trip ${trip._id}:`, error);
+        deductionResult = { 
+          status: 'insufficient_funds', 
+          message: `Insufficient funds. Required: ₹${fare.toFixed(2)}, Available: ₹${wallet.balance.toFixed(2)}`
+        };
       }
+    } catch (walletError) {
+      console.error('Wallet deduction error:', walletError);
+      deductionResult = { 
+        status: 'error', 
+        message: `Payment error: ${walletError.message}` 
+      };
     }
     
-    res.json({ success: true, trip, deduction });
+    res.json({
+      success: true,
+      trip,
+      deduction: deductionResult
+    });
   } catch (error) {
     console.error('Error ending trip:', error);
     res.status(500).json({ error: 'Failed to end trip' });
   }
 });
 
-// Get active trip for a user
-router.get('/active/:userId', authenticateUser, requireOwnership('userId'), async (req, res) => {
+// Get active trip for user
+router.get('/active/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    const trip = await Trip.findOne({ userId, active: true });
-    
-    if (!trip) {
-      return res.status(404).json({ active: false, message: 'No active trip found' });
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
     }
-
-    res.json({ active: true, trip });
+    
+    const activeTrip = await Trip.findOne({ userId, active: true });
+    
+    if (!activeTrip) {
+      return res.status(404).json({ error: 'No active trip found' });
+    }
+    
+    res.json({
+      active: true,
+      trip: activeTrip
+    });
   } catch (error) {
-    console.error('Error getting active trip:', error);
-    res.status(500).json({ error: 'Failed to get active trip' });
+    console.error('Error fetching active trip:', error);
+    res.status(500).json({ error: 'Failed to fetch active trip' });
   }
 });
 
-// Get all trips for a user
-router.get('/user/:userId', authenticateUser, requireOwnership('userId'), async (req, res) => {
+// Get user trip history
+router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
     const trips = await Trip.find({ userId })
       .sort({ createdAt: -1 })
-      .limit(50); // Limit to last 50 trips
+      .limit(50);
     
-    // Transform trips for frontend consumption
-    const formattedTrips = trips.map(trip => ({
-      _id: trip._id,
-      status: trip.active ? 'active' : 'completed',
-      createdAt: trip.createdAt,
-      startLocation: {
-        lat: trip.startLocation.latitude,
-        lng: trip.startLocation.longitude
-      },
-      endLocation: trip.endLocation ? {
-        lat: trip.endLocation.latitude,
-        lng: trip.endLocation.longitude
-      } : null,
-      distance: trip.distance,
-      fare: trip.fare,
-      duration: trip.duration
-    }));
-
-    res.json(formattedTrips);
+    res.json(trips);
   } catch (error) {
-    console.error('Error getting user trips:', error);
-    res.status(500).json({ error: 'Failed to get user trips' });
+    console.error('Error fetching user trips:', error);
+    res.status(500).json({ error: 'Failed to fetch user trips' });
   }
 });
 

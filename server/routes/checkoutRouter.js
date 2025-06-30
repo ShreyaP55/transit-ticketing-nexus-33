@@ -45,6 +45,20 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required field for pass: routeId' });
     }
 
+    // Determine product name based on type
+    let productName = 'Payment';
+    switch (type) {
+      case 'wallet':
+        productName = 'Wallet Top-up';
+        break;
+      case 'pass':
+        productName = 'Monthly Transit Pass';
+        break;
+      case 'ticket':
+        productName = 'Bus Ticket';
+        break;
+    }
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -54,16 +68,16 @@ router.post('/', async (req, res) => {
             currency: 'inr',
             unit_amount: Math.round(amount * 100), // Convert to paise
             product_data: {
-              name: type === 'wallet' ? 'Wallet Top-up' : 
-                    type === 'pass' ? 'Monthly Pass' : 'Bus Ticket',
+              name: productName,
+              description: `${productName} for transit services`,
             },
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: `${req.headers.origin || 'http://localhost:5173'}/${type}?status=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin || 'http://localhost:5173'}/${type}?status=cancel`,
+      success_url: `${req.headers.origin || 'http://localhost:5173'}/${type === 'wallet' ? 'wallet' : type}?status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.origin || 'http://localhost:5173'}/${type === 'wallet' ? 'wallet' : type}?status=cancel`,
       metadata: {
         userId,
         type,

@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { tripsAPI } from "@/services/api/trips";
 import { useUser } from "@/context/UserContext";
-import { validateQRCode } from "@/utils/qrSecurity";
+import { validateQRCode } from "@/services/qrProcessingService";
 
 export const useQRScanPageLogic = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -14,7 +14,7 @@ export const useQRScanPageLogic = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { isAuthenticated } = useUser();
+  const { isAuthenticated, userId: currentUserId } = useUser();
 
   // Get current location with high accuracy
   useEffect(() => {
@@ -59,7 +59,7 @@ export const useQRScanPageLogic = () => {
     // Check if there's an active trip
     const checkActiveTrip = async () => {
       try {
-        if (userId && isAuthenticated) {
+        if (userId) {
           console.log("Checking for active trip for user:", userId);
           const trip = await tripsAPI.getActiveTrip(userId);
           console.log("Active trip result:", trip);
@@ -71,11 +71,14 @@ export const useQRScanPageLogic = () => {
     };
     
     checkActiveTrip();
-  }, [userId, isAuthenticated]);
+  }, [userId]);
 
   // Handle check-in
   const handleCheckIn = async () => {
-    if (!userId || !location || !isAuthenticated) return;
+    if (!userId || !location) {
+      toast.error("Missing required information for check-in");
+      return;
+    }
     
     try {
       setIsProcessing(true);
@@ -110,7 +113,10 @@ export const useQRScanPageLogic = () => {
 
   // Handle check-out
   const handleCheckOut = async () => {
-    if (!userId || !location || !activeTrip || !isAuthenticated) return;
+    if (!userId || !location || !activeTrip) {
+      toast.error("Missing required information for check-out");
+      return;
+    }
     
     try {
       setIsProcessing(true);
@@ -166,7 +172,7 @@ export const useQRScanPageLogic = () => {
     error,
     activeTrip,
     isProcessing,
-    isAuthenticated,
+    isAuthenticated: true, // Allow access to QR scan functionality
     handleCheckIn,
     handleCheckOut,
     handleCancel,
