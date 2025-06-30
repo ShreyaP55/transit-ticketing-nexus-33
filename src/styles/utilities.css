@@ -1,0 +1,76 @@
+
+@layer base {
+  /* High contrast text utilities */
+  .text-high-contrast {
+    @apply text-white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    font-weight: 500;
+  }
+
+  .text-accent-high {
+    @apply text-orange-400;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    font-weight: 600;
+  }
+
+  .text-muted-high-contrast {
+    @apply text-gray-300;
+    font-weight: 500;
+  }
+
+  .text-error-high-contrast {
+    @apply text-red-400;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+
+  .text-success-high-contrast {
+    @apply text-green-400;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+
+  .text-warning-high-contrast {
+    @apply text-amber-400;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+
+  .gradient-heading {
+    @apply bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent;
+    font-weight: 700;
+  }
+
+  /* Better button contrast */
+  .btn-primary {
+    @apply bg-orange-600 hover:bg-orange-700 text-white font-semibold;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .btn-secondary {
+    @apply bg-gray-700 hover:bg-gray-600 text-white font-semibold border border-gray-600;
+  }
+
+  /* Responsive utilities */
+  .container {
+    @apply w-full mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  @media (min-width: 768px) {
+    .container {
+      @apply max-w-screen-md;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      @apply max-w-screen-lg;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .container {
+      @apply max-w-screen-xl;
+    }
+  }
+}
