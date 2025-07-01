@@ -1,44 +1,31 @@
 
+import { useAuth } from "@clerk/clerk-react";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
-// Get auth token for API calls
+// Get auth token for API calls - improved to handle Clerk properly
 export const getAuthToken = () => {
-  // Try to get Clerk user token first, then fallback to localStorage
-  if (typeof window !== 'undefined') {
-    try {
-      // Check if we're in a Clerk context
-      const clerkToken = localStorage.getItem('__clerk_db_jwt');
-      if (clerkToken) {
-        return clerkToken;
-      }
-    } catch (error) {
-      console.log('No Clerk token found, using fallback');
-    }
-  }
-  
+  // For client-side usage, we'll rely on the component-level auth context
+  // This is a fallback for server-side or non-hook contexts
   return localStorage.getItem("userId") || localStorage.getItem("authToken");
 };
 
-// Helper function for API calls with better error handling and rate limiting
+// Helper function for API calls with better error handling
 export async function fetchAPI<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  authToken?: string
 ): Promise<T> {
-  const authToken = getAuthToken();
+  const fallbackToken = authToken || getAuthToken();
   
   const headers = {
     "Content-Type": "application/json",
-    ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
+    ...(fallbackToken ? { "Authorization": `Bearer ${fallbackToken}` } : {}),
     ...(options.headers || {})
   };
 
   try {
     console.log(`Making API call to: ${API_URL}${endpoint}`);
-    
-    // Add a small delay to prevent rate limiting
-    if (endpoint.includes('/trips/active/')) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
     
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
@@ -50,7 +37,16 @@ export async function fetchAPI<T>(
       console.error(`API Error response: ${errorText}`);
       
       if (response.status === 404) {
+        // For some endpoints, 404 means no data found, not an error
+        if (endpoint.includes('/passes') || endpoint.includes('/trips/active')) {
+          return null as T;
+        }
         throw new Error(`Resource not found: ${endpoint}`);
+      }
+      
+      if (response.status === 401) {
+        console.warn('Authentication failed - token may be expired');
+        throw new Error('Authentication failed. Please log in again.');
       }
       
       if (response.status === 429) {
@@ -80,3 +76,27 @@ export async function fetchAPI<T>(
     throw error;
   }
 }
+
+// Hook for making authenticated API calls with Clerk
+export const useAuthenticatedAPI = () => {
+  const { getToken, isSignedIn } = useAuth();
+
+  const makeAuthenticatedCall = async <T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> => {
+    if (!isSignedIn) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      const token = await getToken();
+      return await fetchAPI<T>(endpoint, options, token);
+    } catch (error) {
+      console.error('Authenticated API call failed:', error);
+      throw error;
+    }
+  };
+
+  return { makeAuthenticatedCall, isAuthenticated: isSignedIn };
+};

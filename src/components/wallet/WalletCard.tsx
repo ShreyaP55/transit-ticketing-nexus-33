@@ -4,38 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CreditCard, IndianRupee, History, Loader2 } from "lucide-react";
+import { Plus, CreditCard, IndianRupee, History, Loader2, RefreshCw } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useWallet } from "@/services/walletService";
-import { useAuthService } from "@/services/authService";
 import { paymentAPI } from "@/services/api/payments";
 import { toast } from "sonner";
 
 const WalletCard: React.FC = () => {
-  const { userId } = useUser();
-  const { getAuthToken } = useAuthService();
+  const { userId, isAuthenticated } = useUser();
   const [addAmount, setAddAmount] = useState("");
   const [isAdding, setIsAdding] = useState(false);
-  const [authToken, setAuthToken] = useState<string | undefined>(undefined);
 
-  // Get auth token on component mount
-  useEffect(() => {
-    const fetchToken = async () => {
-      const token = await getAuthToken();
-      setAuthToken(token || undefined);
-    };
-    fetchToken();
-  }, [getAuthToken]);
-
-  const { wallet, isLoading, refetchWallet } = useWallet(
-    userId || "",
-    authToken
-  );
+  const { wallet, isLoading, refetchWallet, forceRefresh } = useWallet(userId || "");
 
   const handleAddFunds = async () => {
     const amount = parseFloat(addAmount);
     if (!amount || amount <= 0) {
       toast.error("Please enter a valid amount");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast.error("Please log in to add funds");
       return;
     }
 
@@ -60,6 +50,16 @@ const WalletCard: React.FC = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      await forceRefresh();
+      toast.success("Wallet balance refreshed");
+    } catch (error) {
+      console.error("Error refreshing wallet:", error);
+      toast.error("Failed to refresh wallet balance");
+    }
+  };
+
   // Handle successful payment return
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -77,7 +77,7 @@ const WalletCard: React.FC = () => {
           
           // Force immediate wallet refresh
           setTimeout(() => {
-            refetchWallet();
+            forceRefresh();
           }, 1000);
           
           // Clean up URL
@@ -95,7 +95,20 @@ const WalletCard: React.FC = () => {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [refetchWallet]);
+  }, [forceRefresh]);
+
+  if (!isAuthenticated) {
+    return (
+      <Card className="bg-gray-900 border-gray-700">
+        <CardContent className="p-6">
+          <div className="text-center">
+            <h3 className="text-lg font-medium mb-2 text-white">Please Login</h3>
+            <p className="text-gray-400">You need to be logged in to use the wallet</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -113,9 +126,19 @@ const WalletCard: React.FC = () => {
   return (
     <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-lg">
       <CardHeader className="bg-gradient-to-r from-blue-600/20 to-transparent border-b border-gray-700">
-        <CardTitle className="flex items-center text-white">
-          <CreditCard className="mr-2 h-5 w-5 text-blue-400" />
-          Digital Wallet
+        <CardTitle className="flex items-center justify-between text-white">
+          <div className="flex items-center">
+            <CreditCard className="mr-2 h-5 w-5 text-blue-400" />
+            Digital Wallet
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            className="text-gray-400 hover:text-white"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </CardTitle>
       </CardHeader>
       

@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { tripsAPI } from '@/services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from "sonner";
 
 interface LocationData {
@@ -8,8 +9,9 @@ interface LocationData {
   lng: number;
 }
 
-export const useTripOperations = () => {
+export const useTripOperations = (userId?: string) => {
   const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleCheckIn = async (userId: string, location: LocationData) => {
     setIsLoading(true);
@@ -51,6 +53,12 @@ export const useTripOperations = () => {
             description: `${tripDetails}. ${result.deduction.message}`,
             duration: 6000,
           });
+          
+          // Force refresh wallet after successful fare deduction
+          if (userId) {
+            console.log("Refreshing wallet after successful fare deduction");
+            await queryClient.invalidateQueries({ queryKey: ['wallet', userId] });
+          }
         } else {
           toast.warning("Trip completed, but payment issue occurred.", {
             description: `${tripDetails}. ${result.deduction?.message || 'Payment processing failed.'}`,

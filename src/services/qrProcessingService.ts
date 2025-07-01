@@ -1,26 +1,51 @@
 
 export const extractUserIdFromQR = (qrData: string): string | null => {
   try {
-    // Try to extract user ID from QR code data
+    console.log('Processing QR data:', qrData);
+    
+    // Try to parse as JSON first
     const parsedData = JSON.parse(qrData);
     
     if (parsedData.type === 'user' && parsedData.userId) {
+      console.log('Extracted user ID from user QR:', parsedData.userId);
       return parsedData.userId;
     }
     
     if (parsedData.type === 'pass' && parsedData.userId) {
+      console.log('Extracted user ID from pass QR:', parsedData.userId);
       return parsedData.userId;
     }
     
-    // If it's a simple user ID string
-    if (typeof qrData === 'string' && qrData.startsWith('user_')) {
-      return qrData.replace('user_', '');
+    if (parsedData.type === 'transit_ticket' && parsedData.userId) {
+      console.log('Extracted user ID from ticket QR:', parsedData.userId);
+      return parsedData.userId;
     }
     
-    return qrData;
+    // If it has a userId property directly
+    if (parsedData.userId) {
+      console.log('Extracted user ID from generic QR:', parsedData.userId);
+      return parsedData.userId;
+    }
+    
+    console.warn('No user ID found in parsed QR data:', parsedData);
+    return null;
   } catch (error) {
     // If JSON parsing fails, treat as simple user ID
-    return qrData;
+    console.log('QR data is not JSON, treating as simple user ID:', qrData);
+    
+    // Clean up the user ID if it has prefixes
+    if (typeof qrData === 'string') {
+      if (qrData.startsWith('user_')) {
+        return qrData;
+      }
+      // Check if it looks like a user ID
+      if (qrData.length > 10 && qrData.includes('user_')) {
+        return qrData;
+      }
+      return qrData;
+    }
+    
+    return null;
   }
 };
 
@@ -60,6 +85,18 @@ export const validateQRCode = (qrData: string): { isValid: boolean; error?: stri
         return { isValid: false, error: 'Pass has expired' };
       }
       
+      return { isValid: true };
+    }
+    
+    if (parsedData.type === 'transit_ticket') {
+      if (!parsedData.userId) {
+        return { isValid: false, error: 'Invalid ticket QR code: missing user ID' };
+      }
+      return { isValid: true };
+    }
+    
+    // If it has a userId, it's probably valid
+    if (parsedData.userId) {
       return { isValid: true };
     }
     

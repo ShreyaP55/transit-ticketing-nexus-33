@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getHighAccuracyLocation } from '@/services/locationService';
 import { extractUserIdFromQR } from '@/services/qrProcessingService';
 import { useTripOperations } from '@/hooks/useTripOperations';
+import { useUser } from '@/context/UserContext';
 
 export const useQRScanner = () => {
   const [scanned, setScanned] = useState(false);
@@ -15,7 +16,8 @@ export const useQRScanner = () => {
   const [connectionError, setConnectionError] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   
-  const { handleCheckIn, handleCheckOut, isLoading } = useTripOperations();
+  const { userId: currentUserId } = useUser();
+  const { handleCheckIn, handleCheckOut, isLoading } = useTripOperations(currentUserId || undefined);
 
   // Fetch location with high accuracy on mount
   useEffect(() => {

@@ -1,6 +1,7 @@
 
 import { IWallet, ITransaction } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuthenticatedAPI } from "./api/base";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
@@ -17,22 +18,7 @@ export const walletService = {
       
       if (!response.ok) {
         if (response.status === 404) {
-          // Create wallet if not found
-          const createResponse = await fetch(`${API_URL}/wallet/${userId}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
-            },
-            body: JSON.stringify({ initialBalance: 0 }),
-          });
-          
-          if (createResponse.ok) {
-            const newWallet = await createResponse.json();
-            return newWallet.wallet || newWallet;
-          }
-          
-          // Return default wallet if creation fails
+          console.log('Wallet not found, returning default wallet');
           return {
             _id: `wallet_${userId}`,
             userId,
@@ -42,6 +28,12 @@ export const walletService = {
             updatedAt: new Date().toISOString(),
           };
         }
+        
+        if (response.status === 401) {
+          console.warn('Wallet access unauthorized');
+          throw new Error('Authentication required to access wallet');
+        }
+        
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
@@ -57,15 +49,7 @@ export const walletService = {
       return processedWallet;
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
-      // Return default wallet instead of throwing
-      return {
-        _id: `wallet_${userId}`,
-        userId,
-        balance: 0,
-        transactions: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      throw error;
     }
   },
 
@@ -130,21 +114,39 @@ export const walletService = {
   },
 };
 
-export const useWallet = (userId: string, authToken?: string) => {
+export const useWallet = (userId: string) => {
   const queryClient = useQueryClient();
+  const { makeAuthenticatedCall, isAuthenticated } = useAuthenticatedAPI();
 
   const { data: wallet, isLoading, error, refetch } = useQuery({
     queryKey: ['wallet', userId],
-    queryFn: () => walletService.getBalance(userId, authToken),
-    enabled: !!userId,
+    queryFn: async () => {
+      if (!isAuthenticated) {
+        throw new Error('User not authenticated');
+      }
+      return await makeAuthenticatedCall<IWallet>(`/wallet/${userId}`);
+    },
+    enabled: !!userId && isAuthenticated,
     staleTime: 1000, // Consider data fresh for 1 second only
-    refetchInterval: 5000, // Refetch every 5 seconds for reactivity
+    refetchInterval: 10000, // Refetch every 10 seconds for reactivity
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    retry: (failureCount, error: any) => {
+      if (error.message.includes('Authentication')) return false;
+      return failureCount < 2;
+    },
   });
 
   const addFundsMutation = useMutation({
-    mutationFn: (amount: number) => walletService.addFunds(userId, amount, authToken),
+    mutationFn: async (amount: number) => {
+      if (!isAuthenticated) {
+        throw new Error('User not authenticated');
+      }
+      return await makeAuthenticatedCall<IWallet>(`/wallet/${userId}/add`, {
+        method: 'POST',
+        body: JSON.stringify({ amount }),
+      });
+    },
     onMutate: async (amount) => {
       // Optimistic update
       await queryClient.cancelQueries({ queryKey: ['wallet', userId] });
@@ -181,8 +183,15 @@ export const useWallet = (userId: string, authToken?: string) => {
   });
 
   const deductFundsMutation = useMutation({
-    mutationFn: ({ amount, description }: { amount: number; description: string }) => 
-      walletService.deductFunds(userId, amount, description, authToken),
+    mutationFn: async ({ amount, description }: { amount: number; description: string }) => {
+      if (!isAuthenticated) {
+        throw new Error('User not authenticated');
+      }
+      return await makeAuthenticatedCall<IWallet>(`/wallet/${userId}/deduct`, {
+        method: 'POST',
+        body: JSON.stringify({ amount, description }),
+      });
+    },
     onMutate: async ({ amount, description }) => {
       // Optimistic update
       await queryClient.cancelQueries({ queryKey: ['wallet', userId] });
@@ -218,6 +227,12 @@ export const useWallet = (userId: string, authToken?: string) => {
     },
   });
 
+  // Function to force wallet refresh (useful after trip completion)
+  const forceRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['wallet', userId] });
+    await refetch();
+  };
+
   return {
     wallet,
     isLoading,
@@ -227,6 +242,7 @@ export const useWallet = (userId: string, authToken?: string) => {
     isAddingFunds: addFundsMutation.isPending,
     isDeductingFunds: deductFundsMutation.isPending,
     refetchWallet: refetch,
+    forceRefresh,
   };
 };
 
