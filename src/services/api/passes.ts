@@ -23,6 +23,13 @@ export const passesAPI = {
       body: JSON.stringify({ ...pass, userId }),
     });
   },
+
+  validatePass: (data: { qrData: string; location: string }): Promise<{ valid: boolean; pass?: IPass; message?: string }> => {
+    return fetchAPI("/passes/validate", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
     
   confirmPassPayment: (sessionId: string): Promise<{ success: boolean; pass: IPass }> => {
     const userId = getAuthToken();

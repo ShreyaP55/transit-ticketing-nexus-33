@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { tripsAPI } from '@/services/api';
+import { tripsAPI, passesAPI } from '@/services/api';
 import { toast } from "sonner";
 import { getHighAccuracyLocation } from '@/services/locationService';
-import { extractUserIdFromQR } from '@/services/qrProcessingService';
+import { extractUserIdFromQR, validateQRCode } from '@/services/qrProcessingService';
 import { useTripOperations } from '@/hooks/useTripOperations';
 import { useUser } from '@/context/UserContext';
 
@@ -15,6 +15,7 @@ export const useQRScanner = () => {
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [connectionError, setConnectionError] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const { userId: currentUserId } = useUser();
   const { handleCheckIn, handleCheckOut, isLoading } = useTripOperations(currentUserId || undefined);
@@ -44,10 +45,28 @@ export const useQRScanner = () => {
     fetchLocation();
   }, []);
 
-  // Function to handle successful QR scan
+  // Function to handle successful QR scan with automatic processing
   const handleScan = async (data: string | null) => {
-    if (data && !scanned) {
+    if (data && !scanned && !isProcessing) {
       console.log("QR Code scanned:", data);
+      
+      // Validate QR code first
+      const validation = validateQRCode(data);
+      if (!validation.isValid) {
+        toast.error(validation.error || "Invalid QR code format");
+        return;
+      }
+
+      // Check if it's a pass QR code
+      try {
+        const parsedData = JSON.parse(data);
+        if (parsedData.type === 'pass') {
+          await handlePassQR(parsedData);
+          return;
+        }
+      } catch (e) {
+        // Not JSON, continue with user QR processing
+      }
       
       const extractedUserId = extractUserIdFromQR(data);
       if (!extractedUserId) {
@@ -55,61 +74,118 @@ export const useQRScanner = () => {
         return;
       }
       
+      setIsProcessing(true);
       setScanned(true);
       setUserId(extractedUserId);
       setConnectionError(false);
       
       if (!location) {
         toast.error("Unable to get current location. Please enable location services and try again.");
-        setScanned(false);
-        setUserId(null);
+        resetScanner();
         return;
       }
 
       try {
         console.log("Checking trip status for user:", extractedUserId);
-        // Check if user has an active trip
         const trip = await tripsAPI.getActiveTrip(extractedUserId);
         setActiveTrip(trip);
 
+        // Automatic processing based on trip status
         if (trip) {
-          toast.success(`Active trip found for user. Ready for check-out.`);
-          console.log("Active trip details:", trip);
+          // User has active trip - automatically check out
+          toast.success(`Active trip found. Processing check-out...`);
+          console.log("Auto-processing check-out for trip:", trip._id);
+          
+          await handleCheckOut(trip._id, location);
+          
+          toast.success("Check-out completed successfully!");
+          setTimeout(resetScanner, 2000);
         } else {
-          toast.success(`User scanned successfully. Ready for check-in.`);
-          console.log("No active trip found, ready for check-in");
+          // No active trip - automatically check in
+          toast.success(`User identified. Processing check-in...`);
+          console.log("Auto-processing check-in for user:", extractedUserId);
+          
+          await handleCheckIn(extractedUserId, location);
+          
+          toast.success("Check-in completed successfully!");
+          setTimeout(resetScanner, 2000);
         }
       } catch (error: any) {
-        console.error("Error checking trip status:", error);
+        console.error("Error processing QR scan:", error);
         if (error.message && error.message.includes("Server is not running")) {
           setConnectionError(true);
           toast.error("Backend server is not running. Please start the server first.");
         } else {
-          toast.error("Failed to check trip status. Please try again.");
+          toast.error("Failed to process scan. Please try again.");
         }
-        setScanned(false);
-        setUserId(null);
+        resetScanner();
+      } finally {
+        setIsProcessing(false);
       }
+    }
+  };
+
+  // Handle pass QR code validation
+  const handlePassQR = async (passData: any) => {
+    setIsProcessing(true);
+    try {
+      toast.loading("Validating pass...");
+      
+      const validation = await passesAPI.validatePass({
+        qrData: JSON.stringify(passData),
+        location: location ? `${location.lat},${location.lng}` : 'Unknown'
+      });
+
+      if (validation.valid) {
+        toast.success("Pass validated successfully!", {
+          description: `Valid monthly pass for ${passData.routeId || 'route'}. Usage recorded.`,
+          duration: 4000,
+        });
+        
+        // Show pass usage info
+        setTimeout(() => {
+          toast.info(`Pass usage count: ${validation.pass?.usageCount || 0}`, {
+            description: "Pass is active and valid for unlimited rides.",
+            duration: 3000,
+          });
+        }, 1000);
+      } else {
+        toast.error("Pass validation failed", {
+          description: validation.message || "Pass may be expired or invalid",
+        });
+      }
+    } catch (error: any) {
+      console.error("Pass validation error:", error);
+      toast.error("Failed to validate pass", {
+        description: error.message || "Please try again"
+      });
+    } finally {
+      setIsProcessing(false);
+      setTimeout(resetScanner, 3000);
     }
   };
 
   const handleError = (error: any) => {
     console.error("QR Scan error:", error);
     toast.error("Failed to scan QR code. Please try again.");
+    resetScanner();
   };
 
+  const resetScanner = () => {
+    setScanned(false);
+    setUserId(null);
+    setActiveTrip(null);
+    setConnectionError(false);
+    setIsProcessing(false);
+  };
+
+  // Manual functions for fallback (rarely needed now)
   const onCheckIn = async () => {
     if (!userId || !location) return;
     
     try {
-      const result = await handleCheckIn(userId, location);
-      
-      // Reset for next scan after showing success
-      setTimeout(() => {
-        setScanned(false);
-        setUserId(null);
-        setActiveTrip(null);
-      }, 2000);
+      await handleCheckIn(userId, location);
+      setTimeout(resetScanner, 2000);
     } catch (error) {
       // Error handling is done in useTripOperations hook
     }
@@ -119,24 +195,11 @@ export const useQRScanner = () => {
     if (!userId || !location || !activeTrip) return;
     
     try {
-      const result = await handleCheckOut(activeTrip._id, location);
-
-      // Reset for next scan
-      setTimeout(() => {
-        setScanned(false);
-        setUserId(null);
-        setActiveTrip(null);
-      }, 3000);
+      await handleCheckOut(activeTrip._id, location);
+      setTimeout(resetScanner, 3000);
     } catch (error) {
       // Error handling is done in useTripOperations hook
     }
-  };
-
-  const handleReset = () => {
-    setScanned(false);
-    setUserId(null);
-    setActiveTrip(null);
-    setConnectionError(false);
   };
   
   return {
@@ -144,14 +207,15 @@ export const useQRScanner = () => {
     userId,
     location,
     isLoadingLocation,
-    isLoading,
+    isLoading: isLoading || isProcessing,
     activeTrip,
     connectionError,
     locationError,
+    isProcessing,
     handleScan,
     handleError,
     handleCheckIn: onCheckIn,
     handleCheckOut: onCheckOut,
-    handleReset,
+    handleReset: resetScanner,
   };
 };

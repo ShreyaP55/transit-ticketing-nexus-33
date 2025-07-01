@@ -17,6 +17,7 @@ const QRScannerPage: React.FC = () => {
     activeTrip,
     connectionError,
     locationError,
+    isProcessing,
     handleScan,
     handleError,
     handleCheckIn,
@@ -32,8 +33,11 @@ const QRScannerPage: React.FC = () => {
         <Card className="bg-gray-900 shadow-lg border-gray-700 overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-orange-600/20 to-transparent border-b border-gray-700">
             <CardTitle className="text-center text-high-contrast">
-              {scanned ? "User QR Scanned" : "Scan User QR Code"}
+              {scanned ? "Processing User QR" : "Scan QR Code"}
             </CardTitle>
+            <p className="text-center text-sm text-gray-400">
+              Automatic check-in/out enabled
+            </p>
           </CardHeader>
           <CardContent className="p-4 bg-gray-900">
             {connectionError && (
@@ -45,7 +49,7 @@ const QRScannerPage: React.FC = () => {
             )}
             {hasErrorOrIsLoading ? (
               <StatusDisplay
-                connectionError={false} // Handled separately above
+                connectionError={false}
                 locationError={locationError}
                 isLoadingLocation={isLoadingLocation}
               />
@@ -63,6 +67,7 @@ const QRScannerPage: React.FC = () => {
                     location={location}
                     activeTrip={activeTrip}
                     isLoading={isLoading}
+                    isProcessing={isProcessing}
                     onCheckIn={handleCheckIn}
                     onCheckOut={handleCheckOut}
                     onReset={handleReset}
@@ -74,7 +79,10 @@ const QRScannerPage: React.FC = () => {
         </Card>
         <div className="mt-4 p-3 bg-blue-900/50 border border-blue-600 rounded-md">
           <p className="text-sm text-blue-200">
-            💡 <strong className="text-blue-100">How to use:</strong> Users should show their QR code from the wallet page to check in/out of trips.
+            🤖 <strong className="text-blue-100">Auto Mode:</strong> Check-in/out happens automatically when QR is scanned.
+          </p>
+          <p className="text-xs text-blue-300 mt-1">
+            Pass QR codes are validated and usage is recorded automatically.
           </p>
         </div>
       </div>

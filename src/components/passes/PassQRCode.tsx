@@ -2,58 +2,16 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { Ticket, Calendar, AlertCircle, Loader2 } from "lucide-react";
-import { useUser } from "@/context/UserContext";
-import { passesAPI } from "@/services/api";
+import { Ticket, Calendar, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { IPass } from "@/types";
 
-const PassQRCode: React.FC = () => {
-  const { userId } = useUser();
+interface PassQRCodeProps {
+  activePass: IPass;
+}
 
-  const { data: activePass, isLoading, error } = useQuery({
-    queryKey: ["activePass", userId],
-    queryFn: () => passesAPI.getActivePass(),
-    enabled: !!userId,
-    retry: 1,
-  });
-
-  if (isLoading) {
-    return (
-      <Card className="bg-card border-border shadow-md">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="animate-spin h-8 w-8 text-primary" />
-            <span className="ml-2 text-muted-foreground">Loading pass...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || !activePass) {
-    return (
-      <Card className="bg-card border-border shadow-md">
-        <CardHeader>
-          <CardTitle className="flex items-center text-card-foreground">
-            <Ticket className="mr-2 h-5 w-5 text-primary" />
-            Monthly Pass
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-1 text-card-foreground">No Active Pass</h3>
-            <p className="text-muted-foreground">
-              You don't have an active monthly pass. Purchase one to start using transit services.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+const PassQRCode: React.FC<PassQRCodeProps> = ({ activePass }) => {
   const isExpired = new Date(activePass.expiryDate) < new Date();
   const daysLeft = Math.max(
     0,
@@ -78,7 +36,7 @@ const PassQRCode: React.FC = () => {
         <CardTitle className="flex items-center justify-between text-card-foreground">
           <div className="flex items-center">
             <Ticket className="mr-2 h-5 w-5 text-primary" />
-            Monthly Pass
+            Monthly Pass QR Code
           </div>
           <Badge 
             variant={isExpired ? "destructive" : "default"} 
@@ -94,7 +52,7 @@ const PassQRCode: React.FC = () => {
           <div className="p-4 bg-white rounded-lg">
             <QRCodeSVG
               value={qrData}
-              size={180}
+              size={200}
               level="M"
               includeMargin={true}
             />
@@ -125,6 +83,11 @@ const PassQRCode: React.FC = () => {
             </span>
           </div>
 
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Usage Count:</span>
+            <span className="font-medium text-primary">{activePass.usageCount || 0} times</span>
+          </div>
+
           {!isExpired && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Days remaining:</span>
@@ -134,10 +97,17 @@ const PassQRCode: React.FC = () => {
         </div>
 
         {/* Instructions */}
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-800">
+        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+          <p className="text-sm text-green-800">
             <Calendar className="inline h-4 w-4 mr-2" />
-            Show this QR code to bus staff for pass verification and usage tracking.
+            Show this QR code to bus staff for automatic pass validation and usage tracking.
+          </p>
+        </div>
+
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-xs text-blue-800">
+            <strong>How it works:</strong> This QR code will be automatically validated when scanned. 
+            Usage will be recorded and you'll see confirmation. No manual check-in/out needed for pass holders.
           </p>
         </div>
 
