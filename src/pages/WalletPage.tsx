@@ -8,6 +8,7 @@ import UserQRCode from "@/components/wallet/UserQRCode";
 import RideHistory from "@/components/rides/RideHistory";
 import { ActiveTripDisplay } from '@/components/trips/ActiveTripDisplay';
 import { tripsAPI } from '@/services/api';
+import { rideService } from '@/services/rideService';
 import { useUser } from "@/context/UserContext";
 
 const WalletPage: React.FC = () => {
@@ -46,8 +47,8 @@ const WalletPage: React.FC = () => {
 
   const fetchHistoryForUser = async (userId: string) => {
     try {
-      // Fetch ride history
-      const rideHistory = await RideHistory.fetchRideHistory(userId);
+      // Fetch ride history using the service
+      const rideHistory = await rideService.fetchRideHistory(userId);
       return rideHistory;
     } catch (error) {
       console.error("Error fetching ride history:", error);

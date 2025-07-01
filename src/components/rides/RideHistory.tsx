@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,20 +58,6 @@ const RideHistory: React.FC<RideHistoryProps> = ({ rides }) => {
       ))}
     </div>
   );
-};
-
-// Static method for fetching ride history
-RideHistory.fetchRideHistory = async (userId: string): Promise<IRide[]> => {
-  try {
-    const response = await fetch(`/api/rides/history/${userId}`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Failed to fetch ride history:', error);
-    return [];
-  }
 };
 
 export default RideHistory;
