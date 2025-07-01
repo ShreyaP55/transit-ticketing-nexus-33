@@ -233,12 +233,30 @@ export const useWallet = (userId: string) => {
     await refetch();
   };
 
+  // Updated deductFunds function to support callbacks
+  const deductFunds = (
+    data: { amount: number; description: string },
+    callbacks?: {
+      onSuccess?: () => void;
+      onError?: (error: any) => void;
+    }
+  ) => {
+    deductFundsMutation.mutate(data, {
+      onSuccess: (result) => {
+        callbacks?.onSuccess?.();
+      },
+      onError: (error) => {
+        callbacks?.onError?.(error);
+      }
+    });
+  };
+
   return {
     wallet,
     isLoading,
     error,
     addFunds: addFundsMutation.mutate,
-    deductFunds: deductFundsMutation.mutate,
+    deductFunds,
     isAddingFunds: addFundsMutation.isPending,
     isDeductingFunds: deductFundsMutation.isPending,
     refetchWallet: refetch,

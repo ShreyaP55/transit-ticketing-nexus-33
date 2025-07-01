@@ -1,237 +1,143 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import MainLayout from "@/components/layout/MainLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Navigation, Bus, Route as RouteIcon, MapPin, Search, AlertTriangle, Info, Clock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { routesAPI, busesAPI } from "@/services/api";
-import LeafletMap from "@/components/tracking/LeafletMap";
-import BusInfoPanel from "@/components/tracking/BusInfoPanel";
-import { useTrackBuses } from "@/hooks/useTrackBuses";
-import { IBus } from "@/types";
-import { useToast } from "@/components/ui/use-toast";
+import { IRoute, IBus } from "@/types";
+import { Bus, MapPin } from "lucide-react";
+import MainLayout from "@/components/layout/MainLayout";
+import LiveMap from "@/components/map/LiveMap";
 
 const LiveTrackingPage = () => {
-  const { toast } = useToast();
   const [selectedRouteId, setSelectedRouteId] = useState<string>("");
-  const [selectedBus, setSelectedBus] = useState<IBus | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  
-  // Fetch routes
-  const { 
-    data: routes, 
-    isLoading: isLoadingRoutes 
-  } = useQuery({
-    queryKey: ['routes'],
-    queryFn: routesAPI.getAll
+  const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
+    queryKey: ["routes"],
+    queryFn: () => routesAPI.getAll(),
   });
-  
-  // Fetch buses for selected route
-  const { 
-    data: buses, 
-    isLoading: isLoadingBuses 
-  } = useQuery({
-    queryKey: ['buses', selectedRouteId],
+  const { data: buses = [] } = useQuery({
+    queryKey: ["buses", selectedRouteId],
     queryFn: () => busesAPI.getAll(selectedRouteId),
     enabled: !!selectedRouteId,
+    refetchInterval: 5000, // Poll every 5 seconds
   });
 
-  // Get bus IDs for tracking
-  const busIds = buses ? buses.map(bus => bus._id) : [];
-  
-  // Use our custom hook for real-time bus tracking
-  const busLocations = useTrackBuses(busIds, selectedRouteId, buses, routes);
-  
-  // Notify when new buses are detected
-  useEffect(() => {
-    if (buses && buses.length > 0) {
-      const activeBuses = buses.filter(bus => busLocations[bus._id]);
-      if (activeBuses.length > 0 && !selectedBus) {
-        toast({
-          title: "Live Tracking Active",
-          description: `${activeBuses.length} buses are now being tracked in real-time.`,
-          variant: "default",
-        });
-      }
-    }
-  }, [buses, busLocations, selectedBus]);
+  const selectedRoute = routes.find((route) => route._id === selectedRouteId);
 
-  // Filter buses by search query
-  const filteredBuses = buses?.filter(bus => 
-    searchQuery === "" || 
-    bus.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleRouteChange = (routeId: string) => {
+    setSelectedRouteId(routeId);
+  };
 
   return (
     <MainLayout title="Live Bus Tracking">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="md:col-span-1 space-y-6">
-            {/* Route Selection */}
-            <Card className="bg-gradient-to-br from-white to-blue-50 overflow-hidden shadow-lg border-none">
-              <CardHeader className="pb-3 bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
-                <CardTitle className="text-lg font-semibold flex items-center">
-                  <RouteIcon className="mr-2 h-5 w-5" />
+      <div className="h-[calc(100vh-4rem)] bg-gray-100 text-gray-900">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full p-4">
+          {/* Control Panel */}
+          <div className="lg:col-span-1 space-y-4 bg-white rounded-lg shadow-lg p-4 border border-gray-200">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Select Route
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {isLoadingRoutes ? (
-                  <div className="space-y-2">
-                    {Array(4).fill(0).map((_, i) => (
-                      <Skeleton key={i} className="h-12 w-full" />
-                    ))}
-                  </div>
-                ) : routes?.length === 0 ? (
-                  <div className="text-center py-8">
-                    <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
-                    <p className="text-muted-foreground">No routes available</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {routes?.map(route => (
-                      <div
-                        key={route._id}
-                        onClick={() => {
-                          setSelectedRouteId(route._id);
-                          setSelectedBus(null);
-                          setSearchQuery("");
-                        }}
-                        className={`p-3 border rounded-lg cursor-pointer transition-all flex justify-between items-center
-                          ${selectedRouteId === route._id 
-                            ? "border-transit-orange bg-transit-orange text-white shadow-md transform scale-[1.02]" 
-                            : "hover:border-transit-orange bg-white shadow-sm hover:bg-orange-50"}`}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium">{route.start} - {route.end}</span>
-                          <span className="text-xs opacity-75">{route.fare ? `${route.fare} km` : 'Distance N/A'}</span>
-                        </div>
-                        <Badge variant={selectedRouteId === route._id ? "secondary" : "outline"}
-                          className="ml-2">
-                          ₹{route.fare}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </label>
+                <Select value={selectedRouteId} onValueChange={handleRouteChange}>
+                  <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500">
+                    <SelectValue placeholder="Choose a route" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-300">
+                    {isLoadingRoutes ? (
+                      <SelectItem value="loading" disabled className="text-gray-500">
+                        Loading routes...
+                      </SelectItem>
+                    ) : routes.length > 0 ? (
+                      routes.map((route) => (
+                        <SelectItem key={route._id} value={route._id} className="text-gray-900 hover:bg-blue-50">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{route.start} → {route.end}</span>
+                            <span className="text-xs text-gray-500">₹{route.fare}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled className="text-gray-500">
+                        No routes available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Bus Selection */}
-            {selectedRouteId && (
-              <Card className="bg-gradient-to-br from-white to-blue-50 shadow-lg border-none">
-                <CardHeader className="pb-3 bg-gradient-to-r from-transit-orange to-transit-orange-dark text-white">
-                  <CardTitle className="text-lg font-semibold flex items-center">
-                    <Bus className="mr-2 h-5 w-5" />
-                    Select Bus
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  {isLoadingBuses ? (
-                    <div className="space-y-2">
-                      {Array(3).fill(0).map((_, i) => (
-                        <Skeleton key={i} className="h-12 w-full" />
-                      ))}
+              {selectedRoute && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <h3 className="font-semibold text-blue-900 mb-2">Route Details</h3>
+                  <div className="space-y-1 text-sm text-blue-800">
+                    <div className="flex justify-between">
+                      <span>From:</span>
+                      <span className="font-medium">{selectedRoute.start}</span>
                     </div>
-                  ) : (
-                    <>
-                      <div className="relative mb-4">
-                        <Input
-                          placeholder="Search buses..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-8 border-transit-orange/30 focus:border-transit-orange"
-                        />
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-transit-orange" />
-                      </div>
-                      
-                      {!filteredBuses || filteredBuses.length === 0 ? (
-                        <div className="text-center py-6 bg-orange-50/50 rounded-lg">
-                          <Info className="mx-auto h-8 w-8 text-transit-orange mb-2" />
-                          <p className="text-muted-foreground">
-                            {buses?.length === 0 
-                              ? "No buses available for this route" 
-                              : "No buses match your search"}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2 max-h-64 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-orange-200">
-                          {filteredBuses?.map(bus => {
-                            const isActive = !!busLocations[bus._id];
-                            const timeSinceUpdate = isActive ? 
-                              Math.round((new Date().getTime() - new Date(busLocations[bus._id].updatedAt).getTime()) / 1000) : null;
-                            
-                            return (
-                              <div
-                                key={bus._id}
-                                onClick={() => setSelectedBus(bus)}
-                                className={`p-3 border rounded-lg cursor-pointer transition-all
-                                  ${selectedBus?._id === bus._id 
-                                    ? "border-transit-orange bg-transit-orange text-white shadow-md transform scale-[1.02]" 
-                                    : `hover:border-transit-orange bg-white shadow-sm ${isActive ? "border-transit-green/30" : ""}`}`}
-                              >
-                                <div className="flex justify-between items-center">
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{bus.name}</span>
-                                    {isActive && timeSinceUpdate && (
-                                      <div className="flex items-center text-xs mt-1">
-                                        <Clock className="h-3 w-3 mr-1" />
-                                        <span>{timeSinceUpdate < 60 ? `${timeSinceUpdate}s ago` : `${Math.floor(timeSinceUpdate / 60)}m ago`}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <Badge variant={selectedBus?._id === bus._id ? "secondary" : "outline"}
-                                    className={isActive ? "bg-transit-green text-white" : ""}>
-                                    {isActive ? "Active" : "Inactive"}
-                                  </Badge>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                    <div className="flex justify-between">
+                      <span>To:</span>
+                      <span className="font-medium">{selectedRoute.end}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Fare:</span>
+                      <span className="font-medium">₹{selectedRoute.fare}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            {/* Selected Bus Info */}
-            {selectedBus && busLocations[selectedBus._id] && (
-              <BusInfoPanel 
-                bus={selectedBus} 
-                location={busLocations[selectedBus._id]} 
-                route={routes?.find(r => r._id === selectedRouteId)} 
-              />
-            )}
+              {buses.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <h3 className="font-semibold text-green-900 mb-2">Active Buses ({buses.length})</h3>
+                  <div className="space-y-2">
+                    {buses.map((bus) => (
+                      <div
+                        key={bus._id}
+                        className="flex items-center justify-between p-2 bg-white rounded border border-green-200"
+                      >
+                        <div className="flex items-center">
+                          <Bus className="h-4 w-4 text-green-600 mr-2" />
+                          <div>
+                            <div className="font-medium text-green-900">{bus.name}</div>
+                            <div className="text-xs text-green-600">Capacity: {bus.capacity}</div>
+                          </div>
+                        </div>
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!selectedRouteId && (
+                <div className="text-center p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <Bus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Select a route to view live bus locations</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Map Area */}
-          <Card className="md:col-span-3 overflow-hidden border-none shadow-xl rounded-xl">
-            <CardContent className="p-0 h-[75vh]">
-              <LeafletMap 
-                buses={buses || []} 
-                busLocations={busLocations} 
-                selectedBusId={selectedBus?._id} 
-                onSelectBus={(busId) => {
-                  const bus = buses?.find(b => b._id === busId);
-                  if (bus) {
-                    setSelectedBus(bus);
-                    toast({
-                      title: `Selected ${bus.name}`,
-                      description: "Now tracking this bus in real-time.",
-                      duration: 3000,
-                    });
-                  }
-                }}
-              />
-            </CardContent>
-          </Card>
+          {/* Map Container */}
+          <div className="lg:col-span-3 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+            <div className="h-full relative">
+              {buses.length > 0 && selectedRoute ? (
+                <LiveMap buses={buses} selectedRoute={selectedRoute} />
+              ) : (
+                <div className="flex items-center justify-center h-full bg-gray-50">
+                  <div className="text-center">
+                    <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                      {!selectedRouteId ? "Select a Route" : "No Active Buses"}
+                    </h3>
+                    <p className="text-gray-500">
+                      {!selectedRouteId
+                        ? "Choose a route from the panel to see live bus tracking"
+                        : "There are no active buses on this route right now"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </MainLayout>
