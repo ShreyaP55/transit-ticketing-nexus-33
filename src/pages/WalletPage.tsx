@@ -1,5 +1,5 @@
+
 import React, { useEffect } from "react";
-import { useUser } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
 
 import MainLayout from "@/components/layout/MainLayout";
@@ -8,14 +8,15 @@ import UserQRCode from "@/components/wallet/UserQRCode";
 import RideHistory from "@/components/rides/RideHistory";
 import { ActiveTripDisplay } from '@/components/trips/ActiveTripDisplay';
 import { tripsAPI } from '@/services/api';
+import { useUser } from "@/context/UserContext";
 
 const WalletPage: React.FC = () => {
-  const { userId, isSignedIn } = useUser();
+  const { userId, isAuthenticated } = useUser();
 
   // Add active trip query
   const { data: activeTrip } = useQuery({
     queryKey: ['activeTrip', userId],
-    queryFn: () => tripsAPI.getActiveTrip(userId),
+    queryFn: () => tripsAPI.getActiveTrip(userId!),
     enabled: !!userId,
     retry: 1,
   });
@@ -33,15 +34,15 @@ const WalletPage: React.FC = () => {
       }
       return fetchHistoryForUser(userId);
     },
-    enabled: isSignedIn,
+    enabled: isAuthenticated,
     retry: 1,
   });
 
   useEffect(() => {
-    if (userId && isSignedIn) {
+    if (userId && isAuthenticated) {
       fetchHistory();
     }
-  }, [userId, isSignedIn, fetchHistory]);
+  }, [userId, isAuthenticated, fetchHistory]);
 
   const fetchHistoryForUser = async (userId: string) => {
     try {

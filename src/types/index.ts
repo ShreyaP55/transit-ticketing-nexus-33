@@ -48,6 +48,7 @@ export interface IPass {
   active: boolean;
   price: number;
   fare: number;
+  usageCount?: number;
   createdAt: string;
   updatedAt: string;
 }
