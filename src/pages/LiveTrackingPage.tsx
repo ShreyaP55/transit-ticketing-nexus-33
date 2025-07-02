@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { routesAPI, busesAPI } from "@/services/api";
 import MainLayout from "@/components/layout/MainLayout";
-import { LiveMap } from "@/components/tracking/LiveMap";
+import LiveMap from "@/components/tracking/LiveMap";
 import { IRoute, IBus } from "@/types";
 import { MapPin, Bus, Navigation, RefreshCw, Users } from "lucide-react";
 
@@ -160,7 +160,7 @@ const LiveTrackingPage = () => {
                       {selectedRoute.start} → {selectedRoute.end}
                     </h3>
                     <p className="text-blue-700 text-sm mt-1">
-                      Distance: {selectedRoute.distance}km • Fare: ₹{selectedRoute.fare}
+                      Fare: ₹{selectedRoute.fare}
                     </p>
                   </div>
                   <Badge className="bg-blue-600 text-white px-3 py-1 text-sm font-medium">
@@ -191,7 +191,6 @@ const LiveTrackingPage = () => {
               {selectedRoute ? (
                 <LiveMap 
                   buses={filteredBuses} 
-                  selectedRoute={selectedRoute}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">

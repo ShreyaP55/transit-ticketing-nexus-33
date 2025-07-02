@@ -17,6 +17,20 @@ export const busesAPI = {
       throw error; // Re-throw to let React Query handle it
     }
   },
+
+  getByRoute: async (routeId: string): Promise<IBus[]> => {
+    try {
+      console.log('busesAPI.getByRoute called with routeId:', routeId);
+      const url = `/buses?routeId=${routeId}`;
+      console.log('Making request to:', url);
+      const result = await fetchAPI(url);
+      console.log('busesAPI.getByRoute result:', result);
+      return result as IBus[];
+    } catch (error) {
+      console.error("busesAPI.getByRoute error:", error);
+      throw error;
+    }
+  },
     
   create: async (bus: Omit<IBus, "_id" | "route"> & { route: string }): Promise<IBus> => {
     try {

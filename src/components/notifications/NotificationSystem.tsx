@@ -82,18 +82,9 @@ export const NotificationSystem = {
     }
   ) => {
     return toast.promise(promise, {
-      loading: {
-        title: loading,
-        icon: <Loader2 className="h-4 w-4 animate-spin text-blue-600" />,
-      },
-      success: (data) => ({
-        title: typeof success === 'function' ? success(data) : success,
-        icon: <CheckCircle className="h-4 w-4 text-green-600" />,
-      }),
-      error: (err) => ({
-        title: typeof error === 'function' ? error(err) : error,
-        icon: <XCircle className="h-4 w-4 text-red-600" />,
-      }),
+      loading,
+      success: (data) => typeof success === 'function' ? success(data) : success,
+      error: (err) => typeof error === 'function' ? error(err) : error,
     });
   },
 
