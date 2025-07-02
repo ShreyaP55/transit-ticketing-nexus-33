@@ -1,25 +1,27 @@
-
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { UserProvider } from './context/UserContext';
 import { Toaster } from "@/components/ui/sonner";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { useUser } from "@/context/UserContext";
+import { NotificationSystem } from "@/components/notifications/NotificationSystem";
 
 // Import pages
-import Index from './pages/Index';
-import WalletPage from './pages/WalletPage';
-import TicketsPage from './pages/TicketsPage';
-import PassPage from './pages/PassPage';
-import LiveTrackingPage from './pages/LiveTrackingPage';
-import RoutesPage from './pages/RoutesPage';
-import BusesPage from './pages/BusesPage';
-import StationManagementPage from './pages/StationManagementPage';
-import AdminRidesPage from './pages/AdminRidesPage';
-import AdminLiveTrackingPage from './pages/AdminLiveTrackingPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import AuthPages from './pages/AuthPages';
-import NotFound from './pages/NotFound';
+import Index from "@/pages/Index";
+import { AuthPages } from "@/pages/AuthPages";
+import WalletPage from "@/pages/WalletPage";
+import TicketsPage from "@/pages/TicketsPage";
+import PassPage from "@/pages/PassPage";
+import LiveTrackingPage from "@/pages/LiveTrackingPage";
+import BusesPage from "@/pages/BusesPage";
+import RoutesPage from "@/pages/RoutesPage";
+import StationManagementPage from "@/pages/StationManagementPage";
+import AdminDashboardPage from "@/pages/AdminDashboardPage";
+import AdminLiveTrackingPage from "@/pages/AdminLiveTrackingPage";
+import AdminRidesPage from "@/pages/AdminRidesPage";
+import NotFound from "@/pages/NotFound";
+import { AdminRoute } from "@/components/auth/AdminRoute";
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -61,6 +63,7 @@ function App() {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 <Toaster />
+                <NotificationSystem />
               </div>
             </Router>
           </SidebarProvider>

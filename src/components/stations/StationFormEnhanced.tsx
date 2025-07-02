@@ -1,145 +1,84 @@
-
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { stationsAPI, routesAPI, busesAPI } from "@/services/api";
-import { IStation, IRoute, IBus } from "@/types";
+import { Button } from "@/components/ui/button";
+import { stationsAPI } from "@/services/api";
 import { toast } from "sonner";
-import { MapPin, AlertCircle } from "lucide-react";
 
 interface StationFormEnhancedProps {
-  station?: IStation;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
-}
-
-interface FormData {
+  station?: any;
   routeId: string;
   busId: string;
-  name: string;
-  latitude: string;
-  longitude: string;
-  fare: string;
-  location: string;
+  onSuccess: () => void;
+  onCancel: () => void;
 }
 
 interface FormErrors {
-  routeId?: string;
-  busId?: string;
   name?: string;
-  latitude?: string;
-  longitude?: string;
+  coordinates?: string;
   fare?: string;
-  location?: string;
 }
 
 export const StationFormEnhanced: React.FC<StationFormEnhancedProps> = ({
   station,
-  open,
-  onOpenChange,
+  routeId,
+  busId,
   onSuccess,
+  onCancel,
 }) => {
-  const [routes, setRoutes] = useState<IRoute[]>([]);
-  const [buses, setBuses] = useState<IBus[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
-  
-  const [formData, setFormData] = useState<FormData>({
-    routeId: "",
-    busId: "",
-    name: "",
-    latitude: "",
-    longitude: "",
-    fare: "",
-    location: "",
+  const [formData, setFormData] = useState({
+    name: station?.name || "",
+    coordinates: {
+      lat: station?.coordinates?.lat || "",
+      lng: station?.coordinates?.lng || "",
+    },
+    fare: station?.fare || "",
   });
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load initial data
   useEffect(() => {
-    if (open) {
-      loadRoutes();
-      if (station) {
-        setFormData({
-          routeId: typeof station.routeId === 'string' ? station.routeId : station.routeId._id,
-          busId: typeof station.busId === 'string' ? station.busId : station.busId._id,
-          name: station.name,
-          latitude: station.latitude.toString(),
-          longitude: station.longitude.toString(),
-          fare: station.fare.toString(),
-          location: station.location || station.name,
-        });
-      } else {
-        resetForm();
-      }
+    if (station) {
+      setFormData({
+        name: station.name || "",
+        coordinates: {
+          lat: station.coordinates?.lat || "",
+          lng: station.coordinates?.lng || "",
+        },
+        fare: station.fare || "",
+      });
     }
-  }, [open, station]);
+  }, [station]);
 
-  // Load buses when route changes
-  useEffect(() => {
-    if (formData.routeId) {
-      loadBuses(formData.routeId);
-    }
-  }, [formData.routeId]);
-
-  const loadRoutes = async () => {
-    try {
-      setIsLoading(true);
-      const routesData = await routesAPI.getAll();
-      setRoutes(routesData);
-    } catch (error) {
-      toast.error("Failed to load routes");
-    } finally {
-      setIsLoading(false);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    if (name.startsWith("coordinates.")) {
+      const coordinate = name.split(".")[1];
+      setFormData(prev => ({
+        ...prev,
+        coordinates: {
+          ...prev.coordinates,
+          [coordinate]: value,
+        },
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  const loadBuses = async (routeId: string) => {
-    try {
-      const busesData = await busesAPI.getAll(routeId);
-      setBuses(busesData);
-    } catch (error) {
-      toast.error("Failed to load buses");
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      routeId: "",
-      busId: "",
-      name: "",
-      latitude: "",
-      longitude: "",
-      fare: "",
-      location: "",
-    });
-    setErrors({});
-  };
-
-  const validateForm = (): boolean => {
+  const validateForm = () => {
     const newErrors: FormErrors = {};
-
-    if (!formData.routeId) newErrors.routeId = "Route is required";
-    if (!formData.busId) newErrors.busId = "Bus is required";
-    if (!formData.name.trim()) newErrors.name = "Station name is required";
-    if (!formData.latitude) {
-      newErrors.latitude = "Latitude is required";
-    } else if (isNaN(Number(formData.latitude))) {
-      newErrors.latitude = "Latitude must be a valid number";
+    
+    if (!formData.name.trim()) {
+      newErrors.name = "Station name is required";
     }
-    if (!formData.longitude) {
-      newErrors.longitude = "Longitude is required";
-    } else if (isNaN(Number(formData.longitude))) {
-      newErrors.longitude = "Longitude must be a valid number";
+    
+    if (!formData.coordinates.lat || !formData.coordinates.lng) {
+      newErrors.coordinates = "Valid coordinates are required";
     }
-    if (!formData.fare) {
-      newErrors.fare = "Fare is required";
-    } else if (isNaN(Number(formData.fare)) || Number(formData.fare) <= 0) {
-      newErrors.fare = "Fare must be a positive number";
+    
+    if (!formData.fare || formData.fare <= 0) {
+      newErrors.fare = "Valid fare amount is required";
     }
 
     setErrors(newErrors);
@@ -149,207 +88,95 @@ export const StationFormEnhanced: React.FC<StationFormEnhancedProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     try {
-      setIsSubmitting(true);
+      setIsLoading(true);
       
       const stationData = {
-        routeId: formData.routeId,
-        busId: formData.busId,
-        name: formData.name.trim(),
-        latitude: Number(formData.latitude),
-        longitude: Number(formData.longitude),
-        fare: Number(formData.fare),
-        location: formData.location.trim() || formData.name.trim(),
+        ...formData,
+        routeId,
+        busId,
       };
 
       if (station) {
-        await stationsAPI.update(station._id, stationData);
+        await stationsAPI.update({ ...stationData, _id: station._id });
         toast.success("Station updated successfully");
       } else {
         await stationsAPI.create(stationData);
         toast.success("Station created successfully");
       }
-
+      
       onSuccess();
-      onOpenChange(false);
-    } catch (error: any) {
-      console.error("Station form error:", error);
-      toast.error(error.message || "Failed to save station");
+    } catch (error) {
+      console.error("Station operation error:", error);
+      toast.error(station ? "Failed to update station" : "Failed to create station");
     } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setIsLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            {station ? "Edit Station" : "Add New Station"}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="routeId">Route</Label>
-            <Select 
-              value={formData.routeId} 
-              onValueChange={(value) => handleInputChange('routeId', value)}
-              disabled={isLoading}
-            >
-              <SelectTrigger className={errors.routeId ? "border-red-500" : ""}>
-                <SelectValue placeholder="Select route" />
-              </SelectTrigger>
-              <SelectContent>
-                {routes.map((route) => (
-                  <SelectItem key={route._id} value={route._id}>
-                    {route.start} → {route.end}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.routeId && (
-              <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
-                <AlertCircle className="h-3 w-3" />
-                {errors.routeId}
-              </p>
-            )}
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="name">Station Name</Label>
+        <Input
+          type="text"
+          id="name"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          placeholder="Enter station name"
+          className="mt-1"
+        />
+        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+      </div>
 
-          <div>
-            <Label htmlFor="busId">Bus</Label>
-            <Select 
-              value={formData.busId} 
-              onValueChange={(value) => handleInputChange('busId', value)}
-              disabled={!formData.routeId}
-            >
-              <SelectTrigger className={errors.busId ? "border-red-500" : ""}>
-                <SelectValue placeholder="Select bus" />
-              </SelectTrigger>
-              <SelectContent>
-                {buses.map((bus) => (
-                  <SelectItem key={bus._id} value={bus._id}>
-                    {bus.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.busId && (
-              <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
-                <AlertCircle className="h-3 w-3" />
-                {errors.busId}
-              </p>
-            )}
-          </div>
+      <div>
+        <Label>Coordinates</Label>
+        <div className="flex space-x-2 mt-1">
+          <Input
+            type="number"
+            name="coordinates.lat"
+            value={formData.coordinates.lat}
+            onChange={handleChange}
+            placeholder="Latitude"
+          />
+          <Input
+            type="number"
+            name="coordinates.lng"
+            value={formData.coordinates.lng}
+            onChange={handleChange}
+            placeholder="Longitude"
+          />
+        </div>
+        {errors.coordinates && <p className="text-red-500 text-sm mt-1">{errors.coordinates}</p>}
+      </div>
 
-          <div>
-            <Label htmlFor="name">Station Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="Enter station name"
-              className={errors.name ? "border-red-500" : ""}
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
-                <AlertCircle className="h-3 w-3" />
-                {errors.name}
-              </p>
-            )}
-          </div>
+      <div>
+        <Label htmlFor="fare">Fare Amount</Label>
+        <Input
+          type="number"
+          id="fare"
+          name="fare"
+          value={formData.fare}
+          onChange={handleChange}
+          placeholder="Enter fare amount"
+          className="mt-1"
+        />
+        {errors.fare && <p className="text-red-500 text-sm mt-1">{errors.fare}</p>}
+      </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="latitude">Latitude</Label>
-              <Input
-                id="latitude"
-                value={formData.latitude}
-                onChange={(e) => handleInputChange('latitude', e.target.value)}
-                placeholder="0.0000"
-                className={errors.latitude ? "border-red-500" : ""}
-              />
-              {errors.latitude && (
-                <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {errors.latitude}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="longitude">Longitude</Label>
-              <Input
-                id="longitude"
-                value={formData.longitude}
-                onChange={(e) => handleInputChange('longitude', e.target.value)}
-                placeholder="0.0000"
-                className={errors.longitude ? "border-red-500" : ""}
-              />
-              {errors.longitude && (
-                <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {errors.longitude}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="fare">Fare (₹)</Label>
-            <Input
-              id="fare"
-              value={formData.fare}
-              onChange={(e) => handleInputChange('fare', e.target.value)}
-              placeholder="0.00"
-              type="number"
-              step="0.01"
-              min="0"
-              className={errors.fare ? "border-red-500" : ""}
-            />
-            {errors.fare && (
-              <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
-                <AlertCircle className="h-3 w-3" />
-                {errors.fare}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="location">Location (Optional)</Label>
-            <Input
-              id="location"
-              value={formData.location}
-              onChange={(e) => handleInputChange('location', e.target.value)}
-              placeholder="Enter location description"
-            />
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : station ? "Update Station" : "Create Station"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <div className="flex justify-end space-x-2">
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Saving..." : "Save Station"}
+        </Button>
+      </div>
+    </form>
   );
 };
