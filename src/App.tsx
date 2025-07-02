@@ -1,97 +1,73 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { UserProvider } from "@/context/UserContext";
-import { ClerkProvider } from "@clerk/clerk-react";
-import Index from "./pages/Index";
-import TicketsPage from "./pages/TicketsPage";
-import PassPage from "./pages/PassPage";
-import RoutesPage from "./pages/RoutesPage";
-import BusesPage from "./pages/BusesPage";
-import NotFound from "./pages/NotFound";
-import StationManagementPage from "./pages/StationManagementPage";
-import LiveTrackingPage from "./pages/LiveTrackingPage";
-import AdminLiveTrackingPage from "./pages/AdminLiveTrackingPage";
-import { LoginPage, SignupPage } from "./pages/AuthPages";
-import AdminRoute from "@/components/auth/AdminRoute";
-import WalletPage from "./pages/WalletPage";
-import QRScannerPage from "./pages/QRScannerPage";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ClerkProvider } from '@clerk/clerk-react';
+import { UserProvider } from './context/UserContext';
+import { Toaster } from "@/components/ui/sonner";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
-const queryClient = new QueryClient();
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+// Import pages
+import Index from './pages/Index';
+import WalletPage from './pages/WalletPage';
+import TicketsPage from './pages/TicketsPage';
+import PassPage from './pages/PassPage';
+import LiveTrackingPage from './pages/LiveTrackingPage';
+import RoutesPage from './pages/RoutesPage';
+import BusesPage from './pages/BusesPage';
+import StationManagementPage from './pages/StationManagementPage';
+import AdminRidesPage from './pages/AdminRidesPage';
+import AdminLiveTrackingPage from './pages/AdminLiveTrackingPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AuthPages from './pages/AuthPages';
+import NotFound from './pages/NotFound';
 
-if (!PUBLISHABLE_KEY) {
+// Create a query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!clerkPubKey) {
   throw new Error("Missing Clerk Publishable Key");
 }
 
-const LoadingScreen = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-      <p className="mt-4 text-gray-600">Loading TransitNexus...</p>
-    </div>
-  </div>
-);
-
-import { useUser } from "@/context/UserContext";
-
-const AppContent = () => {
-  const { isLoading } = useUser();
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
+function App() {
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Index />} />
-      <Route path="/tickets" element={<TicketsPage />} />
-      <Route path="/pass" element={<PassPage />} />
-      <Route path="/tracking" element={<LiveTrackingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/wallet" element={<WalletPage />} />
-      <Route path="/qr-scanner" element={<QRScannerPage />} />
-
-      {/* Admin Routes */}
-      <Route element={<AdminRoute />}>
-        <Route path="/admin/live-tracking" element={<AdminLiveTrackingPage />} />
-        <Route path="/routes" element={<RoutesPage />} />
-        <Route path="/buses" element={<BusesPage />} />
-        <Route path="/stations" element={<StationManagementPage />} />
-      </Route>
-
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <ClerkProvider publishableKey={clerkPubKey}>
+      <QueryClientProvider client={queryClient}>
+        <UserProvider>
+          <SidebarProvider>
+            <Router>
+              <div className="min-h-screen bg-background">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/wallet" element={<WalletPage />} />
+                  <Route path="/tickets" element={<TicketsPage />} />
+                  <Route path="/pass" element={<PassPage />} />
+                  <Route path="/live-tracking" element={<LiveTrackingPage />} />
+                  <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+                  <Route path="/admin/routes" element={<RoutesPage />} />
+                  <Route path="/admin/buses" element={<BusesPage />} />
+                  <Route path="/admin/stations" element={<StationManagementPage />} />
+                  <Route path="/admin/rides" element={<AdminRidesPage />} />
+                  <Route path="/admin/live-tracking" element={<AdminLiveTrackingPage />} />
+                  <Route path="/auth/*" element={<AuthPages />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <Toaster />
+              </div>
+            </Router>
+          </SidebarProvider>
+        </UserProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
   );
 }
-
-const App = () => (
-  <ClerkProvider 
-    publishableKey={PUBLISHABLE_KEY}
-    appearance={{
-      baseTheme: undefined,
-      variables: {
-        colorPrimary: "#FF7E1D"
-      }
-    }}
-  >
-    <QueryClientProvider client={queryClient}>
-      <UserProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppContent />
-          </BrowserRouter>
-        </TooltipProvider>
-      </UserProvider>
-    </QueryClientProvider>
-  </ClerkProvider>
-);
 
 export default App;

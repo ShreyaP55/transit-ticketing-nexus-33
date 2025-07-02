@@ -89,7 +89,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
         description: `Ticket: ${selectedStation?.name || 'Selected Station'}` 
       });
 
-      // Create the ticket
+      // Create the ticket with 12-hour expiry
       const response = await ticketsAPI.create({
         userId,
         routeId: selectedRouteId,
@@ -98,7 +98,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
         endStation: selectedStation?.name || "Selected Station",
         price,
         paymentIntentId: `wallet_${Date.now()}`,
-        expiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        expiryDate: new Date(Date.now() + 12 * 60 * 60 * 1000) // 12 hours
       });
 
       if (response.success) {
