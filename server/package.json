@@ -5,9 +5,14 @@
   "description": "Transit Ticketing API Server",
   "main": "index.js",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "build": "echo 'No build step required'",
+    "postinstall": "echo 'Dependencies installed successfully'"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -16,7 +21,10 @@
     "mongoose": "^6.9.0",
     "stripe": "^14.21.0",
     "helmet": "^7.1.0",
-    "express-rate-limit": "^7.1.5"
+    "express-rate-limit": "^7.1.5",
+    "jsonwebtoken": "^9.0.2",
+    "@clerk/clerk-sdk-node": "^4.13.23",
+    "express-validator": "^7.2.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

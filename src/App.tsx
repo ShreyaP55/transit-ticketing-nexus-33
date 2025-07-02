@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,7 +18,6 @@ import AdminLiveTrackingPage from "./pages/AdminLiveTrackingPage";
 import { LoginPage, SignupPage } from "./pages/AuthPages";
 import AdminRoute from "@/components/auth/AdminRoute";
 import WalletPage from "./pages/WalletPage";
-import QRScanPage from "./pages/QRScanPage";
 import QRScannerPage from "./pages/QRScannerPage";
 
 const queryClient = new QueryClient();
@@ -36,10 +36,10 @@ const LoadingScreen = () => (
   </div>
 );
 
-import { useUser } from "@/context/UserContext"; // <-- Add import
+import { useUser } from "@/context/UserContext";
 
 const AppContent = () => {
-  const { isLoading } = useUser(); // <-- Use hook here
+  const { isLoading } = useUser();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -55,12 +55,10 @@ const AppContent = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/wallet" element={<WalletPage />} />
-      <Route path="/qr-scan/:userId" element={<QRScanPage />} />
       <Route path="/qr-scanner" element={<QRScannerPage />} />
 
       {/* Admin Routes */}
       <Route element={<AdminRoute />}>
-        {/* Removed: <Route path="/admin" element={<AdminDashboardPage />} /> */}
         <Route path="/admin/live-tracking" element={<AdminLiveTrackingPage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/buses" element={<BusesPage />} />
