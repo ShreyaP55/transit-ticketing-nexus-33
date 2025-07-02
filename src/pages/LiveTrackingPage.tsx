@@ -5,7 +5,7 @@ import { routesAPI, busesAPI } from "@/services/api";
 import { IRoute, IBus } from "@/types";
 import { Bus, MapPin } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
-import LiveMap from "@/components/map/LiveMap";
+import LiveMap from "@/components/tracking/LiveMap";
 
 const LiveTrackingPage = () => {
   const [selectedRouteId, setSelectedRouteId] = useState<string>("");
