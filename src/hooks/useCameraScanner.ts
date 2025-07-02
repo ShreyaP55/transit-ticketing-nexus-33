@@ -16,8 +16,6 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout>();
   const mountedRef = useRef(true);
-  const retryCountRef = useRef(0);
-  const maxRetries = 5;
   
   const safeStopScanner = async () => {
     try {
@@ -96,40 +94,20 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
     }
   };
 
-  const waitForElement = (elementId: string, timeout = 3000): Promise<HTMLElement> => {
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      
-      const checkElement = () => {
-        const element = document.getElementById(elementId);
-        if (element) {
-          resolve(element);
-          return;
-        }
-        
-        if (Date.now() - startTime > timeout) {
-          reject(new Error(`Element with id ${elementId} not found after ${timeout}ms`));
-          return;
-        }
-        
-        setTimeout(checkElement, 100);
-      };
-      
-      checkElement();
-    });
-  };
-
   const initializeScanner = async () => {
     if (!mountedRef.current) return;
     
     try {
       setError(null);
-      retryCountRef.current++;
-      console.log(`Initializing QR scanner (attempt ${retryCountRef.current})...`);
+      console.log("Initializing QR scanner...");
       
-      // Wait for the DOM element to be available
-      await waitForElement(containerId, 3000);
-      
+      const scannerElement = document.getElementById(containerId);
+      if (!scannerElement) {
+        console.log("Scanner element not found, retrying...");
+        initTimeoutRef.current = setTimeout(initializeScanner, 200);
+        return;
+      }
+
       await safeStopScanner();
       clearScanner();
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -156,31 +134,23 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
         
         if (mountedRef.current) {
           setIsInitialized(true);
-          retryCountRef.current = 0; // Reset retry count on success
         }
       } else {
         throw new Error("No cameras found on this device");
       }
     } catch (err) {
-      console.error(`Error initializing scanner (attempt ${retryCountRef.current}):`, err);
+      console.error("Error initializing scanner:", err);
       if (mountedRef.current) {
         const errorMessage = err instanceof Error ? err.message : "Failed to initialize camera";
-        
-        if (retryCountRef.current < maxRetries) {
-          console.log(`Retrying in 1 second... (${retryCountRef.current}/${maxRetries})`);
-          initTimeoutRef.current = setTimeout(initializeScanner, 1000);
-        } else {
-          setError(errorMessage);
-          toast.error(`Camera Error: ${errorMessage}`);
-          onError(errorMessage);
-        }
+        setError(errorMessage);
+        toast.error(`Camera Error: ${errorMessage}`);
+        onError(errorMessage);
       }
     }
   };
 
   useEffect(() => {
     mountedRef.current = true;
-    retryCountRef.current = 0;
     initTimeoutRef.current = setTimeout(initializeScanner, 100);
     
     return () => {
@@ -195,7 +165,7 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
       };
       cleanup();
     };
-  }, [containerId, onScan, onError]);
+  }, [onScan, onError]);
 
   return {
     isScanning,

@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { routesAPI, busesAPI, stationsAPI, ticketsAPI } from "@/services/api";
-import { useWallet } from "@/services/walletService";
 import { toast } from "sonner";
-import { MapPin, Bus, CreditCard, Wallet } from "lucide-react";
+import { MapPin, Bus, CreditCard } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -19,8 +18,6 @@ interface NewTicketModalProps {
 export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChange }) => {
   const { userId } = useUser();
   const queryClient = useQueryClient();
-  const { wallet, deductFunds, isDeductingFunds, refetchWallet } = useWallet(userId || '');
-  
   const [selectedRouteId, setSelectedRouteId] = useState("");
   const [selectedBusId, setSelectedBusId] = useState("");
   const [selectedStationId, setSelectedStationId] = useState("");
@@ -42,10 +39,8 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
       setSelectedRouteId("");
       setSelectedBusId("");
       setSelectedStationId("");
-      // Refresh wallet balance when modal opens
-      refetchWallet();
     }
-  }, [open, refetchWallet]);
+  }, [open]);
 
   // Load buses when route changes
   useEffect(() => {
@@ -71,42 +66,15 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
   const selectedStation = stations.find(s => s._id === selectedStationId);
 
   const price = selectedStation?.fare || 0;
-  const currentBalance = wallet?.balance || 0;
-  const canAfford = currentBalance >= price;
 
   // Booking
   const handleProceedToBuy = async () => {
     if (!selectedRouteId || !selectedBusId || !selectedStationId || !userId) return;
-    
-    if (!canAfford) {
-      toast.error("Insufficient wallet balance", {
-        description: `You need ₹${price} but only have ₹${currentBalance.toFixed(2)}. Please add funds to your wallet.`
-      });
-      return;
-    }
 
     try {
       setIsProcessing(true);
-      toast.info("Processing ticket purchase...");
+      toast.info("Creating ticket...");
 
-      // First, deduct funds from wallet
-      await new Promise<void>((resolve, reject) => {
-        deductFunds(
-          { amount: price, description: `Ticket purchase - ${selectedStation?.name}` },
-          {
-            onSuccess: () => {
-              console.log("Funds deducted successfully");
-              resolve();
-            },
-            onError: (error: any) => {
-              console.error("Error deducting funds:", error);
-              reject(error);
-            }
-          }
-        );
-      });
-
-      // Then create the ticket
       const response = await ticketsAPI.create({
         userId,
         routeId: selectedRouteId,
@@ -114,25 +82,20 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
         startStation: selectedStation?.name || "Selected Station",
         endStation: selectedStation?.name || "Selected Station",
         price,
-        paymentIntentId: `wallet_${Date.now()}`,
+        paymentIntentId: `ticket_${Date.now()}`,
         expiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
       });
 
       if (response.success) {
-        toast.success("Ticket purchased successfully!", {
-          description: `₹${price} deducted from wallet. Remaining balance: ₹${(currentBalance - price).toFixed(2)}`
-        });
+        toast.success("Ticket purchased successfully!");
         queryClient.invalidateQueries({ queryKey: ["tickets", userId] });
-        await refetchWallet(); // Refresh wallet balance
         onOpenChange(false);
       } else {
         toast.error("Failed to create ticket");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Ticket creation error:", error);
-      toast.error("Failed to purchase ticket", {
-        description: error.message || "Please try again"
-      });
+      toast.error("Failed to create ticket");
     } finally {
       setIsProcessing(false);
     }
@@ -156,19 +119,6 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
           </DialogHeader>
           
           <div className="p-6 space-y-4">
-            {/* Wallet Balance Display */}
-            {wallet && (
-              <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-sm text-gray-400">
-                    <Wallet className="mr-2 h-4 w-4" />
-                    Wallet Balance
-                  </div>
-                  <div className="text-lg font-bold text-green-400">₹{currentBalance.toFixed(2)}</div>
-                </div>
-              </div>
-            )}
-
             <div>
               <label className="block mb-1 text-sm font-medium text-white">Route</label>
               <Select value={selectedRouteId} onValueChange={setSelectedRouteId} disabled={loadingRoutes}>
@@ -243,15 +193,8 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
 
             {price > 0 && (
               <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-400">Ticket Price</div>
-                  <div className="text-xl font-bold text-green-400">₹{price}</div>
-                </div>
-                {!canAfford && (
-                  <div className="text-xs text-red-400 mt-1">
-                    Insufficient balance! Need ₹{(price - currentBalance).toFixed(2)} more.
-                  </div>
-                )}
+                <div className="text-sm text-gray-400">Ticket Price</div>
+                <div className="text-xl font-bold text-green-400">₹{price}</div>
               </div>
             )}
           </div>
@@ -262,11 +205,11 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
             </DialogClose>
             <Button
               type="submit"
-              disabled={!selectedRouteId || !selectedBusId || !selectedStationId || isProcessing || isDeductingFunds || !canAfford}
+              disabled={!selectedRouteId || !selectedBusId || !selectedStationId || isProcessing}
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
             >
               <CreditCard className="mr-2 h-4 w-4" />
-              {isProcessing || isDeductingFunds ? "Processing..." : "Buy Ticket"}
+              {isProcessing ? "Purchasing..." : "Buy Ticket"}
             </Button>
           </DialogFooter>
         </form>
