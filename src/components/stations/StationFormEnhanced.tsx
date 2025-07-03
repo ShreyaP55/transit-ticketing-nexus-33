@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,8 +30,8 @@ export const StationFormEnhanced: React.FC<StationFormEnhancedProps> = ({
   const [formData, setFormData] = useState({
     name: station?.name || "",
     coordinates: {
-      lat: station?.coordinates?.lat || "",
-      lng: station?.coordinates?.lng || "",
+      lat: station?.coordinates?.lat || station?.latitude || "",
+      lng: station?.coordinates?.lng || station?.longitude || "",
     },
     fare: station?.fare || "",
   });
@@ -42,8 +43,8 @@ export const StationFormEnhanced: React.FC<StationFormEnhancedProps> = ({
       setFormData({
         name: station.name || "",
         coordinates: {
-          lat: station.coordinates?.lat || "",
-          lng: station.coordinates?.lng || "",
+          lat: station.coordinates?.lat || station.latitude || "",
+          lng: station.coordinates?.lng || station.longitude || "",
         },
         fare: station.fare || "",
       });
@@ -96,7 +97,10 @@ export const StationFormEnhanced: React.FC<StationFormEnhancedProps> = ({
       setIsLoading(true);
       
       const stationData = {
-        ...formData,
+        name: formData.name,
+        latitude: parseFloat(formData.coordinates.lat),
+        longitude: parseFloat(formData.coordinates.lng),
+        fare: parseFloat(formData.fare),
         routeId,
         busId,
       };
@@ -143,6 +147,7 @@ export const StationFormEnhanced: React.FC<StationFormEnhancedProps> = ({
             value={formData.coordinates.lat}
             onChange={handleChange}
             placeholder="Latitude"
+            step="any"
           />
           <Input
             type="number"
@@ -150,6 +155,7 @@ export const StationFormEnhanced: React.FC<StationFormEnhancedProps> = ({
             value={formData.coordinates.lng}
             onChange={handleChange}
             placeholder="Longitude"
+            step="any"
           />
         </div>
         {errors.coordinates && <p className="text-red-500 text-sm mt-1">{errors.coordinates}</p>}
@@ -165,6 +171,7 @@ export const StationFormEnhanced: React.FC<StationFormEnhancedProps> = ({
           onChange={handleChange}
           placeholder="Enter fare amount"
           className="mt-1"
+          step="any"
         />
         {errors.fare && <p className="text-red-500 text-sm mt-1">{errors.fare}</p>}
       </div>
