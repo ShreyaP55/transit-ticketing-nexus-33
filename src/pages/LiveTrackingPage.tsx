@@ -52,7 +52,7 @@ const LiveTrackingPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               {/* Route Selection */}
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">
+                <label className="block text-sm font-semibold text-gray-800">
                   <MapPin className="inline h-4 w-4 mr-1 text-blue-600" />
                   Select Route
                 </label>
@@ -68,7 +68,7 @@ const LiveTrackingPage = () => {
                   </SelectTrigger>
                   <SelectContent className="bg-white border-gray-200">
                     {routesLoading ? (
-                      <SelectItem value="loading" disabled className="text-gray-500">
+                      <SelectItem value="loading-routes" disabled className="text-gray-500">
                         Loading routes...
                       </SelectItem>
                     ) : routes.length > 0 ? (
@@ -82,7 +82,7 @@ const LiveTrackingPage = () => {
                         </SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="none" disabled className="text-gray-500">
+                      <SelectItem value="no-routes" disabled className="text-gray-500">
                         No routes available
                       </SelectItem>
                     )}
@@ -92,7 +92,7 @@ const LiveTrackingPage = () => {
 
               {/* Bus Selection */}
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">
+                <label className="block text-sm font-semibold text-gray-800">
                   <Bus className="inline h-4 w-4 mr-1 text-green-600" />
                   Filter by Bus
                 </label>
@@ -105,11 +105,11 @@ const LiveTrackingPage = () => {
                     <SelectValue placeholder={selectedRouteId ? "All buses" : "Select route first"} />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-gray-200">
-                    <SelectItem value="" className="text-gray-900 font-medium hover:bg-green-50">
+                    <SelectItem value="all-buses" className="text-gray-900 font-medium hover:bg-green-50">
                       All Buses
                     </SelectItem>
                     {busesLoading ? (
-                      <SelectItem value="loading" disabled className="text-gray-500">
+                      <SelectItem value="loading-buses" disabled className="text-gray-500">
                         Loading buses...
                       </SelectItem>
                     ) : buses.length > 0 ? (
@@ -127,7 +127,7 @@ const LiveTrackingPage = () => {
                         </SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="none" disabled className="text-gray-500">
+                      <SelectItem value="no-buses" disabled className="text-gray-500">
                         No buses available
                       </SelectItem>
                     )}
@@ -209,14 +209,14 @@ const LiveTrackingPage = () => {
           </CardContent>
         </Card>
 
-        {/* Bus Status Cards */}
+        {/* Bus Status Cards with improved styling */}
         {selectedRoute && filteredBuses.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredBuses.map((bus: IBus) => (
               <Card key={bus._id} className="bg-white shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-bold text-gray-900">{bus.name}</h4>
+                    <h4 className="font-bold text-gray-900 text-lg">{bus.name}</h4>
                     <Badge className="bg-green-100 text-green-800 font-medium">
                       Active
                     </Badge>

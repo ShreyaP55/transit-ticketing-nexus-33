@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -178,7 +177,7 @@ const StationForm: React.FC<StationFormProps> = ({
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-600">
                 {loadingRoutes ? (
-                  <SelectItem value="loading" disabled>Loading routes...</SelectItem>
+                  <SelectItem value="loading-routes" disabled>Loading routes...</SelectItem>
                 ) : routes.length > 0 ? (
                   routes.map((route) => (
                     <SelectItem key={route._id} value={route._id} className="text-white">
@@ -186,7 +185,7 @@ const StationForm: React.FC<StationFormProps> = ({
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="none" disabled>No routes available</SelectItem>
+                  <SelectItem value="no-routes-available" disabled>No routes available</SelectItem>
                 )}
               </SelectContent>
             </Select>
@@ -204,7 +203,7 @@ const StationForm: React.FC<StationFormProps> = ({
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-600">
                 {loadingBuses ? (
-                  <SelectItem value="loading" disabled>Loading buses...</SelectItem>
+                  <SelectItem value="loading-buses" disabled>Loading buses...</SelectItem>
                 ) : buses.length > 0 ? (
                   buses.map((bus) => (
                     <SelectItem key={bus._id} value={bus._id} className="text-white">
@@ -212,7 +211,7 @@ const StationForm: React.FC<StationFormProps> = ({
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="none" disabled>No buses available for this route</SelectItem>
+                  <SelectItem value="no-buses-available" disabled>No buses available for this route</SelectItem>
                 )}
               </SelectContent>
             </Select>
