@@ -1,13 +1,18 @@
 
 import React from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { MapPin } from "lucide-react";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+
+interface Station {
+  _id: string;
+  name: string;
+  fare: number;
+}
 
 interface StationSelectorProps {
-  stations: any[];
+  stations: Station[];
   selectedStationId: string;
-  onStationChange: (value: string) => void;
+  onStationChange: (stationId: string) => void;
   selectedBusId: string;
   isLoading: boolean;
 }
@@ -19,24 +24,29 @@ export const StationSelector: React.FC<StationSelectorProps> = ({
   selectedBusId,
   isLoading,
 }) => {
-  if (!selectedBusId) return null;
-
   return (
     <div>
-      <Label className="text-sm font-medium text-gray-300 mb-2 block">
-        <MapPin className="inline h-4 w-4 mr-1" />
-        Select Station
-      </Label>
-      <Select value={selectedStationId} onValueChange={onStationChange} disabled={isLoading}>
+      <label className="block mb-1 text-sm font-medium text-white">Station</label>
+      <Select
+        value={selectedStationId}
+        onValueChange={onStationChange}
+        disabled={!selectedBusId || isLoading}
+      >
         <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-          <SelectValue placeholder={isLoading ? "Loading stations..." : "Choose a station"} />
+          <SelectValue placeholder={!selectedBusId ? "Select a bus first" : "Select station"} />
         </SelectTrigger>
         <SelectContent className="bg-gray-800 border-gray-600">
-          {stations.filter(station => station._id && station.name).map((station) => (
-            <SelectItem key={station._id} value={station._id} className="text-white hover:bg-gray-700">
-              {station.name} - ₹{station.fare}
-            </SelectItem>
-          ))}
+          {isLoading ? (
+            <SelectItem value="loading" disabled>Loading...</SelectItem>
+          ) : stations.length ? (
+            stations.map(station => (
+              <SelectItem key={station._id} value={station._id} className="text-white">
+                {station.name} <Badge className="ml-2 bg-gray-700" variant="outline">₹{station.fare}</Badge>
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem value="none" disabled>No stations available</SelectItem>
+          )}
         </SelectContent>
       </Select>
     </div>

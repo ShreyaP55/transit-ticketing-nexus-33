@@ -24,17 +24,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "Home", icon: <Map size={20} />, path: "/" },
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
-    { name: "Live Tracking", icon: <Navigation size={20} />, path: "/live-tracking" },
-    { name: "Wallet", icon: <Wallet size={20} />, path: "/wallet" },
+    { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
+    { name: "QR", icon: <QrCode size={20} />, path: "/qr-scan/:userId" },
+    { name: "wallet", icon: <Wallet size={20} />, path: "/wallet" },
   ];
 
   const adminNavItems = [
-    { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin/dashboard" },
-    { name: "Routes", icon: <Route size={20} />, path: "/admin/routes" },
-    { name: "Buses", icon: <Bus size={20} />, path: "/admin/buses" },
-    { name: "Stations", icon: <MapPin size={20} />, path: "/admin/stations" },
+    { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin" },
+    { name: "Routes", icon: <Route size={20} />, path: "/routes" },
+    { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
+    { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
+    { name: "Scanner", icon: <ScanLine size={20} />, path: "/qr-scanner" },
     { name: "Admin Live Tracking", icon: <Navigation size={20} />, path: "/admin/live-tracking" },
-    { name: "Admin Rides", icon: <ScanLine size={20} />, path: "/admin/rides" },
   ];
 
   const navItems = [...publicNavItems, ...(isAdmin ? adminNavItems : [])];
@@ -47,6 +48,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     return location.pathname === item.path;
   });
 
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -54,34 +57,30 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="flex min-h-screen w-full transitBg">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
-          {/* Header - Fully responsive */}
-          <header className="h-14 md:h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 lg:px-8 sticky top-0 z-50">
-            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-              <SidebarTrigger className="lg:hidden flex-shrink-0 h-6 w-6 md:h-7 md:w-7" />
-              {currentNavItem && React.cloneElement(currentNavItem.icon as React.ReactElement, { 
-                className: "text-primary h-4 w-4 md:h-5 md:w-5 flex-shrink-0", 
-                size: undefined 
-              })}
-              <h1 className="text-sm md:text-lg lg:text-xl font-semibold text-foreground truncate">
+          <header className="h-12 sm:h-14 lg:h-16 bg-white shadow-md flex items-center justify-between px-2 sm:px-4 lg:px-6 sticky top-0 z-10">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+              <SidebarTrigger className="lg:hidden flex-shrink-0 h-6 w-6 sm:h-7 sm:w-7" />
+              {currentNavItem && React.cloneElement(currentNavItem.icon as React.ReactElement, { className: "text-transit-orange-dark h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 flex-shrink-0", size: undefined })}
+              <h1 className="text-xs sm:text-sm lg:text-xl font-semibold text-transit-orange-dark truncate">
                 {title || "TransitNexus"}
               </h1>
             </div>
-            <div className="flex items-center gap-2 md:gap-3 lg:gap-4 flex-shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 flex-shrink-0">
               {isAdmin && (
-                <span className="bg-amber-100 text-amber-800 px-2 md:px-3 py-1 rounded-full text-xs font-medium">
+                <span className="bg-amber-100 text-amber-800 px-1 sm:px-2 lg:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium">
                   <span className="hidden sm:inline">Admin</span>
                   <span className="sm:hidden">A</span>
                 </span>
               )}
               {isAuthenticated && (
-                <div className="flex items-center h-8 w-8 md:h-9 md:w-9 lg:h-10 lg:w-10">
+                <div className="flex items-center h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10">
                   <UserButton 
                     appearance={{
                       elements: {
-                        avatarBox: "h-8 w-8 md:h-9 md:w-9 lg:h-10 lg:w-10 border border-primary shadow"
+                        avatarBox: "h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 border border-primary shadow"
                       }
                     }}
                     userProfileMode="modal"
@@ -90,17 +89,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
               )}
             </div>
           </header>
-
-          {/* Main Content - Responsive padding and layout */}
-          <main className="flex-1 p-4 md:p-6 lg:p-8 xl:p-10 min-w-0 w-full max-w-full overflow-x-hidden">
-            <div className="w-full max-w-7xl mx-auto">
-              {children}
-            </div>
-          </main>
-
-          {/* Footer - Responsive */}
-          <footer className="bg-card border-t border-border p-3 md:p-4 text-center text-xs md:text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} TransitNexus. All rights reserved.
+          <main className="flex-1 p-1 sm:p-2 md:p-4 lg:p-6 min-w-0">{children}</main>
+          <footer className="bg-white p-2 sm:p-3 lg:p-4 text-center text-xs sm:text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} BusInn. All rights reserved.
           </footer>
         </div>
       </div>

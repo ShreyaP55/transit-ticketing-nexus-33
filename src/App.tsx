@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider } from '@clerk/clerk-react';
@@ -28,8 +29,6 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
     },
   },
 });
@@ -54,20 +53,14 @@ function App() {
                   <Route path="/tickets" element={<TicketsPage />} />
                   <Route path="/pass" element={<PassPage />} />
                   <Route path="/live-tracking" element={<LiveTrackingPage />} />
-                  
-                  {/* Admin Routes */}
                   <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
                   <Route path="/admin/routes" element={<AdminRoute><RoutesPage /></AdminRoute>} />
                   <Route path="/admin/buses" element={<AdminRoute><BusesPage /></AdminRoute>} />
                   <Route path="/admin/stations" element={<AdminRoute><StationManagementPage /></AdminRoute>} />
                   <Route path="/admin/rides" element={<AdminRoute><AdminRidesPage /></AdminRoute>} />
                   <Route path="/admin/live-tracking" element={<AdminRoute><AdminLiveTrackingPage /></AdminRoute>} />
-                  
-                  {/* Auth Routes */}
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/signup" element={<SignupPage />} />
-                  
-                  {/* Catch all route */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 <Toaster />

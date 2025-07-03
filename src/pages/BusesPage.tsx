@@ -31,7 +31,7 @@ const BusesPage = () => {
 
   const filteredBuses = buses.filter((bus) => {
     const matchesSearch = bus.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRoute = !selectedRoute || selectedRoute === "all" || (typeof bus.route === 'object' && bus.route?._id === selectedRoute);
+    const matchesRoute = !selectedRoute || (typeof bus.route === 'object' && bus.route?._id === selectedRoute);
     return matchesSearch && matchesRoute;
   });
 
@@ -50,23 +50,23 @@ const BusesPage = () => {
 
   return (
     <MainLayout title="Bus Management">
-      <div className="space-y-4 md:space-y-6 w-full">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <Bus className="h-6 w-6 text-primary" />
-            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Bus Management</h1>
+            <h1 className="text-2xl font-bold">Bus Management</h1>
           </div>
-          <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto">
+          <Button onClick={() => setIsFormOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Bus
           </Button>
         </div>
 
         {/* Search and Filters */}
-        <Card className="w-full">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex flex-col lg:flex-row gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -74,14 +74,13 @@ const BusesPage = () => {
                     placeholder="Search buses..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full"
+                    className="pl-10"
                   />
                 </div>
               </div>
               <Button
                 variant="outline"
                 onClick={() => setShowFilters(!showFilters)}
-                className="w-full lg:w-auto"
               >
                 <Filter className="mr-2 h-4 w-4" />
                 Filters
@@ -103,8 +102,8 @@ const BusesPage = () => {
 
         {/* Loading State */}
         {isLoading ? (
-          <Card className="w-full">
-            <CardContent className="p-8 md:p-12">
+          <Card>
+            <CardContent className="p-8">
               <div className="flex flex-col items-center justify-center space-y-4">
                 <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
                 <div className="text-center">
@@ -115,13 +114,11 @@ const BusesPage = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="w-full overflow-hidden">
-            <BusTable
-              buses={filteredBuses}
-              onEdit={handleEdit}
-              onRefresh={refetch}
-            />
-          </div>
+          <BusTable
+            buses={filteredBuses}
+            onEdit={handleEdit}
+            onRefresh={refetch}
+          />
         )}
 
         {/* Bus Form Modal */}

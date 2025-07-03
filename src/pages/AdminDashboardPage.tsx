@@ -1,269 +1,271 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Users, CreditCard, MapPin, Calendar, Clock, CheckCircle } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
-import { fetchAPI } from "@/services/api/base";
-
-interface PassUsage {
-  _id: string;
-  userId: string;
-  userName: string;
-  passId: string;
-  usedAt: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
-  busId: string;
-  busName: string;
-}
-
-interface Ride {
-  _id: string;
-  userId: string;
-  userName: string;
-  busId: string;
-  busName: string;
-  active: boolean;
-  startLocation: {
-    latitude: number;
-    longitude: number;
-    timestamp: string;
-  };
-  endLocation?: {
-    latitude: number;
-    longitude: number;
-    timestamp: string;
-  };
-  distance?: number;
-  duration?: number;
-  fare?: number;
-}
-
-interface CompletedRidesResponse {
-  rides: Ride[];
-  totalPages: number;
-  currentPage: number;
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { BarChart3, Users, Navigation, MapPin, Clock, Calendar } from "lucide-react";
+import { format } from "date-fns";
+import { passesAPI, tripsAPI } from "@/services/api";
 
 const AdminDashboardPage = () => {
-  // Fetch pass usage history
-  const { data: passUsages = [], isLoading: passUsagesLoading } = useQuery<PassUsage[]>({
-    queryKey: ["admin-pass-usages"],
-    queryFn: () => fetchAPI("/passes/usage-history"),
-    refetchInterval: 30000, // Refresh every 30 seconds
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const { data: passUsageHistory = [], isLoading: isLoadingUsage } = useQuery({
+    queryKey: ["admin-pass-usage"],
+    queryFn: () => passesAPI.getPassUsage(),
   });
 
-  // Fetch active rides
-  const { data: activeRides = [], isLoading: activeRidesLoading } = useQuery<Ride[]>({
-    queryKey: ["admin-active-rides"],
-    queryFn: () => fetchAPI("/rides/active"),
-    refetchInterval: 10000, // Refresh every 10 seconds
+  const { data: allTrips = [], isLoading: isLoadingTrips } = useQuery({
+    queryKey: ["admin-all-trips"],
+    queryFn: () => tripsAPI.getUserTrips("all"), // We'll need to modify this endpoint
   });
 
-  // Fetch completed rides
-  const { data: completedRidesData, isLoading: completedRidesLoading } = useQuery<CompletedRidesResponse>({
-    queryKey: ["admin-completed-rides"],
-    queryFn: () => fetchAPI("/rides/completed?limit=10"),
-    refetchInterval: 60000, // Refresh every minute
-  });
+  const activeRiders = allTrips.filter(trip => trip.active);
+  const completedRides = allTrips.filter(trip => !trip.active);
 
-  const completedRides = completedRidesData?.rides || [];
-
-  const stats = [
-    {
-      title: "Active Riders",
-      value: activeRides.length,
-      icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-100 dark:bg-green-900/20",
-    },
-    {
-      title: "Pass Usages Today",
-      value: passUsages.filter((usage: PassUsage) => {
-        const today = new Date().toDateString();
-        return new Date(usage.usedAt).toDateString() === today;
-      }).length,
-      icon: CreditCard,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100 dark:bg-blue-900/20",
-    },
-    {
-      title: "Completed Rides",
-      value: completedRides.length,
-      icon: CheckCircle,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100 dark:bg-purple-900/20",
-    },
-  ];
+  const stats = {
+    totalPassUsage: passUsageHistory.length,
+    activeRiders: activeRiders.length,
+    completedRides: completedRides.length,
+    totalRevenue: completedRides.reduce((sum, trip) => sum + (trip.fare || 0), 0),
+  };
 
   return (
     <MainLayout title="Admin Dashboard">
-      <div className="space-y-6 w-full">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <Users className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Admin Dashboard</h1>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pass Validations</CardTitle>
+              <Navigation className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalPassUsage}</div>
+              <p className="text-xs text-muted-foreground">Total pass scans</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Riders</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.activeRiders}</div>
+              <p className="text-xs text-muted-foreground">Currently traveling</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completed Rides</CardTitle>
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.completedRides}</div>
+              <p className="text-xs text-muted-foreground">Total finished trips</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹{stats.totalRevenue.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">From completed rides</p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {stats.map((stat) => (
-            <Card key={stat.title} className="w-full">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl md:text-3xl font-bold">{stat.value}</p>
-                  </div>
-                  <div className={`p-2 md:p-3 rounded-full ${stat.bgColor}`}>
-                    <stat.icon className={`h-4 w-4 md:h-6 md:w-6 ${stat.color}`} />
-                  </div>
+        {/* Detailed Views */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full">
+            <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
+            <TabsTrigger value="pass-usage" className="flex-1">Pass Usage History</TabsTrigger>
+            <TabsTrigger value="active-riders" className="flex-1">Active Riders</TabsTrigger>
+            <TabsTrigger value="completed-rides" className="flex-1">Completed Rides</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Pass Validations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingUsage ? (
+                    <p>Loading...</p>
+                  ) : passUsageHistory.slice(0, 5).map((usage) => (
+                    <div key={usage._id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                      <div>
+                        <p className="font-medium">User: {usage.userId}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {usage.location || "Unknown Location"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm">{format(new Date(usage.scannedAt), "h:mm a")}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(usage.scannedAt), "MMM d")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Trips</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingTrips ? (
+                    <p>Loading...</p>
+                  ) : activeRiders.slice(0, 5).map((trip) => (
+                    <div key={trip._id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                      <div>
+                        <p className="font-medium">User: {trip.userId}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Started: {format(new Date(trip.createdAt), "h:mm a")}
+                        </p>
+                      </div>
+                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="pass-usage">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Navigation className="h-5 w-5" />
+                  Pass Usage History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {isLoadingUsage ? (
+                    <p>Loading pass usage history...</p>
+                  ) : passUsageHistory.map((usage) => (
+                    <div key={usage._id} className="flex justify-between items-center p-4 border rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <p className="font-medium">User ID: {usage.userId}</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {usage.location || "Unknown Location"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="flex items-center gap-1 text-sm">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(usage.scannedAt), "h:mm a")}
+                        </p>
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {format(new Date(usage.scannedAt), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* Pass Usage History */}
-          <Card className="w-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg md:text-xl flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Recent Pass Usages
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 max-h-96 overflow-y-auto">
-              {passUsagesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
+          </TabsContent>
+          
+          <TabsContent value="active-riders">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Active Riders ({activeRiders.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {isLoadingTrips ? (
+                    <p>Loading active riders...</p>
+                  ) : activeRiders.map((trip) => (
+                    <div key={trip._id} className="flex justify-between items-center p-4 border rounded-lg">
+                      <div>
+                        <p className="font-medium">User: {trip.userId}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Trip started: {format(new Date(trip.createdAt), "MMM d, yyyy h:mm a")}
+                        </p>
+                        {trip.startLocation && (
+                          <p className="text-xs text-muted-foreground">
+                            Location: {trip.startLocation.latitude.toFixed(4)}, {trip.startLocation.longitude.toFixed(4)}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <Badge className="bg-green-100 text-green-800 mb-2">Active</Badge>
+                        <p className="text-xs text-muted-foreground">
+                          Duration: {Math.floor((Date.now() - new Date(trip.createdAt).getTime()) / (1000 * 60))} min
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {activeRiders.length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">No active riders at the moment</p>
+                  )}
                 </div>
-              ) : passUsages.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No pass usages found</p>
-              ) : (
-                passUsages.slice(0, 10).map((usage: PassUsage) => (
-                  <div key={usage._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-muted/50 rounded-lg gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-medium truncate">{usage.userName}</p>
-                        <Badge variant="outline" className="text-xs">Pass</Badge>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="completed-rides">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Completed Rides ({completedRides.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {isLoadingTrips ? (
+                    <p>Loading completed rides...</p>
+                  ) : completedRides.map((trip) => (
+                    <div key={trip._id} className="flex justify-between items-center p-4 border rounded-lg">
+                      <div>
+                        <p className="font-medium">User: {trip.userId}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(trip.createdAt), "MMM d, yyyy h:mm a")}
+                        </p>
+                        {trip.duration && (
+                          <p className="text-xs text-muted-foreground">
+                            Duration: {Math.floor(trip.duration / 60)} minutes
+                          </p>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">
-                          {usage.location.latitude.toFixed(4)}, {usage.location.longitude.toFixed(4)}
-                        </span>
+                      <div className="text-right">
+                        <Badge variant="outline" className="mb-2">Completed</Badge>
+                        {trip.fare && (
+                          <p className="text-sm font-medium">₹{trip.fare.toFixed(2)}</p>
+                        )}
+                        {trip.distance && (
+                          <p className="text-xs text-muted-foreground">
+                            {trip.distance.toFixed(2)} km
+                          </p>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">Bus: {usage.busName}</p>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-3 w-3" />
-                      <span className="whitespace-nowrap">
-                        {new Date(usage.usedAt).toLocaleDateString()}
-                      </span>
-                      <Clock className="h-3 w-3 ml-2" />
-                      <span className="whitespace-nowrap">
-                        {new Date(usage.usedAt).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Active Rides */}
-          <Card className="w-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg md:text-xl flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Active Rides ({activeRides.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 max-h-96 overflow-y-auto">
-              {activeRidesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
+                  ))}
                 </div>
-              ) : activeRides.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No active rides</p>
-              ) : (
-                activeRides.map((ride: Ride) => (
-                  <div key={ride._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-medium truncate">{ride.userName}</p>
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 text-xs">
-                          Active
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">
-                          {ride.startLocation.latitude.toFixed(4)}, {ride.startLocation.longitude.toFixed(4)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">Bus: {ride.busName}</p>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-3 w-3" />
-                      <span className="whitespace-nowrap">
-                        {new Date(ride.startLocation.timestamp).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Completed Rides */}
-        <Card className="w-full">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg md:text-xl flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Recent Completed Rides
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {completedRidesLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
-              </div>
-            ) : completedRides.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No completed rides found</p>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {completedRides.map((ride: Ride) => (
-                  <div key={ride._id} className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="font-medium">{ride.userName}</p>
-                      <Badge variant="secondary" className="text-xs">Completed</Badge>
-                    </div>
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      <p>Bus: {ride.busName}</p>
-                      {ride.distance && <p>Distance: {ride.distance.toFixed(2)} km</p>}
-                      {ride.duration && <p>Duration: {Math.round(ride.duration)} min</p>}
-                      {ride.fare && <p>Fare: ₹{ride.fare.toFixed(2)}</p>}
-                    </div>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      <span>
-                        {ride.endLocation && new Date(ride.endLocation.timestamp).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </MainLayout>
   );
