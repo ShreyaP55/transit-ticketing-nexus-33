@@ -10,9 +10,9 @@ interface AdminRouteProps {
 }
 
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  const { isAuthenticated, isAdmin, loading } = useUser();
+  const { isAuthenticated, isAdmin, isLoading } = useUser(); // Changed from 'loading' to 'isLoading'
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md">

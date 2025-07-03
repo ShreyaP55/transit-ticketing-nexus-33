@@ -43,23 +43,29 @@ interface Ride {
   fare?: number;
 }
 
+interface CompletedRidesResponse {
+  rides: Ride[];
+  totalPages: number;
+  currentPage: number;
+}
+
 const AdminDashboardPage = () => {
   // Fetch pass usage history
-  const { data: passUsages = [], isLoading: passUsagesLoading } = useQuery({
+  const { data: passUsages = [], isLoading: passUsagesLoading } = useQuery<PassUsage[]>({
     queryKey: ["admin-pass-usages"],
     queryFn: () => fetchAPI("/passes/usage-history"),
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   // Fetch active rides
-  const { data: activeRides = [], isLoading: activeRidesLoading } = useQuery({
+  const { data: activeRides = [], isLoading: activeRidesLoading } = useQuery<Ride[]>({
     queryKey: ["admin-active-rides"],
     queryFn: () => fetchAPI("/rides/active"),
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
   // Fetch completed rides
-  const { data: completedRidesData, isLoading: completedRidesLoading } = useQuery({
+  const { data: completedRidesData, isLoading: completedRidesLoading } = useQuery<CompletedRidesResponse>({
     queryKey: ["admin-completed-rides"],
     queryFn: () => fetchAPI("/rides/completed?limit=10"),
     refetchInterval: 60000, // Refresh every minute

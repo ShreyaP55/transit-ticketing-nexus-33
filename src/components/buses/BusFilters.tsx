@@ -29,9 +29,9 @@ const BusFilters: React.FC<BusFiltersProps> = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All routes</SelectItem>
-            {routes.filter(route => route._id && route.name).map((route) => (
+            {routes.filter(route => route._id && route.start && route.end).map((route) => (
               <SelectItem key={route._id} value={route._id}>
-                {route.name}
+                {route.start} - {route.end}
               </SelectItem>
             ))}
           </SelectContent>
