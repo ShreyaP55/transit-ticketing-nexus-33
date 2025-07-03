@@ -13,7 +13,15 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
   redirectPath = "/login", 
   children 
 }) => {
-  const { isAuthenticated, isAdmin } = useUser();
+  const { isAuthenticated, isAdmin, isLoading } = useUser();
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-transit-orange"></div>
+      </div>
+    );
+  }
   
   if (!isAuthenticated) {
     toast.error("You must be logged in to access this page");

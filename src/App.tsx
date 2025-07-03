@@ -5,7 +5,6 @@ import { ClerkProvider } from '@clerk/clerk-react';
 import { UserProvider } from './context/UserContext';
 import { Toaster } from "@/components/ui/sonner";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { useUser } from "@/context/UserContext";
 
 // Import pages
 import Index from "@/pages/Index";
@@ -39,6 +38,30 @@ if (!clerkPubKey) {
   throw new Error("Missing Clerk Publishable Key");
 }
 
+const AppContent = () => {
+  return (
+    <div className="min-h-screen bg-background">
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/tickets" element={<TicketsPage />} />
+        <Route path="/pass" element={<PassPage />} />
+        <Route path="/live-tracking" element={<LiveTrackingPage />} />
+        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+        <Route path="/admin/routes" element={<AdminRoute><RoutesPage /></AdminRoute>} />
+        <Route path="/admin/buses" element={<AdminRoute><BusesPage /></AdminRoute>} />
+        <Route path="/admin/stations" element={<AdminRoute><StationManagementPage /></AdminRoute>} />
+        <Route path="/admin/rides" element={<AdminRoute><AdminRidesPage /></AdminRoute>} />
+        <Route path="/admin/live-tracking" element={<AdminRoute><AdminLiveTrackingPage /></AdminRoute>} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Toaster />
+    </div>
+  );
+};
+
 function App() {
   return (
     <ClerkProvider publishableKey={clerkPubKey}>
@@ -46,25 +69,7 @@ function App() {
         <UserProvider>
           <SidebarProvider>
             <Router>
-              <div className="min-h-screen bg-background">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/wallet" element={<WalletPage />} />
-                  <Route path="/tickets" element={<TicketsPage />} />
-                  <Route path="/pass" element={<PassPage />} />
-                  <Route path="/live-tracking" element={<LiveTrackingPage />} />
-                  <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
-                  <Route path="/admin/routes" element={<AdminRoute><RoutesPage /></AdminRoute>} />
-                  <Route path="/admin/buses" element={<AdminRoute><BusesPage /></AdminRoute>} />
-                  <Route path="/admin/stations" element={<AdminRoute><StationManagementPage /></AdminRoute>} />
-                  <Route path="/admin/rides" element={<AdminRoute><AdminRidesPage /></AdminRoute>} />
-                  <Route path="/admin/live-tracking" element={<AdminRoute><AdminLiveTrackingPage /></AdminRoute>} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/signup" element={<SignupPage />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <Toaster />
-              </div>
+              <AppContent />
             </Router>
           </SidebarProvider>
         </UserProvider>
