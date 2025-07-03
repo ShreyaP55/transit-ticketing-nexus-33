@@ -24,15 +24,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     { name: "Home", icon: <Map size={20} />, path: "/" },
     { name: "My Tickets", icon: <Ticket size={20} />, path: "/tickets" },
     { name: "Monthly Pass", icon: <Calendar size={20} />, path: "/pass" },
-    { name: "Live Tracking", icon: <Navigation size={20} />, path: "/live-tracking" },
-    { name: "Wallet", icon: <Wallet size={20} />, path: "/wallet" },
+    { name: "Live Tracking", icon: <Navigation size={20} />, path: "/tracking" },
+    { name: "QR", icon: <QrCode size={20} />, path: "/qr-scan/:userId" },
+    { name: "wallet", icon: <Wallet size={20} />, path: "/wallet" },
   ];
 
   const adminNavItems = [
-    { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin/dashboard" },
-    { name: "Routes", icon: <Route size={20} />, path: "/admin/routes" },
-    { name: "Buses", icon: <Bus size={20} />, path: "/admin/buses" },
-    { name: "Stations", icon: <MapPin size={20} />, path: "/admin/stations" },
+    { name: "Admin Dashboard", icon: <Settings size={20} />, path: "/admin" },
+    { name: "Routes", icon: <Route size={20} />, path: "/routes" },
+    { name: "Buses", icon: <Bus size={20} />, path: "/buses" },
+    { name: "Stations", icon: <MapPin size={20} />, path: "/stations" },
+    { name: "Scanner", icon: <ScanLine size={20} />, path: "/qr-scanner" },
     { name: "Admin Live Tracking", icon: <Navigation size={20} />, path: "/admin/live-tracking" },
   ];
 
@@ -73,7 +75,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
                   <span className="sm:hidden">A</span>
                 </span>
               )}
-              {isAuthenticated ? (
+              {isAuthenticated && (
                 <div className="flex items-center h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10">
                   <UserButton 
                     appearance={{
@@ -84,17 +86,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
                     userProfileMode="modal"
                   />
                 </div>
-              ) : (
-                <Button
-                  onClick={() => navigate("/login")}
-                  className="bg-transit-orange hover:bg-transit-orange-dark text-white px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium"
-                >
-                  Login
-                </Button>
               )}
             </div>
           </header>
-          <main className="flex-1 p-1 sm:p-2 md:p-4 lg:p-6 min-w-0 max-w-full overflow-x-hidden">{children}</main>
+          <main className="flex-1 p-1 sm:p-2 md:p-4 lg:p-6 min-w-0">{children}</main>
           <footer className="bg-white p-2 sm:p-3 lg:p-4 text-center text-xs sm:text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} BusInn. All rights reserved.
           </footer>

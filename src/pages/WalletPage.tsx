@@ -1,16 +1,18 @@
 
-import React from "react";
+import React, { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import MainLayout from "@/components/layout/MainLayout";
 import WalletCard from "@/components/wallet/WalletCard";
 import UserQRCode from "@/components/wallet/UserQRCode";
+import RideHistory from "@/components/rides/RideHistory";
 import { ActiveTripDisplay } from '@/components/trips/ActiveTripDisplay';
 import { tripsAPI } from '@/services/api';
+import { rideService } from '@/services/rideService';
 import { useUser } from "@/context/UserContext";
-import { useQuery } from "@tanstack/react-query";
 
 const WalletPage: React.FC = () => {
-  const { userId } = useUser();
+  const { userId, isAuthenticated } = useUser();
 
   // Add active trip query
   const { data: activeTrip } = useQuery({
@@ -19,6 +21,40 @@ const WalletPage: React.FC = () => {
     enabled: !!userId,
     retry: 1,
   });
+
+  const {
+    data: rideHistory,
+    isLoading: isLoadingHistory,
+    error: historyError,
+    refetch: fetchHistory,
+  } = useQuery({
+    queryKey: ["rideHistory", userId],
+    queryFn: () => {
+      if (!userId) {
+        return Promise.resolve([]);
+      }
+      return fetchHistoryForUser(userId);
+    },
+    enabled: isAuthenticated,
+    retry: 1,
+  });
+
+  useEffect(() => {
+    if (userId && isAuthenticated) {
+      fetchHistory();
+    }
+  }, [userId, isAuthenticated, fetchHistory]);
+
+  const fetchHistoryForUser = async (userId: string) => {
+    try {
+      // Fetch ride history using the service
+      const rideHistory = await rideService.fetchRideHistory(userId);
+      return rideHistory;
+    } catch (error) {
+      console.error("Error fetching ride history:", error);
+      return [];
+    }
+  };
 
   return (
     <MainLayout title="Wallet">
@@ -33,6 +69,18 @@ const WalletPage: React.FC = () => {
         
         {/* User QR Code */}
         <UserQRCode />
+        
+        {/* Ride History Section */}
+        <section className="mt-8">
+          <h2 className="text-2xl font-semibold mb-4">Ride History</h2>
+          {isLoadingHistory ? (
+            <p>Loading ride history...</p>
+          ) : historyError ? (
+            <p>Error loading ride history: {historyError.message}</p>
+          ) : (
+            <RideHistory rides={rideHistory} />
+          )}
+        </section>
       </div>
     </MainLayout>
   );

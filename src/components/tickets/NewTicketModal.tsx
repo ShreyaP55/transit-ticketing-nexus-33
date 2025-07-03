@@ -1,20 +1,15 @@
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { routesAPI, busesAPI, stationsAPI, ticketsAPI } from "@/services/api";
 import { toast } from "sonner";
-import { MapPin } from "lucide-react";
+import { MapPin, Bus, CreditCard, Wallet, AlertTriangle } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "@/services/walletService";
-
-// Component imports
-import { WalletBalanceDisplay } from "./components/WalletBalanceDisplay";
-import { RouteSelector } from "./components/RouteSelector";
-import { BusSelector } from "./components/BusSelector";
-import { StationSelector } from "./components/StationSelector";
-import { PriceDisplay } from "./components/PriceDisplay";
-import { TicketModalActions } from "./components/TicketModalActions";
 
 interface NewTicketModalProps {
   open: boolean;
@@ -69,14 +64,15 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
     }
   }, [selectedBusId, selectedRouteId]);
 
+  const selectedRoute = routes.find(r => r._id === selectedRouteId);
+  const selectedBus = buses.find(b => b._id === selectedBusId);
   const selectedStation = stations.find(s => s._id === selectedStationId);
   const price = selectedStation?.fare || 0;
   const walletBalance = wallet?.balance || 0;
   const hasSufficientFunds = walletBalance >= price;
-  const isFormValid = selectedRouteId && selectedBusId && selectedStationId && userId;
 
   const handleProceedToBuy = async () => {
-    if (!isFormValid) return;
+    if (!selectedRouteId || !selectedBusId || !selectedStationId || !userId) return;
 
     if (!hasSufficientFunds) {
       toast.error(`Insufficient funds! You need ₹${price} but only have ₹${walletBalance.toFixed(2)}`);
@@ -93,7 +89,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
         description: `Ticket: ${selectedStation?.name || 'Selected Station'}` 
       });
 
-      // Create the ticket with 12-hour expiry
+      // Create the ticket
       const response = await ticketsAPI.create({
         userId,
         routeId: selectedRouteId,
@@ -102,7 +98,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
         endStation: selectedStation?.name || "Selected Station",
         price,
         paymentIntentId: `wallet_${Date.now()}`,
-        expiryDate: new Date(Date.now() + 12 * 60 * 60 * 1000) // 12 hours
+        expiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
       });
 
       if (response.success) {
@@ -139,41 +135,120 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
           </DialogHeader>
           
           <div className="p-6 space-y-4">
-            <WalletBalanceDisplay balance={walletBalance} isLoading={isWalletLoading} />
-            
-            <RouteSelector
-              routes={routes}
-              selectedRouteId={selectedRouteId}
-              onRouteChange={setSelectedRouteId}
-              isLoading={loadingRoutes}
-            />
+            {/* Wallet Balance Display */}
+            <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-sm text-gray-400">
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Wallet Balance
+                </div>
+                <div className="text-lg font-bold text-green-400">
+                  ₹{isWalletLoading ? "..." : walletBalance.toFixed(2)}
+                </div>
+              </div>
+            </div>
 
-            <BusSelector
-              buses={buses}
-              selectedBusId={selectedBusId}
-              onBusChange={setSelectedBusId}
-              selectedRouteId={selectedRouteId}
-              isLoading={loadingBuses}
-            />
+            <div>
+              <label className="block mb-1 text-sm font-medium text-white">Route</label>
+              <Select value={selectedRouteId} onValueChange={setSelectedRouteId} disabled={loadingRoutes}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue placeholder="Select a route" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  {loadingRoutes ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : (
+                    routes.length
+                      ? routes.map(route =>
+                        <SelectItem key={route._id} value={route._id} className="text-white">
+                          {route.start} - {route.end}
+                        </SelectItem>)
+                      : <SelectItem value="none" disabled>No routes available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <StationSelector
-              stations={stations}
-              selectedStationId={selectedStationId}
-              onStationChange={setSelectedStationId}
-              selectedBusId={selectedBusId}
-              isLoading={loadingStations}
-            />
+            <div>
+              <label className="block mb-1 text-sm font-medium text-white">Bus</label>
+              <Select 
+                value={selectedBusId} 
+                onValueChange={setSelectedBusId} 
+                disabled={!selectedRouteId || loadingBuses}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue placeholder={!selectedRouteId ? "Select a route first" : "Select a bus"} />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  {loadingBuses ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : (
+                    buses.length 
+                      ? buses.map(bus => 
+                        <SelectItem key={bus._id} value={bus._id} className="text-white">
+                          {bus.name} <Badge className="ml-2 bg-gray-700" variant="outline">cap: {bus.capacity}</Badge>
+                        </SelectItem>
+                      )
+                      : <SelectItem value="none" disabled>No buses available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <PriceDisplay price={price} hasSufficientFunds={hasSufficientFunds} />
+            <div>
+              <label className="block mb-1 text-sm font-medium text-white">Station</label>
+              <Select
+                value={selectedStationId}
+                onValueChange={setSelectedStationId}
+                disabled={!selectedBusId || loadingStations}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue placeholder={!selectedBusId ? "Select a bus first" : "Select station"} />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  {loadingStations ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : (
+                    stations.length
+                      ? stations.map(station =>
+                        <SelectItem key={station._id} value={station._id} className="text-white">
+                          {station.name} <Badge className="ml-2 bg-gray-700" variant="outline">₹{station.fare}</Badge>
+                        </SelectItem>)
+                      : <SelectItem value="none" disabled>No stations available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {price > 0 && (
+              <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-400">Ticket Price</div>
+                  <div className="text-xl font-bold text-blue-400">₹{price}</div>
+                </div>
+                {!hasSufficientFunds && (
+                  <div className="flex items-center mt-2 text-red-400 text-sm">
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    Insufficient wallet balance
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <TicketModalActions
-            isFormValid={!!isFormValid}
-            isProcessing={isProcessing}
-            hasSufficientFunds={hasSufficientFunds}
-            price={price}
-            onSubmit={handleProceedToBuy}
-          />
+          <DialogFooter className="flex flex-col sm:flex-row justify-between items-center border-t border-gray-700 p-4 bg-gray-800">
+            <DialogClose asChild>
+              <Button variant="outline" className="w-full sm:w-auto bg-gray-700 border-gray-600 text-white hover:bg-gray-600">Cancel</Button>
+            </DialogClose>
+            <Button
+              type="submit"
+              disabled={!selectedRouteId || !selectedBusId || !selectedStationId || isProcessing || !hasSufficientFunds}
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              {isProcessing ? "Processing..." : `Buy Ticket (₹${price})`}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

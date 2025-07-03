@@ -7,7 +7,7 @@ import { IBus, IRoute } from "@/types";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BusTable } from "@/components/buses/BusTable";
+import BusTable from "@/components/buses/BusTable";
 import BusForm from "@/components/buses/BusForm";
 import BusFilters from "@/components/buses/BusFilters";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +38,16 @@ const BusesPage = () => {
   const handleEdit = (bus: IBus) => {
     setEditingBus(bus);
     setIsFormOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    // Handle delete logic here
+    console.log('Delete bus:', id);
+  };
+
+  const handleGenerateQR = (bus: IBus) => {
+    // Handle QR generation logic here
+    console.log('Generate QR for bus:', bus);
   };
 
   const handleFormClose = () => {
@@ -116,8 +126,14 @@ const BusesPage = () => {
         ) : (
           <BusTable
             buses={filteredBuses}
-            onEdit={handleEdit}
-            onRefresh={refetch}
+            isLoading={false}
+            selectedRouteId={selectedRoute}
+            isAdmin={true}
+            onAddBus={() => setIsFormOpen(true)}
+            onEditBus={handleEdit}
+            onDeleteBus={handleDelete}
+            onGenerateQR={handleGenerateQR}
+            routes={routes}
           />
         )}
 

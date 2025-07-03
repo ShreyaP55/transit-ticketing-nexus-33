@@ -2,23 +2,24 @@
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import MainLayout from "@/components/layout/MainLayout";
-import { PassCard } from "@/components/passes/PassCard";
-import { PassBenefitsCard } from "@/components/passes/PassBenefitsCard";
-import PassQRCode from "@/components/passes/PassQRCode";
+import { PassCurrentView } from "@/components/passes/PassCurrentView";
 import { PassPurchaseForm } from "@/components/passes/PassPurchaseForm";
 import { usePassManagement } from "@/hooks/usePassManagement";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const PassPage = () => {
   const {
     routes,
     activePass,
+    usageHistory,
     selectedRouteId,
     setSelectedRouteId,
     selectedRoute,
+    activeTab,
+    setActiveTab,
     isProcessing,
     isLoadingRoutes,
     isLoadingPass,
+    isLoadingUsage,
     handlePurchasePass,
     refetchPass
   } = usePassManagement();
@@ -32,23 +33,14 @@ const PassPage = () => {
             <Skeleton className="h-10 w-32" />
           </div>
         ) : activePass ? (
-          <div className="animate-fade-in">
-            <Tabs defaultValue="current" className="w-full">
-              <TabsList className="w-full mb-6">
-                <TabsTrigger value="current" className="flex-1">Current Pass</TabsTrigger>
-                <TabsTrigger value="qr" className="flex-1">QR Code</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="current" className="space-y-6">
-                <PassCard pass={activePass} className="mb-8" />
-                <PassBenefitsCard activePass={activePass} onRefresh={refetchPass} />
-              </TabsContent>
-              
-              <TabsContent value="qr">
-                <PassQRCode activePass={activePass} />
-              </TabsContent>
-            </Tabs>
-          </div>
+          <PassCurrentView
+            activePass={activePass}
+            usageHistory={usageHistory}
+            isLoadingUsage={isLoadingUsage}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            onRefresh={refetchPass}
+          />
         ) : (
           <div className="animate-fade-in">
             <PassPurchaseForm

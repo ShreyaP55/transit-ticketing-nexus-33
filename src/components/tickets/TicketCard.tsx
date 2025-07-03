@@ -20,11 +20,11 @@ export const TicketCard = ({ ticket, className }: TicketCardProps) => {
       <div className="p-4">
         <div className="flex justify-between items-start mb-3">
           <h3 className="text-lg font-medium">
-            {ticket.startStation}
+            {routeDisplay}
             {isExpired && <span className="ml-2 text-sm font-normal text-red-500">(Expired)</span>}
           </h3>
           <div className="bg-transit-blue text-white px-2 py-1 rounded-full text-xs">
-            ₹{ticket.price}
+            ${ticket.price}
           </div>
         </div>
         
@@ -36,13 +36,15 @@ export const TicketCard = ({ ticket, className }: TicketCardProps) => {
           
           <div className="flex items-center gap-2">
             <MapPin size={16} className="text-transit-blue" />
-            <span>Route: {routeDisplay}</span>
+            <span>
+              {ticket.startStation} → {ticket.endStation}
+            </span>
           </div>
           
           <div className="flex items-center gap-2">
             <Clock size={16} className="text-transit-blue" />
             <span>
-              Purchased: {format(new Date(ticket.createdAt), "MMM d, yyyy h:mm a")}
+              Valid until: {format(new Date(ticket.expiryDate), "MMM d, yyyy h:mm a")}
             </span>
           </div>
         </div>
@@ -56,7 +58,7 @@ export const TicketCard = ({ ticket, className }: TicketCardProps) => {
             ID: {ticket._id.substring(0, 8)}
           </div>
           <div className="text-xs text-muted-foreground">
-            Expires in 12 hours
+            Purchased: {format(new Date(ticket.createdAt), "MMM d, yyyy")}
           </div>
         </div>
       </div>

@@ -66,7 +66,7 @@ router.post('/', async (req, res) => {
       endStation: endStation || startStation,
       price: parseFloat(price),
       paymentIntentId,
-      expiryDate: expiryDate || new Date(Date.now() + 12 * 60 * 60 * 1000) // Default to 12hrs from now
+      expiryDate: expiryDate || new Date(Date.now() + 24 * 60 * 60 * 1000) // Default to 24hrs from now
     });
     
     await newTicket.save();
