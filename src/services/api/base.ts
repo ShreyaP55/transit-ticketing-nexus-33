@@ -1,7 +1,9 @@
 
 import { useAuth } from "@clerk/clerk-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "https://businn.onrender.com/api";
+
+console.log('API_URL configured as:', API_URL);
 
 // Get auth token for API calls - improved to handle Clerk properly
 export const getAuthToken = () => {
@@ -25,12 +27,17 @@ export async function fetchAPI<T>(
   };
 
   try {
-    console.log(`Making API call to: ${API_URL}${endpoint}`);
+    const fullUrl = `${API_URL}${endpoint}`;
+    console.log(`Making API call to: ${fullUrl}`);
     
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const response = await fetch(fullUrl, {
       ...options,
-      headers
+      headers,
+      // Add CORS handling for cross-origin requests
+      mode: 'cors',
     });
+
+    console.log(`API Response status: ${response.status} for ${endpoint}`);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -55,6 +62,10 @@ export async function fetchAPI<T>(
         throw new Error('Too many requests, please try again later');
       }
       
+      if (response.status === 500) {
+        throw new Error('Server error. The backend service might be starting up. Please try again in a moment.');
+      }
+      
       let error;
       try {
         error = JSON.parse(errorText);
@@ -66,11 +77,12 @@ export async function fetchAPI<T>(
     }
 
     const responseData = await response.json();
+    console.log(`API Success response for ${endpoint}:`, responseData);
     return responseData;
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error('Network error - server may not be running');
-      throw new Error("Server is not running. Please start the backend server on port 3001.");
+      console.error('Network error - server may not be running or CORS issue');
+      throw new Error("Cannot connect to server. Please check if the backend is running and accessible.");
     }
     console.error(`API Error (${endpoint}):`, error);
     throw error;
