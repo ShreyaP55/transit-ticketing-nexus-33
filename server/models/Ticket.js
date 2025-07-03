@@ -10,7 +10,14 @@ const TicketSchema = new mongoose.Schema(
     endStation: { type: String, required: true },
     price: { type: Number, required: true },
     paymentIntentId: { type: String, required: true },
-    expiryDate: { type: Date, required: true },
+    expiryDate: { 
+      type: Date, 
+      required: true,
+      default: function() {
+        // Set expiry to 12 hours from creation
+        return new Date(Date.now() + 12 * 60 * 60 * 1000);
+      }
+    },
   },
   { timestamps: true }
 );

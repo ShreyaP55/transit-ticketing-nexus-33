@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Bus, Map, Ticket, Calendar, Navigation, QrCode, Wallet, Settings, Route, ScanLine, MapPin } from "lucide-react";
+import { Bus, Map, Ticket, Calendar, Navigation, Wallet, Settings, Route, ScanLine, MapPin } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 
@@ -26,7 +26,6 @@ export const AppSidebar: React.FC = () => {
     { name: "My Tickets", shortName: "Tickets", icon: Ticket, path: "/tickets" },
     { name: "Monthly Pass", shortName: "Pass", icon: Calendar, path: "/pass" },
     { name: "Live Tracking", shortName: "Track", icon: Navigation, path: "/tracking" },
-    { name: "QR", shortName: "QR", icon: QrCode, path: "/qr-scan/:userId" },
     { name: "Wallet", shortName: "Wallet", icon: Wallet, path: "/wallet" },
   ];
 
@@ -56,10 +55,10 @@ export const AppSidebar: React.FC = () => {
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location.pathname === item.path || (item.path.includes(":userId") && location.pathname.startsWith("/qr-scan"))}
+                    isActive={location.pathname === item.path}
                     className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
                   >
-                    <Link to={item.path.replace(":userId", "me")}>
+                    <Link to={item.path}>
                       <item.icon className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 flex-shrink-0" />
                       <span className="truncate text-xs sm:text-sm">{item.shortName}</span>
                     </Link>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,15 +73,20 @@ const StationForm: React.FC<StationFormProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (station) {
+        // Pre-fill form with station data for editing
+        const routeId = getRouteId(station.routeId);
+        const busId = getBusId(station.busId);
+        
         setFormData({
-          name: station.name,
-          routeId: getRouteId(station.routeId),
-          busId: getBusId(station.busId),
-          latitude: station.latitude.toString(),
-          longitude: station.longitude.toString(),
-          fare: station.fare.toString(),
+          name: station.name || "",
+          routeId: routeId || "",
+          busId: busId || "",
+          latitude: station.latitude?.toString() || "",
+          longitude: station.longitude?.toString() || "",
+          fare: station.fare?.toString() || "",
         });
       } else {
+        // Clear form for new station
         setFormData({
           name: "",
           routeId: "",
