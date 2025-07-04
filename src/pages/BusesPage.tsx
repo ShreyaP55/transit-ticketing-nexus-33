@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Filter, Bus } from "lucide-react";
 import { busesAPI, routesAPI } from "@/services/api";
 import { IBus, IRoute } from "@/types";
@@ -11,6 +11,7 @@ import BusTable from "@/components/buses/BusTable";
 import BusForm from "@/components/buses/BusForm";
 import BusFilters from "@/components/buses/BusFilters";
 import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "sonner";
 
 const BusesPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -18,6 +19,8 @@ const BusesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRoute, setSelectedRoute] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
+
+  const queryClient = useQueryClient();
 
   const { data: buses = [], isLoading: busesLoading, refetch } = useQuery({
     queryKey: ["buses"],
@@ -27,6 +30,17 @@ const BusesPage = () => {
   const { data: routes = [], isLoading: routesLoading } = useQuery({
     queryKey: ["routes"],
     queryFn: routesAPI.getAll,
+  });
+
+  const deleteBusMutation = useMutation({
+    mutationFn: (id: string) => busesAPI.delete(id),
+    onSuccess: () => {
+      toast.success("Bus deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["buses"] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to delete bus: ${error.message}`);
+    }
   });
 
   const filteredBuses = buses.filter((bus) => {
@@ -40,14 +54,18 @@ const BusesPage = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    // Handle delete logic here
-    console.log('Delete bus:', id);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteBusMutation.mutateAsync(id);
+    } catch (error) {
+      console.error('Delete failed:', error);
+    }
   };
 
   const handleGenerateQR = (bus: IBus) => {
     // Handle QR generation logic here
     console.log('Generate QR for bus:', bus);
+    toast.info(`QR code for bus ${bus.name} would be generated here`);
   };
 
   const handleFormClose = () => {

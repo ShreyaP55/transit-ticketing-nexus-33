@@ -7,13 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { routesAPI, busesAPI } from "@/services/api";
 import MainLayout from "@/components/layout/MainLayout";
-import LiveMap from "@/components/tracking/LiveMap";
+import LeafletMap from "@/components/tracking/LeafletMap";
 import { IRoute, IBus } from "@/types";
+import { BusLocations } from "@/types/tracking";
 import { MapPin, Bus, Navigation, RefreshCw, Users } from "lucide-react";
+import { useSocketTracking } from "@/hooks/useSocketTracking";
 
 const LiveTrackingPage = () => {
-  const [selectedRouteId, setSelectedRouteId] = useState<string>("");
-  const [selectedBusId, setSelectedBusId] = useState<string>("");
+  const [selectedRouteId, setSelectedRouteId] = useState<string>("all");
+  const [selectedBusId, setSelectedBusId] = useState<string>("all");
 
   const { data: routes = [], isLoading: routesLoading } = useQuery({
     queryKey: ["routes"],
@@ -22,14 +24,17 @@ const LiveTrackingPage = () => {
 
   const { data: buses = [], isLoading: busesLoading, refetch: refetchBuses } = useQuery({
     queryKey: ["buses", selectedRouteId],
-    queryFn: () => busesAPI.getByRoute(selectedRouteId),
-    enabled: !!selectedRouteId,
+    queryFn: () => selectedRouteId === "all" ? busesAPI.getAll() : busesAPI.getByRoute(selectedRouteId),
+    enabled: true,
   });
 
+  // Socket.io for real-time tracking
+  const { busLocations, isConnected } = useSocketTracking();
+
   const selectedRoute = routes.find((route: IRoute) => route._id === selectedRouteId);
-  const filteredBuses = selectedBusId 
-    ? buses.filter((bus: IBus) => bus._id === selectedBusId)
-    : buses;
+  const filteredBuses = selectedBusId === "all" 
+    ? buses 
+    : buses.filter((bus: IBus) => bus._id === selectedBusId);
 
   const handleRefresh = () => {
     refetchBuses();
@@ -44,6 +49,11 @@ const LiveTrackingPage = () => {
             <CardTitle className="flex items-center text-xl font-bold">
               <Navigation className="mr-3 h-6 w-6" />
               Real-Time Bus Tracking
+              {isConnected && (
+                <Badge className="ml-auto bg-green-500 text-white">
+                  🟢 Live Connected
+                </Badge>
+              )}
             </CardTitle>
             <p className="text-blue-100 mt-1">Track buses in real-time across all routes</p>
           </CardHeader>
@@ -60,13 +70,16 @@ const LiveTrackingPage = () => {
                   value={selectedRouteId} 
                   onValueChange={(value) => {
                     setSelectedRouteId(value);
-                    setSelectedBusId("");
+                    setSelectedBusId("all");
                   }}
                 >
                   <SelectTrigger className="bg-white border-gray-300 text-gray-900 font-medium">
                     <SelectValue placeholder="Choose a route..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-gray-200">
+                    <SelectItem value="all" className="text-gray-900 font-medium hover:bg-blue-50">
+                      All Routes
+                    </SelectItem>
                     {routesLoading ? (
                       <SelectItem value="loading" disabled className="text-gray-500">
                         Loading routes...
@@ -99,13 +112,12 @@ const LiveTrackingPage = () => {
                 <Select 
                   value={selectedBusId} 
                   onValueChange={setSelectedBusId}
-                  disabled={!selectedRouteId}
                 >
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900 font-medium disabled:bg-gray-100 disabled:text-gray-500">
-                    <SelectValue placeholder={selectedRouteId ? "All buses" : "Select route first"} />
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900 font-medium">
+                    <SelectValue placeholder="All buses" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-gray-200">
-                    <SelectItem value="" className="text-gray-900 font-medium hover:bg-green-50">
+                    <SelectItem value="all" className="text-gray-900 font-medium hover:bg-green-50">
                       All Buses
                     </SelectItem>
                     {busesLoading ? (
@@ -142,8 +154,7 @@ const LiveTrackingPage = () => {
                 </label>
                 <Button 
                   onClick={handleRefresh}
-                  disabled={!selectedRouteId}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:bg-gray-300 disabled:text-gray-500"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Refresh
@@ -172,53 +183,43 @@ const LiveTrackingPage = () => {
           </CardContent>
         </Card>
 
-        {/* Map Section with improved styling */}
+        {/* Map Section with Leaflet */}
         <Card className="bg-white shadow-lg border border-gray-200 overflow-hidden">
           <CardHeader className="bg-gray-50 border-b border-gray-200 py-3">
             <CardTitle className="flex items-center text-gray-800">
               <MapPin className="mr-2 h-5 w-5 text-red-500" />
-              Live Map View
-              {selectedRoute && (
-                <Badge className="ml-auto bg-green-100 text-green-800 font-medium">
-                  Live Tracking Active
-                </Badge>
-              )}
+              Live Map View - Goa
+              <Badge className="ml-auto bg-green-100 text-green-800 font-medium">
+                📍 {Object.keys(busLocations).length} Buses Live
+              </Badge>
             </CardTitle>
           </CardHeader>
           
           <CardContent className="p-0 bg-white">
             <div className="h-[500px] w-full">
-              {selectedRoute ? (
-                <LiveMap 
-                  buses={filteredBuses} 
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                  <div className="text-center p-8">
-                    <MapPin className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                      Select a Route to Start Tracking
-                    </h3>
-                    <p className="text-gray-500 max-w-sm mx-auto">
-                      Choose a route from the dropdown above to view real-time bus locations on the map.
-                    </p>
-                  </div>
-                </div>
-              )}
+              <LeafletMap 
+                buses={filteredBuses}
+                busLocations={busLocations}
+                selectedBusId={selectedBusId === "all" ? undefined : selectedBusId}
+                onSelectBus={setSelectedBusId}
+                className="w-full h-full"
+              />
             </div>
           </CardContent>
         </Card>
 
         {/* Bus Status Cards */}
-        {selectedRoute && filteredBuses.length > 0 && (
+        {filteredBuses.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredBuses.map((bus: IBus) => (
+            {filteredBuses.slice(0, 6).map((bus: IBus) => (
               <Card key={bus._id} className="bg-white shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-bold text-gray-900">{bus.name}</h4>
-                    <Badge className="bg-green-100 text-green-800 font-medium">
-                      Active
+                    <Badge className={`font-medium ${
+                      busLocations[bus._id] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {busLocations[bus._id] ? '🟢 Live' : '⚫ Offline'}
                     </Badge>
                   </div>
                   
@@ -232,18 +233,22 @@ const LiveTrackingPage = () => {
                     <div className="flex items-center text-gray-700">
                       <Bus className="h-4 w-4 mr-2 text-green-600" />
                       <span className="font-medium">Status:</span>
-                      <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
-                        In Service
+                      <Badge className={`ml-2 text-xs ${
+                        busLocations[bus._id] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {busLocations[bus._id] ? 'In Service' : 'Not Available'}
                       </Badge>
                     </div>
                     
-                    <div className="flex items-center text-gray-700">
-                      <Navigation className="h-4 w-4 mr-2 text-orange-600" />
-                      <span className="font-medium">Route:</span>
-                      <span className="ml-1 text-gray-900 font-medium">
-                        {selectedRoute.start} → {selectedRoute.end}
-                      </span>
-                    </div>
+                    {busLocations[bus._id] && (
+                      <div className="flex items-center text-gray-700">
+                        <Navigation className="h-4 w-4 mr-2 text-orange-600" />
+                        <span className="font-medium">Last Update:</span>
+                        <span className="ml-1 text-gray-900 font-medium text-xs">
+                          {new Date(busLocations[bus._id].updatedAt).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -1,8 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { IBus } from '@/types';
+import { BusLocations } from '@/types/tracking';
 import { Button } from '@/components/ui/button';
 import { Navigation, MapPin, RefreshCw } from 'lucide-react';
 
@@ -73,17 +75,9 @@ const userIcon = new L.DivIcon({
   iconAnchor: [7, 7]
 });
 
-interface BusLocation {
-  latitude: number;
-  longitude: number;
-  updatedAt: string;
-  speed?: number;
-  heading?: number;
-}
-
 interface LeafletMapProps {
   buses?: IBus[];
-  busLocations?: { [busId: string]: BusLocation };
+  busLocations?: BusLocations;
   selectedBusId?: string;
   onSelectBus?: (busId: string) => void;
   className?: string;
@@ -108,12 +102,13 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
   className = ""
 }) => {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([15.4909, 73.8278]); // Goa
+  // Default to Goa coordinates
+  const [mapCenter, setMapCenter] = useState<[number, number]>([15.4909, 73.8278]);
   const [mapZoom, setMapZoom] = useState(13);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
-  // Get user location with better error handling
+  // Get user location
   const getUserLocation = async () => {
     setIsGettingLocation(true);
     setLocationError(null);
@@ -137,31 +132,14 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
 
       const userPos: [number, number] = [position.coords.latitude, position.coords.longitude];
       setUserLocation(userPos);
-      console.log('User location obtained:', userPos, 'Accuracy:', position.coords.accuracy + 'm');
+      console.log('User location obtained:', userPos);
     } catch (error: any) {
       console.error('Error getting location:', error);
-      let errorMessage = 'Failed to get your location. ';
-      
-      if (error.code === 1) {
-        errorMessage += 'Please allow location access in your browser settings.';
-      } else if (error.code === 2) {
-        errorMessage += 'Location information is unavailable.';
-      } else if (error.code === 3) {
-        errorMessage += 'Location request timed out.';
-      } else {
-        errorMessage += error.message || 'Unknown error occurred.';
-      }
-      
-      setLocationError(errorMessage);
+      setLocationError('Failed to get your location. Please allow location access.');
     } finally {
       setIsGettingLocation(false);
     }
   };
-
-  // Get user location on mount
-  useEffect(() => {
-    getUserLocation();
-  }, []);
 
   // Center on user location
   const centerOnUser = () => {

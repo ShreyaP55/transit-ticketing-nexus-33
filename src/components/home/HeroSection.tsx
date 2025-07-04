@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Bus as BusIcon } from "lucide-react";
 
-const heroImg = "https://images.pexels.com/photos/34140/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=900";
+const heroImg = "https://img.freepik.com/photos-premium/bus-neon-lumineux-roule-long-ville-streetgenerative-ai_391052-11683.jpg";
 
 interface HeroSectionProps {
   isAuthenticated: boolean;
@@ -42,14 +42,14 @@ const HeroSection: React.FC<HeroSectionProps> = ({ isAuthenticated, userDetails 
         <div className="shadow-2xl rounded-xl overflow-hidden w-[320px] h-[220px] relative group hover:scale-105 transition-transform duration-200">
           <img
             src={heroImg}
-            alt="Modern city bus"
+            alt="Modern neon bus in city street"
             className="object-cover w-full h-full"
             loading="lazy"
           />
           <div className="absolute top-3 right-3 bg-white/85 px-3 py-1 rounded-full flex items-center gap-2 shadow animate-fade-in">
             <BusIcon size={20} className="text-primary" />
             <span className="font-bold text-sm text-primary">
-              Green Route
+              Live Transit
             </span>
           </div>
         </div>
