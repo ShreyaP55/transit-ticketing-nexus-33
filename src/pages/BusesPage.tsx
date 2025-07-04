@@ -40,13 +40,9 @@ const BusesPage = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await busesAPI.delete(id);
-      refetch();
-    } catch (error) {
-      console.error('Error deleting bus:', error);
-    }
+  const handleDelete = (id: string) => {
+    // Handle delete logic here
+    console.log('Delete bus:', id);
   };
 
   const handleGenerateQR = (bus: IBus) => {

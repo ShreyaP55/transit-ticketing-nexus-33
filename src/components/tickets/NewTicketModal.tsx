@@ -98,7 +98,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
         endStation: selectedStation?.name || "Selected Station",
         price,
         paymentIntentId: `wallet_${Date.now()}`,
-        expiryDate: new Date(Date.now() + 12 * 60 * 60 * 1000)
+        expiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
       });
 
       if (response.success) {
@@ -156,14 +156,14 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
                   {loadingRoutes ? (
-                    <SelectItem value="loading-routes" disabled>Loading...</SelectItem>
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
                   ) : (
                     routes.length
                       ? routes.map(route =>
                         <SelectItem key={route._id} value={route._id} className="text-white">
                           {route.start} - {route.end}
                         </SelectItem>)
-                      : <SelectItem value="no-routes-available" disabled>No routes available</SelectItem>
+                      : <SelectItem value="none" disabled>No routes available</SelectItem>
                   )}
                 </SelectContent>
               </Select>
@@ -181,7 +181,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
                   {loadingBuses ? (
-                    <SelectItem value="loading-buses" disabled>Loading...</SelectItem>
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
                   ) : (
                     buses.length 
                       ? buses.map(bus => 
@@ -189,7 +189,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
                           {bus.name} <Badge className="ml-2 bg-gray-700" variant="outline">cap: {bus.capacity}</Badge>
                         </SelectItem>
                       )
-                      : <SelectItem value="no-buses-available" disabled>No buses available</SelectItem>
+                      : <SelectItem value="none" disabled>No buses available</SelectItem>
                   )}
                 </SelectContent>
               </Select>
@@ -207,14 +207,14 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
                   {loadingStations ? (
-                    <SelectItem value="loading-stations" disabled>Loading...</SelectItem>
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
                   ) : (
                     stations.length
                       ? stations.map(station =>
                         <SelectItem key={station._id} value={station._id} className="text-white">
                           {station.name} <Badge className="ml-2 bg-gray-700" variant="outline">₹{station.fare}</Badge>
                         </SelectItem>)
-                      : <SelectItem value="no-stations-available" disabled>No stations available</SelectItem>
+                      : <SelectItem value="none" disabled>No stations available</SelectItem>
                   )}
                 </SelectContent>
               </Select>
