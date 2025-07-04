@@ -17,19 +17,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface BusTableRowProps {
   bus: IBus;
   onEdit: (bus: IBus) => void;
   onDelete: (id: string) => Promise<void>;
-  isDeleting?: boolean;
 }
 
 const BusTableRow: React.FC<BusTableRowProps> = ({ 
   bus, 
   onEdit, 
-  onDelete,
-  isDeleting = false 
+  onDelete
 }) => {
   const [showQR, setShowQR] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -122,13 +126,14 @@ const BusTableRow: React.FC<BusTableRowProps> = ({
         </TableCell>
       </TableRow>
 
-      {showQR && (
-        <BusQRCode
-          bus={bus}
-          isOpen={showQR}
-          onClose={() => setShowQR(false)}
-        />
-      )}
+      <Dialog open={showQR} onOpenChange={setShowQR}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Bus QR Code</DialogTitle>
+          </DialogHeader>
+          <BusQRCode bus={bus} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

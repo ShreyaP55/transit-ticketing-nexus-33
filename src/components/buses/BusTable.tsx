@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components
 import { Plus, Bus as BusIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import BusTableRow from "./BusTableRow";
-import { IBus, IStation, IRoute, isRoute } from "@/types";
+import { IBus, IStation, IRoute } from "@/types";
 
 interface BusTableProps {
   buses: IBus[] | undefined;
@@ -15,7 +15,7 @@ interface BusTableProps {
   isAdmin: boolean;
   onAddBus: () => void;
   onEditBus: (bus: IBus) => void;
-  onDeleteBus: (id: string) => void;
+  onDeleteBus: (id: string) => Promise<void>;
   onGenerateQR: (bus: IBus) => void;
   stations?: IStation[];
   isLoadingStations?: boolean;
@@ -88,32 +88,14 @@ const BusTable: React.FC<BusTableProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {buses?.map(bus => {
-                    // Get related route
-                    let route: IRoute | undefined;
-                    if (isRoute(bus.route)) {
-                      route = bus.route;
-                    } else if (routes && typeof bus.route === 'string') {
-                      // Fallback for non-populated route
-                      route = routes.find(r => r._id === bus.route);
-                    }
-                    // Get first related station
-                    const station = stations?.find(stn => {
-                      return (String(stn.busId) === String(bus._id));
-                    });
-                    return (
-                      <BusTableRow
-                        key={bus._id}
-                        bus={bus}
-                        isAdmin={isAdmin}
-                        onEdit={onEditBus}
-                        onDelete={onDeleteBus}
-                        onGenerateQR={onGenerateQR}
-                        route={route}
-                        stationName={station?.name}
-                      />
-                    );
-                  })}
+                  {buses?.map(bus => (
+                    <BusTableRow
+                      key={bus._id}
+                      bus={bus}
+                      onEdit={onEditBus}
+                      onDelete={onDeleteBus}
+                    />
+                  ))}
                 </TableBody>
               </Table>
               {isLoadingStations && (
