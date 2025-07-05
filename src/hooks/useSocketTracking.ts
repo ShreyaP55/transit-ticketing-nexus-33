@@ -16,59 +16,60 @@ export const useSocketTracking = (): UseSocketTrackingReturn => {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Initialize socket connection
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://businn.onrender.com';
+    // Try multiple socket URLs with fallback
+    const socketUrls = [
+      import.meta.env.VITE_SOCKET_URL,
+      import.meta.env.VITE_API_URL?.replace('/api', ''),
+      'https://businn.onrender.com',
+      'http://localhost:3001'
+    ].filter(Boolean);
     
-    console.log('🔌 Connecting to socket server:', socketUrl);
-    console.log('🔧 Environment variables:', {
-      VITE_SOCKET_URL: import.meta.env.VITE_SOCKET_URL,
-      VITE_API_URL: import.meta.env.VITE_API_URL
-    });
+    const socketUrl = socketUrls[0] || 'http://localhost:3001';
     
-    socketRef.current = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      timeout: 20000,
-      forceNew: true,
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    console.log('🔌 Attempting socket connection to:', socketUrl);
+    
+    try {
+      socketRef.current = io(socketUrl, {
+        transports: ['polling', 'websocket'], // Try polling first
+        timeout: 10000,
+        forceNew: true,
+        reconnection: true,
+        reconnectionAttempts: 3,
+        reconnectionDelay: 2000,
+        upgrade: true,
+        rememberUpgrade: false
+      });
 
-    const socket = socketRef.current;
+      const socket = socketRef.current;
 
-    // Connection event handlers
-    socket.on('connect', () => {
-      console.log('✅ Socket connected successfully:', socket.id);
-      setIsConnected(true);
-      setError(null);
-    });
+      // Connection event handlers
+      socket.on('connect', () => {
+        console.log('✅ Socket connected:', socket.id);
+        setIsConnected(true);
+        setError(null);
+      });
 
-    socket.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected:', reason);
-      setIsConnected(false);
-    });
+      socket.on('disconnect', (reason) => {
+        console.log('❌ Socket disconnected:', reason);
+        setIsConnected(false);
+      });
 
-    socket.on('connect_error', (err) => {
-      console.error('🚫 Socket connection error:', err.message);
-      setError(`Connection failed: ${err.message}`);
-      setIsConnected(false);
-    });
+      socket.on('connect_error', (err) => {
+        console.log('🚫 Socket connection failed, server may be offline:', err.message);
+        setError('Bus tracking server is offline');
+        setIsConnected(false);
+      });
 
-    socket.on('reconnect', (attemptNumber) => {
-      console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
-      setIsConnected(true);
-      setError(null);
-    });
+      socket.on('reconnect', (attemptNumber) => {
+        console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
+        setIsConnected(true);
+        setError(null);
+      });
 
-    socket.on('reconnect_error', (err) => {
-      console.error('🔄❌ Socket reconnection error:', err.message);
-    });
-
-    // Bus location updates
-    socket.on('busLocationUpdate', (data: { busId: string; location: any }) => {
-      console.log('📍 Bus location update received:', data);
-      setBusLocations(prev => {
-        const updated = {
+      // Bus location updates
+      socket.on('busLocationUpdate', (data: { busId: string; location: any }) => {
+        console.log('📍 Bus location update:', data);
+        setBusLocations(prev => ({
           ...prev,
           [data.busId]: {
             ...data.location,
@@ -78,31 +79,30 @@ export const useSocketTracking = (): UseSocketTrackingReturn => {
             lng: data.location.longitude || data.location.lng,
             updatedAt: new Date().toISOString()
           }
-        };
-        console.log('📊 Updated bus locations:', updated);
-        return updated;
+        }));
       });
-    });
 
-    // Bulk location updates
-    socket.on('bulkLocationUpdate', (locations: BusLocations) => {
-      console.log('📍📍 Bulk location update received:', locations);
-      setBusLocations(locations);
-    });
+      socket.on('bulkLocationUpdate', (locations: BusLocations) => {
+        console.log('📍📍 Bulk location update:', locations);
+        setBusLocations(locations);
+      });
 
-    // Listen for any socket events for debugging
-    socket.onAny((eventName, ...args) => {
-      console.log('🎧 Socket event received:', eventName, args);
-    });
+      // Request initial data after connection
+      socket.on('connect', () => {
+        console.log('📤 Requesting initial bus locations...');
+        socket.emit('requestBusLocations');
+      });
 
-    // Request initial bus locations
-    console.log('📤 Requesting initial bus locations...');
-    socket.emit('requestBusLocations');
+    } catch (err) {
+      console.error('Failed to initialize socket:', err);
+      setError('Failed to connect to tracking service');
+    }
 
-    // Cleanup on unmount
     return () => {
       console.log('🧹 Cleaning up socket connection');
-      socket.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
   }, []);
 

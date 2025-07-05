@@ -31,10 +31,10 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
         console.log("Stopping scanner...");
         await scannerRef.current.stop();
         await scannerRef.current.clear();
-        console.log("Scanner stopped and cleared successfully");
+        console.log("Scanner stopped successfully");
       }
     } catch (err) {
-      console.log("Scanner stop/clear error (this is normal):", err);
+      console.log("Scanner stop error (expected):", err);
     } finally {
       if (mountedRef.current) {
         setIsScanning(false);
@@ -57,13 +57,23 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
     try {
       if (!mountedRef.current) return;
       
+      // Wait for container to be properly sized
+      const container = document.getElementById(containerId);
+      if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
+        console.log("Container not ready, retrying...");
+        setTimeout(() => startScanner(scanner, deviceId), 200);
+        return;
+      }
+      
       const config = { 
         fps: 5,
         qrbox: { width: 200, height: 200 },
         aspectRatio: 1.0,
         disableFlip: false,
         videoConstraints: {
-          facingMode: "environment"
+          facingMode: "environment",
+          width: { ideal: 640 },
+          height: { ideal: 480 }
         }
       };
 
@@ -78,19 +88,21 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
           console.log("QR Code scanned:", decodedText);
           if (mountedRef.current) {
             onScan(decodedText);
-            toast.success("QR Code scanned successfully!");
+            toast.success("QR Code scanned!");
           }
         },
         (errorMessage) => {
+          // Filter out common non-critical errors
           if (!errorMessage.includes('QR code not found') && 
               !errorMessage.includes('No MultiFormat Readers') &&
-              !errorMessage.includes('NotFoundException')) {
-            console.warn("QR Scanner warning:", errorMessage);
+              !errorMessage.includes('NotFoundException') &&
+              !errorMessage.includes('IndexSizeError')) {
+            console.warn("QR Scanner error:", errorMessage);
           }
         }
       );
       
-      console.log("QR Scanner started successfully");
+      console.log("QR Scanner initialized successfully");
     } catch (err) {
       console.error("Scanner start error:", err);
       if (mountedRef.current) {
@@ -140,11 +152,20 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
       setError(null);
       console.log("Initializing QR scanner...");
       
+      // Wait for DOM element
+      let attempts = 0;
+      while (attempts < 10) {
+        const scannerElement = document.getElementById(containerId);
+        if (scannerElement && scannerElement.offsetWidth > 0) {
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
       const scannerElement = document.getElementById(containerId);
       if (!scannerElement) {
-        console.log("Scanner element not found, retrying...");
-        initTimeoutRef.current = setTimeout(() => initializeScanner(cameraIndex), 200);
-        return;
+        throw new Error("Scanner container not found");
       }
 
       await safeStopScanner();
@@ -163,7 +184,7 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
         setAvailableCameras(cameras);
         const cameraId = cameras[cameraIndex]?.id || cameras[0].id;
         
-        console.log("Starting scanner with camera:", cameraId, cameras[cameraIndex]?.label);
+        console.log("Starting scanner with camera:", cameras[cameraIndex]?.label || cameras[0].label);
         await startScanner(html5QrCode, cameraId);
         
         if (mountedRef.current) {
@@ -171,10 +192,10 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
           setCurrentCameraIndex(cameraIndex);
         }
       } else {
-        throw new Error("No cameras found on this device");
+        throw new Error("No cameras found");
       }
     } catch (err) {
-      console.error("Error initializing scanner:", err);
+      console.error("Scanner initialization error:", err);
       if (mountedRef.current) {
         const errorMessage = err instanceof Error ? err.message : "Failed to initialize camera";
         setError(errorMessage);

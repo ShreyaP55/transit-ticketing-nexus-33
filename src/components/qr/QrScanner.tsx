@@ -13,8 +13,8 @@ interface QrScannerProps {
 export const QrScanner: React.FC<QrScannerProps> = ({ 
   onScan, 
   onError,
-  width = '100%',
-  height = '300px'
+  width = '280px',
+  height = '280px'
 }) => {
   const scannerContainerId = `qr-reader-${Math.random().toString(36).substr(2, 9)}`;
   

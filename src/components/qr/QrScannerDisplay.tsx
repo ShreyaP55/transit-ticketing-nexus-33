@@ -48,7 +48,7 @@ export const QrScannerDisplay: React.FC<QrScannerDisplayProps> = ({
               Reload Page
             </button>
             <p className="text-xs text-gray-500 mt-2">
-              If error persists, try closing other camera apps
+              Try enabling camera permissions and reloading
             </p>
           </div>
         </div>
@@ -57,56 +57,70 @@ export const QrScannerDisplay: React.FC<QrScannerDisplayProps> = ({
   }
 
   return (
-    <div className="flex flex-col items-center w-full">
-      <div className="relative">
-        <div 
-          id={containerId} 
-          style={{ width, height }} 
-          className="overflow-hidden rounded-lg border border-muted bg-black"
-        />
-        
-        {/* Camera Flip Button */}
-        {availableCameras.length > 1 && isInitialized && (
+    <div className="flex flex-col items-center w-full space-y-4">
+      <div className="relative flex items-center gap-3 w-full max-w-sm">
+        {/* Camera Container */}
+        <div className="relative flex-1">
+          <div 
+            id={containerId} 
+            style={{ width, height: height }} 
+            className="overflow-hidden rounded-lg border-2 border-orange-400 bg-black relative"
+          />
+          
+          {/* Scanning Overlay */}
+          {isScanning && (
+            <div className="absolute inset-2 border-2 border-dashed border-green-400 rounded-lg animate-pulse pointer-events-none">
+              <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-green-400"></div>
+              <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-green-400"></div>
+              <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-green-400"></div>
+              <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-green-400"></div>
+            </div>
+          )}
+          
+          {/* Camera switching indicator */}
+          {isSwitchingCamera && (
+            <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center z-10">
+              <div className="bg-white/90 px-3 py-2 rounded-md flex items-center gap-2">
+                <SwitchCamera className="h-4 w-4 animate-spin" />
+                <span className="text-sm font-medium">Switching...</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Camera Flip Button - Positioned to the side */}
+        {availableCameras.length > 1 && (
           <Button
-            variant="secondary"
+            variant="outline"
             size="icon"
-            className="absolute top-2 right-2 z-10 bg-white/90 hover:bg-white shadow-md"
+            className="h-12 w-12 bg-white/90 hover:bg-white shadow-md border-2 border-orange-400"
             onClick={onFlipCamera}
-            disabled={isSwitchingCamera}
+            disabled={isSwitchingCamera || !isInitialized}
           >
             <SwitchCamera 
-              className={`h-4 w-4 ${isSwitchingCamera ? 'animate-spin' : ''}`} 
+              className={`h-5 w-5 ${isSwitchingCamera ? 'animate-spin' : ''}`} 
             />
           </Button>
         )}
-        
-        {/* Camera switching indicator */}
-        {isSwitchingCamera && (
-          <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center z-5">
-            <div className="bg-white/90 px-3 py-2 rounded-md flex items-center gap-2">
-              <SwitchCamera className="h-4 w-4 animate-spin" />
-              <span className="text-sm font-medium">Switching camera...</span>
-            </div>
-          </div>
-        )}
       </div>
       
-      <div className="mt-2 flex items-center space-x-2">
+      {/* Status Indicator */}
+      <div className="flex items-center space-x-2">
         <div className={`w-2 h-2 rounded-full ${isScanning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
         <p className="text-sm text-muted-foreground">
-          {!isInitialized ? "Initializing camera..." : 
-           isScanning ? "Scanning for QR code..." : "Camera not active"}
+          {!isInitialized ? "Starting camera..." : 
+           isScanning ? "Ready to scan QR code" : "Camera initializing..."}
         </p>
       </div>
       
       {isScanning && (
-        <div className="text-center mt-1">
-          <p className="text-xs text-green-600">
-            Point camera at QR code to scan
+        <div className="text-center space-y-1">
+          <p className="text-sm text-green-600 font-medium">
+            📱 Point camera at QR code
           </p>
           {availableCameras.length > 1 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Tap the flip button to switch cameras
+            <p className="text-xs text-muted-foreground">
+              Use the flip button to switch cameras
             </p>
           )}
         </div>
