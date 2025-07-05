@@ -18,7 +18,14 @@ export const QrScanner: React.FC<QrScannerProps> = ({
 }) => {
   const scannerContainerId = `qr-reader-${Math.random().toString(36).substr(2, 9)}`;
   
-  const { isScanning, isInitialized, error } = useCameraScanner({
+  const { 
+    isScanning, 
+    isInitialized, 
+    error, 
+    availableCameras, 
+    isSwitchingCamera, 
+    flipCamera 
+  } = useCameraScanner({
     onScan,
     onError,
     containerId: scannerContainerId
@@ -32,6 +39,9 @@ export const QrScanner: React.FC<QrScannerProps> = ({
       error={error}
       isScanning={isScanning}
       isInitialized={isInitialized}
+      availableCameras={availableCameras}
+      isSwitchingCamera={isSwitchingCamera}
+      onFlipCamera={flipCamera}
     />
   );
 };

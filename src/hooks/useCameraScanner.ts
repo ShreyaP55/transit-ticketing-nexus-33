@@ -9,10 +9,18 @@ interface UseCameraScannerProps {
   containerId: string;
 }
 
+interface CameraDevice {
+  id: string;
+  label: string;
+}
+
 export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableCameras, setAvailableCameras] = useState<CameraDevice[]>([]);
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+  const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout>();
   const mountedRef = useRef(true);
@@ -94,7 +102,38 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
     }
   };
 
-  const initializeScanner = async () => {
+  const getCameras = async (): Promise<CameraDevice[]> => {
+    try {
+      const devices = await Html5Qrcode.getCameras();
+      console.log("Available cameras:", devices);
+      
+      const cameras = devices.map(device => ({
+        id: device.id,
+        label: device.label
+      }));
+      
+      // Sort cameras to prioritize back camera first
+      cameras.sort((a, b) => {
+        const aIsBack = a.label.toLowerCase().includes('back') || 
+                       a.label.toLowerCase().includes('rear') || 
+                       a.label.toLowerCase().includes('environment');
+        const bIsBack = b.label.toLowerCase().includes('back') || 
+                       b.label.toLowerCase().includes('rear') || 
+                       b.label.toLowerCase().includes('environment');
+        
+        if (aIsBack && !bIsBack) return -1;
+        if (!aIsBack && bIsBack) return 1;
+        return 0;
+      });
+      
+      return cameras;
+    } catch (err) {
+      console.error("Error getting cameras:", err);
+      return [];
+    }
+  };
+
+  const initializeScanner = async (cameraIndex: number = currentCameraIndex) => {
     if (!mountedRef.current) return;
     
     try {
@@ -104,7 +143,7 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
       const scannerElement = document.getElementById(containerId);
       if (!scannerElement) {
         console.log("Scanner element not found, retrying...");
-        initTimeoutRef.current = setTimeout(initializeScanner, 200);
+        initTimeoutRef.current = setTimeout(() => initializeScanner(cameraIndex), 200);
         return;
       }
 
@@ -118,22 +157,18 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
       scannerRef.current = html5QrCode;
       
       console.log("Getting camera devices...");
-      const devices = await Html5Qrcode.getCameras();
-      console.log("Available cameras:", devices.length);
+      const cameras = await getCameras();
       
-      if (devices && devices.length > 0) {
-        const backCamera = devices.find(device => 
-          device.label.toLowerCase().includes('back') || 
-          device.label.toLowerCase().includes('rear') ||
-          device.label.toLowerCase().includes('environment')
-        );
-        const cameraId = backCamera ? backCamera.id : devices[0].id;
+      if (cameras && cameras.length > 0) {
+        setAvailableCameras(cameras);
+        const cameraId = cameras[cameraIndex]?.id || cameras[0].id;
         
-        console.log("Starting scanner with camera:", cameraId);
+        console.log("Starting scanner with camera:", cameraId, cameras[cameraIndex]?.label);
         await startScanner(html5QrCode, cameraId);
         
         if (mountedRef.current) {
           setIsInitialized(true);
+          setCurrentCameraIndex(cameraIndex);
         }
       } else {
         throw new Error("No cameras found on this device");
@@ -149,9 +184,31 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
     }
   };
 
+  const flipCamera = async () => {
+    if (availableCameras.length <= 1 || isSwitchingCamera) return;
+    
+    setIsSwitchingCamera(true);
+    try {
+      const nextIndex = (currentCameraIndex + 1) % availableCameras.length;
+      console.log("Switching to camera:", availableCameras[nextIndex]?.label);
+      
+      await initializeScanner(nextIndex);
+      
+      const cameraType = availableCameras[nextIndex]?.label.toLowerCase().includes('front') || 
+                        availableCameras[nextIndex]?.label.toLowerCase().includes('user') 
+                        ? 'Front' : 'Back';
+      toast.success(`Switched to ${cameraType} camera`);
+    } catch (err) {
+      console.error("Error flipping camera:", err);
+      toast.error("Failed to switch camera");
+    } finally {
+      setIsSwitchingCamera(false);
+    }
+  };
+
   useEffect(() => {
     mountedRef.current = true;
-    initTimeoutRef.current = setTimeout(initializeScanner, 100);
+    initTimeoutRef.current = setTimeout(() => initializeScanner(), 100);
     
     return () => {
       mountedRef.current = false;
@@ -171,6 +228,10 @@ export const useCameraScanner = ({ onScan, onError, containerId }: UseCameraScan
     isScanning,
     isInitialized,
     error,
+    availableCameras,
+    currentCameraIndex,
+    isSwitchingCamera,
+    flipCamera,
     initializeScanner
   };
 };
