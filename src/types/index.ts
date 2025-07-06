@@ -168,3 +168,16 @@ export const isBus = (bus: string | IBus): bus is IBus => {
 export const isPass = (pass: string | IPass): pass is IPass => {
   return typeof pass === 'object' && pass !== null && '_id' in pass;
 };
+
+export interface IConcessionUser extends IUser {
+  concessionType: 'general' | 'student' | 'child' | 'women' | 'elderly' | 'disabled';
+  dateOfBirth?: string;
+  gender?: 'male' | 'female' | 'other';
+  governmentIdType?: 'aadhaar' | 'pan' | 'student_id' | 'driving_license' | 'voter_id';
+  governmentIdNumber?: string;
+  verificationStatus: 'pending' | 'verified' | 'rejected' | 'expired';
+  verificationDocuments?: string[];
+  verificationDate?: string;
+  documentExpiryDate?: string;
+  verificationNotes?: string;
+}

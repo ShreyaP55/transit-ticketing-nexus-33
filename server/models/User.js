@@ -28,11 +28,38 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // New concession fields
+    concessionType: {
+      type: String,
+      enum: ['general', 'student', 'child', 'women', 'elderly', 'disabled'],
+      default: 'general'
+    },
+    dateOfBirth: { type: Date },
+    gender: { 
+      type: String,
+      enum: ['male', 'female', 'other']
+    },
+    governmentIdType: {
+      type: String,
+      enum: ['aadhaar', 'pan', 'student_id', 'driving_license', 'voter_id']
+    },
+    governmentIdNumber: { 
+      type: String, 
+      sparse: true 
+    },
+    verificationStatus: {
+      type: String,
+      enum: ['pending', 'verified', 'rejected', 'expired'],
+      default: 'pending'
+    },
+    verificationDocuments: [String],
+    verificationDate: Date,
+    documentExpiryDate: Date,
+    verificationNotes: String
   },
   { timestamps: true }
 );
 
-// Check if the model exists before creating a new one
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 export default User;
