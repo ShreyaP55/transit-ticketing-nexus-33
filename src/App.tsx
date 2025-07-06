@@ -19,6 +19,7 @@ import { LoginPage, SignupPage } from "./pages/AuthPages";
 import AdminRoute from "@/components/auth/AdminRoute";
 import WalletPage from "./pages/WalletPage";
 import QRScannerPage from "./pages/QRScannerPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -31,7 +32,7 @@ const LoadingScreen = () => (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50">
     <div className="text-center">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-      <p className="mt-4 text-gray-600">Loading TransitNexus...</p>
+      <p className="mt-4 text-gray-600">Loading BusInn...</p>
     </div>
   </div>
 );
@@ -56,6 +57,7 @@ const AppContent = () => {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/wallet" element={<WalletPage />} />
       <Route path="/qr-scanner" element={<QRScannerPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
 
       {/* Admin Routes */}
       <Route element={<AdminRoute />}>

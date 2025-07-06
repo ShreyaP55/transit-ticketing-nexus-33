@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,8 @@ import { MapPin, Bus, CreditCard, Wallet, AlertTriangle } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "@/services/walletService";
+import { FareBreakdownDisplay } from "@/components/concession/FareBreakdownDisplay";
+import { calculateDiscountedFare } from "@/services/fareCalculationService";
 
 interface NewTicketModalProps {
   open: boolean;
@@ -17,7 +18,7 @@ interface NewTicketModalProps {
 }
 
 export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChange }) => {
-  const { userId } = useUser();
+  const { userId, userDetails } = useUser();
   const queryClient = useQueryClient();
   const { wallet, isLoading: isWalletLoading, deductFunds, refetchWallet } = useWallet(userId || "");
   
@@ -25,6 +26,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
   const [selectedBusId, setSelectedBusId] = useState("");
   const [selectedStationId, setSelectedStationId] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [userConcessionData, setUserConcessionData] = useState<any>(null);
 
   // Data
   const [routes, setRoutes] = useState<any[]>([]);
@@ -33,6 +35,46 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const [loadingBuses, setLoadingBuses] = useState(false);
   const [loadingStations, setLoadingStations] = useState(false);
+
+  // Fetch user concession data
+  useEffect(() => {
+    if (open && userId) {
+      fetchUserConcessionData();
+    }
+  }, [open, userId]);
+
+  const fetchUserConcessionData = async () => {
+    try {
+      const response = await fetch(`/api/verification/status/${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserConcessionData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching user concession data:', error);
+    }
+  };
+
+  const selectedRoute = routes.find(r => r._id === selectedRouteId);
+  const selectedBus = buses.find(b => b._id === selectedBusId);
+  const selectedStation = stations.find(s => s._id === selectedStationId);
+  const baseFare = selectedStation?.fare || 0;
+  
+  // Calculate discounted fare
+  const fareBreakdown = baseFare && userConcessionData ? 
+    calculateDiscountedFare(baseFare, userConcessionData) : 
+    {
+      originalFare: baseFare,
+      discountAmount: 0,
+      discountPercentage: 0,
+      finalFare: baseFare,
+      concessionType: 'general',
+      isEligible: false
+    };
+
+  const finalPrice = fareBreakdown.finalFare;
+  const walletBalance = wallet?.balance || 0;
+  const hasSufficientFunds = walletBalance >= finalPrice;
 
   // Load routes on open
   useEffect(() => {
@@ -64,18 +106,11 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
     }
   }, [selectedBusId, selectedRouteId]);
 
-  const selectedRoute = routes.find(r => r._id === selectedRouteId);
-  const selectedBus = buses.find(b => b._id === selectedBusId);
-  const selectedStation = stations.find(s => s._id === selectedStationId);
-  const price = selectedStation?.fare || 0;
-  const walletBalance = wallet?.balance || 0;
-  const hasSufficientFunds = walletBalance >= price;
-
   const handleProceedToBuy = async () => {
     if (!selectedRouteId || !selectedBusId || !selectedStationId || !userId) return;
 
     if (!hasSufficientFunds) {
-      toast.error(`Insufficient funds! You need ₹${price} but only have ₹${walletBalance.toFixed(2)}`);
+      toast.error(`Insufficient funds! You need ₹${finalPrice} but only have ₹${walletBalance.toFixed(2)}`);
       return;
     }
 
@@ -85,7 +120,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
 
       // First, deduct funds from wallet
       await deductFunds({ 
-        amount: price, 
+        amount: finalPrice, 
         description: `Ticket: ${selectedStation?.name || 'Selected Station'}` 
       });
 
@@ -96,13 +131,21 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
         busId: selectedBusId,
         startStation: selectedStation?.name || "Selected Station",
         endStation: selectedStation?.name || "Selected Station",
-        price,
+        price: finalPrice,
+        originalPrice: baseFare,
+        concessionType: fareBreakdown.concessionType,
+        discountAmount: fareBreakdown.discountAmount,
         paymentIntentId: `wallet_${Date.now()}`,
         expiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
       });
 
       if (response.success) {
-        toast.success(`Ticket purchased successfully! ₹${price} deducted from wallet.`);
+        const savedAmount = fareBreakdown.discountAmount;
+        toast.success(
+          savedAmount > 0 ? 
+          `Ticket purchased! You saved ₹${savedAmount.toFixed(2)} with your ${fareBreakdown.concessionType} concession.` :
+          `Ticket purchased successfully! ₹${finalPrice} deducted from wallet.`
+        );
         queryClient.invalidateQueries({ queryKey: ["tickets", userId] });
         await refetchWallet();
         onOpenChange(false);
@@ -220,12 +263,16 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
               </Select>
             </div>
 
-            {price > 0 && (
-              <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-400">Ticket Price</div>
-                  <div className="text-xl font-bold text-blue-400">₹{price}</div>
-                </div>
+            {baseFare > 0 && (
+              <div className="space-y-3">
+                <FareBreakdownDisplay
+                  originalFare={fareBreakdown.originalFare}
+                  discountAmount={fareBreakdown.discountAmount}
+                  finalFare={fareBreakdown.finalFare}
+                  concessionType={fareBreakdown.concessionType}
+                  discountPercentage={fareBreakdown.discountPercentage}
+                  isEligible={fareBreakdown.isEligible}
+                />
                 {!hasSufficientFunds && (
                   <div className="flex items-center mt-2 text-red-400 text-sm">
                     <AlertTriangle className="h-4 w-4 mr-1" />
@@ -246,7 +293,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
             >
               <CreditCard className="mr-2 h-4 w-4" />
-              {isProcessing ? "Processing..." : `Buy Ticket (₹${price})`}
+              {isProcessing ? "Processing..." : `Buy Ticket (₹${finalPrice})`}
             </Button>
           </DialogFooter>
         </form>
