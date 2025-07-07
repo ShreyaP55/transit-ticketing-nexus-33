@@ -10,7 +10,7 @@ const Index = () => {
   const { isAuthenticated, userDetails } = useUser();
 
   return (
-    <MainLayout showSidebar={false}>
+    <MainLayout>
       <div className="min-h-screen">
         <HeroSection isAuthenticated={isAuthenticated} userDetails={userDetails} />
         {isAuthenticated && (

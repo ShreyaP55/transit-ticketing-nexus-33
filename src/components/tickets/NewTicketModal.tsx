@@ -76,7 +76,6 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
   const walletBalance = wallet?.balance || 0;
   const hasSufficientFunds = walletBalance >= finalPrice;
 
-  // Load routes on open
   useEffect(() => {
     if (open) {
       setLoadingRoutes(true);
@@ -87,7 +86,6 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
     }
   }, [open]);
 
-  // Load buses when route changes
   useEffect(() => {
     if (selectedRouteId) {
       setLoadingBuses(true);
@@ -97,7 +95,6 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
     }
   }, [selectedRouteId]);
 
-  // Load stations when bus changes
   useEffect(() => {
     if (selectedRouteId && selectedBusId) {
       setLoadingStations(true);
@@ -124,7 +121,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
         description: `Ticket: ${selectedStation?.name || 'Selected Station'}` 
       });
 
-      // Create the ticket
+      // Create the ticket - only include properties that exist in the API
       const response = await ticketsAPI.create({
         userId,
         routeId: selectedRouteId,
@@ -132,8 +129,6 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
         startStation: selectedStation?.name || "Selected Station",
         endStation: selectedStation?.name || "Selected Station",
         price: finalPrice,
-        concessionType: fareBreakdown.concessionType,
-        discountAmount: fareBreakdown.discountAmount,
         paymentIntentId: `wallet_${Date.now()}`,
         expiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
       });
