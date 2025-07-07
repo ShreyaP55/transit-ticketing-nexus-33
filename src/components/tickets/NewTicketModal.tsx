@@ -132,7 +132,6 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
         startStation: selectedStation?.name || "Selected Station",
         endStation: selectedStation?.name || "Selected Station",
         price: finalPrice,
-        originalPrice: baseFare,
         concessionType: fareBreakdown.concessionType,
         discountAmount: fareBreakdown.discountAmount,
         paymentIntentId: `wallet_${Date.now()}`,
