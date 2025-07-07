@@ -86,7 +86,7 @@ const AppSidebar = () => {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SilebarMenu>
+            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
         {isAdmin && (
