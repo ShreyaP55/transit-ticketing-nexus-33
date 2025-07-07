@@ -24,11 +24,6 @@ const AppSidebar = () => {
       icon: CreditCard,
     },
     {
-      title: "QR Scanner", 
-      url: "/qr-scanner",
-      icon: Scan,
-    },
-    {
       title: "Wallet",
       url: "/wallet",
       icon: Wallet,
@@ -41,6 +36,16 @@ const AppSidebar = () => {
   ];
 
   const adminItems = [
+    {
+      title: "Admin Dashboard",
+      url: "/admin/dashboard",
+      icon: Users,
+    },
+    {
+      title: "QR Scanner",
+      url: "/admin/qr-scanner",
+      icon: Scan,
+    },
     {
       title: "Admin Live Tracking",
       url: "/admin/live-tracking",

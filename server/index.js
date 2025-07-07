@@ -1,3 +1,4 @@
+
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -18,6 +19,7 @@ import ridesRouter from './routes/ridesRouter.js';
 import walletRouter from './routes/walletRouter.js';
 import passUsageRouter from './routes/passUsageRouter.js';
 import verificationRouter from './routes/verificationRouter.js';
+import adminRouter from './routes/adminRouter.js';
 
 dotenv.config();
 
@@ -62,16 +64,30 @@ app.use('/api/rides', ridesRouter);
 app.use('/api/wallet', walletRouter);
 app.use('/api/pass-usage', passUsageRouter);
 app.use('/api/verification', verificationRouter);
+app.use('/api/admin', adminRouter);
 
-// MongoDB connection
-const mongoURL = process.env.MONGO_URL;
+// MongoDB connection - Fixed to use correct environment variable
+const mongoURL = process.env.MONGODB_URI || process.env.MONGO_URL;
+
+if (!mongoURL) {
+  console.error('❌ MongoDB URI not found in environment variables');
+  console.error('Please set MONGODB_URI in your .env file');
+  process.exit(1);
+}
 
 mongoose.connect(mongoURL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error('MongoDB connection error:', err));
+.then(() => {
+  console.log('✅ Connected to MongoDB successfully');
+  console.log(`📊 Database: ${mongoose.connection.db.databaseName}`);
+})
+.catch(err => {
+  console.error('❌ MongoDB connection error:', err);
+  console.error('🔍 Check your MONGODB_URI in .env file');
+  process.exit(1);
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -80,7 +96,7 @@ app.use((err, req, res, next) => {
 });
 
 // Server startup
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3001;
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`🚀 Server is running on port ${port}`);
 });

@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import StationManagementPage from "./pages/StationManagementPage";
 import LiveTrackingPage from "./pages/LiveTrackingPage";
 import AdminLiveTrackingPage from "./pages/AdminLiveTrackingPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 import { LoginPage, SignupPage } from "./pages/AuthPages";
 import AdminRoute from "@/components/auth/AdminRoute";
 import WalletPage from "./pages/WalletPage";
@@ -56,11 +57,12 @@ const AppContent = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/wallet" element={<WalletPage />} />
-      <Route path="/qr-scanner" element={<QRScannerPage />} />
       <Route path="/profile" element={<ProfilePage />} />
 
       {/* Admin Routes */}
       <Route element={<AdminRoute />}>
+        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+        <Route path="/admin/qr-scanner" element={<QRScannerPage />} />
         <Route path="/admin/live-tracking" element={<AdminLiveTrackingPage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/buses" element={<BusesPage />} />
