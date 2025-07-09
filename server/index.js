@@ -34,6 +34,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5173',
+      'http://localhost:8080',
       'http://localhost:8081',
       'https://id-preview--cb03e5f7-7bb7-48ab-8c19-9dcaa2e3afb0.lovable.app',
       'https://businn.onrender.com',
