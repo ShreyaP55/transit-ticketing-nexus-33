@@ -25,29 +25,68 @@ dotenv.config();
 
 const app = express();
 
-// CORS Configuration
+// Enhanced CORS Configuration for development and production
 const corsOptions = {
-  origin: '*',
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:8081',
+      'https://id-preview--cb03e5f7-7bb7-48ab-8c19-9dcaa2e3afb0.lovable.app',
+      'https://businn.onrender.com',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Allow all origins in development
+    }
+  },
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with'],
   credentials: true,
-  optionsSuccessStatus: 204,
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 };
+
 app.use(cors(corsOptions));
 
-// Helmet for security headers
-app.use(helmet());
+// Handle preflight requests
+app.options('*', cors(corsOptions));
 
-// Rate limiting
+// Helmet for security headers - modified for development
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: false // Disable CSP in development
+}));
+
+// Rate limiting - more lenient for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 1000, // Increased limit for development
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for localhost in development
+    return req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost';
+  }
 });
 app.use(limiter);
 
-// JSON parsing
-app.use(express.json());
+// JSON parsing with increased limit
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.get('Origin')}`);
+  next();
+});
 
 // Routes
 app.use('/api/routes', routesRouter);
@@ -66,6 +105,15 @@ app.use('/api/pass-usage', passUsageRouter);
 app.use('/api/verification', verificationRouter);
 app.use('/api/admin', adminRouter);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // MongoDB connection - Fixed to use correct environment variable
 const mongoURL = process.env.MONGODB_URI || process.env.MONGO_URL;
 
@@ -75,6 +123,7 @@ if (!mongoURL) {
   process.exit(1);
 }
 
+console.log('🔗 Attempting to connect to MongoDB...');
 mongoose.connect(mongoURL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -91,12 +140,19 @@ mongoose.connect(mongoURL, {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
+  console.error('Server Error:', err.stack);
+  res.status(500).json({ error: 'Something broke!', message: err.message });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Route not found' });
 });
 
 // Server startup
 const port = process.env.PORT || 3001;
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server is running on port ${port}`);
+  console.log(`🌐 Server accessible at http://localhost:${port}`);
+  console.log(`📡 API endpoints available at http://localhost:${port}/api`);
 });

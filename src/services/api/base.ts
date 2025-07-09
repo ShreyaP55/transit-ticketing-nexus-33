@@ -1,7 +1,22 @@
 
 import { useAuth } from "@clerk/clerk-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+// Prioritize local development server
+const getApiUrl = () => {
+  // Check if local server is likely running
+  const isDevelopment = import.meta.env.DEV;
+  const localUrl = "http://localhost:3001/api";
+  const remoteUrl = import.meta.env.VITE_API_URL || "https://businn.onrender.com/api";
+  
+  // In development, prefer local server
+  if (isDevelopment) {
+    return localUrl;
+  }
+  
+  return remoteUrl;
+};
+
+const API_URL = getApiUrl();
 
 // Get auth token for API calls - improved to handle Clerk properly
 export const getAuthToken = () => {
@@ -29,7 +44,9 @@ export async function fetchAPI<T>(
     
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
-      headers
+      headers,
+      mode: 'cors', // Explicitly set CORS mode
+      credentials: 'include' // Include credentials for CORS
     });
 
     if (!response.ok) {
@@ -69,8 +86,14 @@ export async function fetchAPI<T>(
     return responseData;
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error('Network error - server may not be running');
-      throw new Error("Server is not running. Please start the backend server on port 3001.");
+      console.error('Network error - checking server connectivity');
+      
+      // Try to provide more helpful error message
+      if (API_URL.includes('localhost')) {
+        throw new Error("Local server not running. Please start the backend server with 'npm run dev' in the server directory.");
+      } else {
+        throw new Error("Remote server not accessible. Please check your internet connection or try again later.");
+      }
     }
     console.error(`API Error (${endpoint}):`, error);
     throw error;
