@@ -13,13 +13,20 @@ const tripSchema = new mongoose.Schema({
   endLocation: { type: locationSchema },
   active: { type: Boolean, default: true },
   distance: { type: Number },
+  straightLineDistance: { type: Number }, // Haversine distance for comparison
+  realWorldDistance: { type: Boolean, default: false },
   fare: { type: Number },
+  originalFare: { type: Number },
+  discountAmount: { type: Number },
+  discountPercentage: { type: Number },
+  concessionType: { type: String, default: 'general' },
   duration: { type: Number }, // in minutes
+  calculationMethod: { type: String, enum: ['google_maps', 'haversine'], default: 'haversine' }
 }, { timestamps: true });
 
-// Calculate distance using Haversine formula
-tripSchema.methods.calculateDistance = function() {
-  if (!this.endLocation) return;
+// Calculate distance using Haversine formula (fallback)
+tripSchema.methods.calculateHaversineDistance = function() {
+  if (!this.endLocation) return 0;
   
   const R = 6371; // Earth's radius in km
   const dLat = (this.endLocation.latitude - this.startLocation.latitude) * Math.PI / 180;
@@ -31,13 +38,40 @@ tripSchema.methods.calculateDistance = function() {
     Math.sin(dLng/2) * Math.sin(dLng/2);
     
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  this.distance = Math.round(R * c * 100) / 100; // Round to 2 decimal places
+  return Math.round(R * c * 100) / 100; // Round to 2 decimal places
 };
 
-// Calculate fare based on distance (₹10 base + ₹5 per km)
-tripSchema.methods.calculateFare = function() {
+// Enhanced fare calculation with concession support
+tripSchema.methods.calculateFareWithConcession = function(userConcessionType = 'general') {
   if (!this.distance) return;
-  this.fare = Math.max(10, Math.round(10 + (this.distance * 5)));
+  
+  this.concessionType = userConcessionType;
+  
+  // Base fare + per km charge
+  const baseFare = 20;
+  const perKmCharge = 8;
+  const originalFare = baseFare + (this.distance * perKmCharge);
+  
+  // Concession discounts
+  const discounts = {
+    general: 0,
+    student: 30,
+    child: 50,
+    women: 20,
+    elderly: 40,
+    disabled: 50
+  };
+  
+  const discountPercentage = discounts[userConcessionType] || 0;
+  const discountAmount = (originalFare * discountPercentage) / 100;
+  const finalFare = originalFare - discountAmount;
+  
+  this.originalFare = Math.round(originalFare);
+  this.discountAmount = Math.round(discountAmount);
+  this.discountPercentage = discountPercentage;
+  this.fare = Math.round(finalFare);
+  
+  return this.fare;
 };
 
 // Calculate duration in minutes

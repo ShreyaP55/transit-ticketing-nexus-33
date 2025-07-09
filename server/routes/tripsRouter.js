@@ -7,8 +7,33 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// Calculate distance between two coordinates using Haversine formula
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
+// Google Maps Distance Matrix API function
+const calculateRealDistance = async (lat1, lon1, lat2, lon2) => {
+  const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+  
+  if (GOOGLE_MAPS_API_KEY) {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lat1},${lon1}&destinations=${lat2},${lon2}&units=metric&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
+      
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.status === 'OK' && data.rows[0]?.elements[0]?.status === 'OK') {
+          const element = data.rows[0].elements[0];
+          return {
+            distance: element.distance.value / 1000, // Convert meters to km
+            duration: element.duration.value / 60, // Convert seconds to minutes
+            realWorld: true
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('Google Maps API failed, falling back to Haversine:', error);
+    }
+  }
+  
+  // Fallback to Haversine formula
   const R = 6371; // Radius of Earth in kilometers
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -17,14 +42,41 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
     Math.sin(dLon/2) * Math.sin(dLon/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
+  const distance = R * c;
+  
+  return {
+    distance: Math.round(distance * 100) / 100,
+    duration: Math.round((distance / 40) * 60), // Assume 40 km/h average speed
+    realWorld: false
+  };
 };
 
-// Calculate fare based on distance (₹5 base + ₹2 per km)
-const calculateFare = (distance) => {
-  const baseFare = 5;
-  const perKmRate = 2;
-  return Math.max(baseFare, baseFare + (distance * perKmRate));
+// Enhanced fare calculation with concession
+const calculateFareWithConcession = (distance, concessionType = 'general') => {
+  const baseFare = 20;
+  const perKmRate = 8;
+  const originalFare = baseFare + (distance * perKmRate);
+  
+  // Concession discounts
+  const discounts = {
+    general: 0,
+    student: 30,
+    child: 50,
+    women: 20,
+    elderly: 40,
+    disabled: 50
+  };
+  
+  const discountPercentage = discounts[concessionType] || 0;
+  const discountAmount = (originalFare * discountPercentage) / 100;
+  const finalFare = originalFare - discountAmount;
+  
+  return {
+    originalFare: Math.round(originalFare),
+    discountAmount: Math.round(discountAmount),
+    discountPercentage,
+    finalFare: Math.round(finalFare)
+  };
 };
 
 // Start a new trip
@@ -64,7 +116,7 @@ router.post('/start', async (req, res) => {
   }
 });
 
-// End a trip
+// End a trip with enhanced calculations
 router.put('/:tripId/end', async (req, res) => {
   try {
     const { tripId } = req.params;
@@ -86,27 +138,38 @@ router.put('/:tripId/end', async (req, res) => {
     if (!trip.active) {
       return res.status(400).json({ error: 'Trip is already completed' });
     }
+
+    // Get user's concession type
+    const user = await User.findOne({ clerkId: trip.userId });
+    const concessionType = user?.concessionType || 'general';
     
-    // Calculate distance and fare
-    const distance = calculateDistance(
+    // Calculate real-world distance and fare
+    const distanceResult = await calculateRealDistance(
       trip.startLocation.latitude,
       trip.startLocation.longitude,
       parseFloat(latitude),
       parseFloat(longitude)
     );
     
-    const fare = calculateFare(distance);
+    const fareResult = calculateFareWithConcession(distanceResult.distance, concessionType);
     
-    // Update trip
+    // Update trip with comprehensive data
     trip.endLocation = {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
       timestamp: new Date()
     };
     trip.active = false;
-    trip.distance = distance;
-    trip.fare = fare;
-    trip.duration = Math.round((new Date() - trip.startLocation.timestamp) / 1000 / 60); // minutes
+    trip.distance = distanceResult.distance;
+    trip.realWorldDistance = distanceResult.realWorld;
+    trip.calculationMethod = distanceResult.realWorld ? 'google_maps' : 'haversine';
+    trip.straightLineDistance = trip.calculateHaversineDistance();
+    trip.duration = distanceResult.duration;
+    trip.concessionType = concessionType;
+    trip.originalFare = fareResult.originalFare;
+    trip.discountAmount = fareResult.discountAmount;
+    trip.discountPercentage = fareResult.discountPercentage;
+    trip.fare = fareResult.finalFare;
     
     await trip.save();
     
@@ -117,21 +180,20 @@ router.put('/:tripId/end', async (req, res) => {
       let wallet = await Wallet.findOne({ userId: trip.userId });
       
       if (!wallet) {
-        // Create wallet if it doesn't exist
         wallet = new Wallet({ userId: trip.userId, balance: 0, transactions: [] });
         await wallet.save();
       }
       
-      if (wallet.balance >= fare) {
-        await wallet.deductFunds(fare, `Trip fare - ${distance.toFixed(2)}km`, trip._id);
+      if (wallet.balance >= trip.fare) {
+        await wallet.deductFunds(trip.fare, `Trip fare - ${trip.distance.toFixed(2)}km (${trip.concessionType} concession)`, trip._id);
         deductionResult = { 
           status: 'success', 
-          message: `₹${fare.toFixed(2)} deducted from wallet. New balance: ₹${(wallet.balance - fare).toFixed(2)}`
+          message: `₹${trip.fare} deducted from wallet. Savings: ₹${trip.discountAmount}. New balance: ₹${(wallet.balance - trip.fare).toFixed(2)}`
         };
       } else {
         deductionResult = { 
           status: 'insufficient_funds', 
-          message: `Insufficient funds. Required: ₹${fare.toFixed(2)}, Available: ₹${wallet.balance.toFixed(2)}`
+          message: `Insufficient funds. Required: ₹${trip.fare}, Available: ₹${wallet.balance.toFixed(2)}`
         };
       }
     } catch (walletError) {
@@ -144,7 +206,21 @@ router.put('/:tripId/end', async (req, res) => {
     
     res.json({
       success: true,
-      trip,
+      trip: {
+        id: trip._id,
+        distance: trip.distance,
+        straightLineDistance: trip.straightLineDistance,
+        realWorldDistance: trip.realWorldDistance,
+        calculationMethod: trip.calculationMethod,
+        originalFare: trip.originalFare,
+        discountAmount: trip.discountAmount,
+        discountPercentage: trip.discountPercentage,
+        finalFare: trip.fare,
+        concessionType: trip.concessionType,
+        duration: trip.duration,
+        startTime: trip.startLocation.timestamp,
+        endTime: trip.endLocation.timestamp
+      },
       deduction: deductionResult
     });
   } catch (error) {
