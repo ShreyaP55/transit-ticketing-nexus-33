@@ -7,33 +7,38 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// Google Maps Distance Matrix API function
+// DistanceMatrix.ai API function
 const calculateRealDistance = async (lat1, lon1, lat2, lon2) => {
-  const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+  const DISTANCE_MATRIX_API_KEY = 'gTjz3x0YNfNW9hnEqh2Km4YjtMKPJuxkUTehdpvOYYUuwTqx0z0CQetvQgwhXymS';
+  const DISTANCE_MATRIX_BASE_URL = 'https://api.distancematrix.ai/maps/api/distancematrix/json';
   
-  if (GOOGLE_MAPS_API_KEY) {
-    try {
-      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lat1},${lon1}&destinations=${lat2},${lon2}&units=metric&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
+  try {
+    console.log('🚀 Using DistanceMatrix.ai API for trip calculation');
+    const url = `${DISTANCE_MATRIX_BASE_URL}?origins=${lat1},${lon1}&destinations=${lat2},${lon2}&key=${DISTANCE_MATRIX_API_KEY}`;
+    
+    const response = await fetch(url);
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ DistanceMatrix.ai API response:', data);
       
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.status === 'OK' && data.rows[0]?.elements[0]?.status === 'OK') {
-          const element = data.rows[0].elements[0];
-          return {
-            distance: element.distance.value / 1000, // Convert meters to km
-            duration: element.duration.value / 60, // Convert seconds to minutes
-            realWorld: true
-          };
-        }
+      if (data.status === 'OK' && data.rows?.[0]?.elements?.[0]?.status === 'OK') {
+        const element = data.rows[0].elements[0];
+        return {
+          distance: element.distance.value / 1000, // Convert meters to km
+          duration: element.duration.value / 60, // Convert seconds to minutes
+          realWorld: true,
+          method: 'distancematrix_ai'
+        };
+      } else {
+        console.warn('⚠️ DistanceMatrix.ai API returned non-OK status:', data.status);
       }
-    } catch (error) {
-      console.warn('Google Maps API failed, falling back to Haversine:', error);
     }
+  } catch (error) {
+    console.warn('DistanceMatrix.ai API failed, falling back to Haversine:', error);
   }
   
   // Fallback to Haversine formula
+  console.log('🔄 Using Haversine formula as fallback');
   const R = 6371; // Radius of Earth in kilometers
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -47,7 +52,8 @@ const calculateRealDistance = async (lat1, lon1, lat2, lon2) => {
   return {
     distance: Math.round(distance * 100) / 100,
     duration: Math.round((distance / 40) * 60), // Assume 40 km/h average speed
-    realWorld: false
+    realWorld: false,
+    method: 'haversine'
   };
 };
 
@@ -116,7 +122,7 @@ router.post('/start', async (req, res) => {
   }
 });
 
-// End a trip with enhanced calculations
+// End a trip with enhanced calculations using DistanceMatrix.ai
 router.put('/:tripId/end', async (req, res) => {
   try {
     const { tripId } = req.params;
@@ -143,7 +149,7 @@ router.put('/:tripId/end', async (req, res) => {
     const user = await User.findOne({ clerkId: trip.userId });
     const concessionType = user?.concessionType || 'general';
     
-    // Calculate real-world distance and fare
+    // Calculate real-world distance and fare using DistanceMatrix.ai
     const distanceResult = await calculateRealDistance(
       trip.startLocation.latitude,
       trip.startLocation.longitude,
@@ -162,7 +168,7 @@ router.put('/:tripId/end', async (req, res) => {
     trip.active = false;
     trip.distance = distanceResult.distance;
     trip.realWorldDistance = distanceResult.realWorld;
-    trip.calculationMethod = distanceResult.realWorld ? 'google_maps' : 'haversine';
+    trip.calculationMethod = distanceResult.method;
     trip.straightLineDistance = trip.calculateHaversineDistance();
     trip.duration = distanceResult.duration;
     trip.concessionType = concessionType;
@@ -271,6 +277,31 @@ router.get('/user/:userId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching user trips:', error);
     res.status(500).json({ error: 'Failed to fetch user trips' });
+  }
+});
+
+// Get trip statistics (for admin dashboard)
+router.get('/stats', async (req, res) => {
+  try {
+    const [totalTrips, activeTrips, completedTrips, totalRevenue] = await Promise.all([
+      Trip.countDocuments(),
+      Trip.countDocuments({ active: true }),
+      Trip.countDocuments({ active: false }),
+      Trip.aggregate([
+        { $match: { active: false, fare: { $exists: true } } },
+        { $group: { _id: null, total: { $sum: '$fare' } } }
+      ])
+    ]);
+    
+    res.json({
+      totalTrips,
+      activeTrips,
+      completedTrips,
+      totalRevenue: totalRevenue[0]?.total || 0
+    });
+  } catch (error) {
+    console.error('Error fetching trip stats:', error);
+    res.status(500).json({ error: 'Failed to fetch trip statistics' });
   }
 });
 

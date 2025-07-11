@@ -45,10 +45,20 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
         return res.status(404).send('Payment not found');
       }
 
-      // Skip if already processed
+      // Skip if already processed (idempotency check)
       if (payment.status === 'completed') {
         console.log('✅ Payment already processed:', session.id);
         return res.status(200).send('Already processed');
+      }
+
+      // Verify payment amount matches
+      const expectedAmount = Math.round(payment.fare * 100); // Convert to paise
+      if (session.amount_total !== expectedAmount) {
+        console.error('❌ Payment amount mismatch:', { 
+          expected: expectedAmount, 
+          received: session.amount_total 
+        });
+        return res.status(400).send('Payment amount mismatch');
       }
 
       // Find user by payment.userId
@@ -60,7 +70,7 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
 
       console.log(`🔄 Processing ${payment.type} payment for user: ${user.clerkId}`);
 
-      // Process based on payment type
+      // Process based on payment type with atomic operations
       if (payment.type === 'wallet') {
         // Get or create wallet
         let wallet = await Wallet.findOne({ userId: payment.userId });
@@ -73,57 +83,103 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
         }
 
         // Add funds to wallet
-        await wallet.addFunds(payment.fare, 'Wallet top-up via Stripe');
+        await wallet.addFunds(payment.fare, `Wallet top-up via Stripe (${session.id})`);
         console.log(`✅ Wallet updated for ${user.clerkId}: ₹${payment.fare}`);
         
       } else if (payment.type === 'pass') {
-        // Create monthly pass
+        // Create monthly pass only after successful payment
         const expiryDate = new Date();
         expiryDate.setMonth(expiryDate.getMonth() + 1);
         
-        const newPass = new Pass({
+        // Check for duplicate pass
+        const existingPass = await Pass.findOne({
           userId: payment.userId,
           routeId: payment.routeId,
-          fare: payment.fare,
-          expiryDate
+          expiryDate: { $gte: new Date() }
         });
-        
-        await newPass.save();
-        console.log(`✅ Pass created for ${user.clerkId}: ${newPass._id}`);
+
+        if (!existingPass) {
+          const newPass = new Pass({
+            userId: payment.userId,
+            routeId: payment.routeId,
+            fare: payment.fare,
+            expiryDate,
+            paymentIntentId: session.id,
+            status: 'active'
+          });
+          
+          await newPass.save();
+          console.log(`✅ Pass created for ${user.clerkId}: ${newPass._id}`);
+        } else {
+          console.log(`✅ Pass already exists for ${user.clerkId}: ${existingPass._id}`);
+        }
         
       } else if (payment.type === 'ticket') {
-        // Create ticket
+        // Create ticket only after successful payment
         const route = await Route.findById(payment.routeId);
         const bus = await Bus.findOne({ routeId: payment.routeId });
         
         if (route && bus) {
-          const expiryDate = new Date();
-          expiryDate.setHours(expiryDate.getHours() + 24); // 24 hour validity
-          
-          const newTicket = new Ticket({
-            userId: payment.userId,
-            routeId: payment.routeId,
-            busId: bus._id,
-            startStation: route.start,
-            endStation: route.end,
-            price: payment.fare,
-            paymentIntentId: session.id,
-            expiryDate
+          // Check for duplicate ticket
+          const existingTicket = await Ticket.findOne({
+            paymentIntentId: session.id
           });
-          
-          await newTicket.save();
-          console.log(`✅ Ticket created for ${user.clerkId}: ${newTicket._id}`);
+
+          if (!existingTicket) {
+            const expiryDate = new Date();
+            expiryDate.setHours(expiryDate.getHours() + 12); // 12 hour validity
+            
+            const newTicket = new Ticket({
+              userId: payment.userId,
+              routeId: payment.routeId,
+              busId: bus._id,
+              startStation: route.start,
+              endStation: route.end,
+              price: payment.fare,
+              paymentIntentId: session.id,
+              expiryDate,
+              status: 'active',
+              paymentStatus: 'paid'
+            });
+            
+            await newTicket.save();
+            console.log(`✅ Ticket created for ${user.clerkId}: ${newTicket._id}`);
+          } else {
+            console.log(`✅ Ticket already exists for ${user.clerkId}: ${existingTicket._id}`);
+          }
+        } else {
+          console.error('❌ Route or bus not found for ticket creation');
         }
       }
 
-      // Mark payment as completed
-      payment.status = 'completed';
-      await payment.save();
+      // Mark payment as completed (atomic operation)
+      await Payment.findByIdAndUpdate(
+        payment._id,
+        { 
+          status: 'completed',
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
 
       console.log(`✅ Payment completed for session: ${session.id}`);
       return res.status(200).send('Success');
     } catch (err) {
       console.error('❌ Error processing Stripe session:', err);
+      
+      // Mark payment as failed on error
+      try {
+        await Payment.findOneAndUpdate(
+          { stripeSessionId: session.id },
+          { 
+            status: 'failed',
+            updatedAt: new Date()
+          }
+        );
+      } catch (updateErr) {
+        console.error('❌ Error updating payment status to failed:', updateErr);
+      }
+      
       return res.status(500).send('Internal Server Error');
     }
   }

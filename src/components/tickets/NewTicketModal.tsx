@@ -1,11 +1,12 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { routesAPI, busesAPI, stationsAPI, ticketsAPI } from "@/services/api";
+import { routesAPI, busesAPI, stationsAPI, paymentAPI } from "@/services/api";
 import { toast } from "sonner";
-import { MapPin, Bus, CreditCard, Wallet, AlertTriangle } from "lucide-react";
+import { MapPin, Bus, CreditCard, Wallet, AlertTriangle, Clock } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "@/services/walletService";
@@ -20,13 +21,14 @@ interface NewTicketModalProps {
 export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChange }) => {
   const { userId, userDetails } = useUser();
   const queryClient = useQueryClient();
-  const { wallet, isLoading: isWalletLoading, deductFunds, refetchWallet } = useWallet(userId || "");
+  const { wallet, isLoading: isWalletLoading, refetchWallet } = useWallet(userId || "");
   
   const [selectedRouteId, setSelectedRouteId] = useState("");
   const [selectedBusId, setSelectedBusId] = useState("");
   const [selectedStationId, setSelectedStationId] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [userConcessionData, setUserConcessionData] = useState<any>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'stripe'>('wallet');
 
   // Data
   const [routes, setRoutes] = useState<any[]>([]);
@@ -83,6 +85,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
       setSelectedRouteId("");
       setSelectedBusId("");
       setSelectedStationId("");
+      setPaymentMethod('wallet');
     }
   }, [open]);
 
@@ -103,7 +106,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
     }
   }, [selectedBusId, selectedRouteId]);
 
-  const handleProceedToBuy = async () => {
+  const handleWalletPayment = async () => {
     if (!selectedRouteId || !selectedBusId || !selectedStationId || !userId) return;
 
     if (!hasSufficientFunds) {
@@ -116,24 +119,33 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
       toast.info("Processing ticket purchase...");
 
       // First, deduct funds from wallet
+      const { deductFunds } = useWallet(userId);
       await deductFunds({ 
         amount: finalPrice, 
         description: `Ticket: ${selectedStation?.name || 'Selected Station'}` 
       });
 
-      // Create the ticket - only include properties that exist in the API
-      const response = await ticketsAPI.create({
-        userId,
-        routeId: selectedRouteId,
-        busId: selectedBusId,
-        startStation: selectedStation?.name || "Selected Station",
-        endStation: selectedStation?.name || "Selected Station",
-        price: finalPrice,
-        paymentIntentId: `wallet_${Date.now()}`,
-        expiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      // Create the ticket after successful wallet deduction
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          routeId: selectedRouteId,
+          busId: selectedBusId,
+          startStation: selectedStation?.name || "Selected Station",
+          endStation: selectedStation?.name || "Selected Station",
+          price: finalPrice,
+          paymentIntentId: `wallet_${Date.now()}`,
+          expiryDate: new Date(Date.now() + 12 * 60 * 60 * 1000)
+        })
       });
 
-      if (response.success) {
+      const result = await response.json();
+
+      if (result.success) {
         const savedAmount = fareBreakdown.discountAmount;
         toast.success(
           savedAmount > 0 ? 
@@ -151,6 +163,44 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
       toast.error("Failed to purchase ticket");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleStripePayment = async () => {
+    if (!selectedRouteId || !selectedBusId || !selectedStationId || !userId) return;
+
+    try {
+      setIsProcessing(true);
+      toast.info("Redirecting to payment...");
+
+      // Create Stripe checkout session
+      const response = await paymentAPI.createTicketCheckoutSession(
+        selectedStationId,
+        selectedBusId,
+        finalPrice
+      );
+
+      if (response.url) {
+        // Open payment in new tab
+        window.open(response.url, '_blank');
+        toast.success("Payment page opened in new tab");
+        onOpenChange(false);
+      } else {
+        toast.error("Failed to create payment session");
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error("Failed to create payment session");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleProceedToBuy = () => {
+    if (paymentMethod === 'wallet') {
+      handleWalletPayment();
+    } else {
+      handleStripePayment();
     }
   };
 
@@ -267,12 +317,48 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
                   discountPercentage={fareBreakdown.discountPercentage}
                   isEligible={fareBreakdown.isEligible}
                 />
-                {!hasSufficientFunds && (
+
+                {/* Payment Method Selection */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-white">Payment Method</label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={paymentMethod === 'wallet' ? 'default' : 'outline'}
+                      onClick={() => setPaymentMethod('wallet')}
+                      className="flex-1"
+                      disabled={!hasSufficientFunds}
+                    >
+                      <Wallet className="h-4 w-4 mr-2" />
+                      Wallet
+                      {!hasSufficientFunds && <AlertTriangle className="h-4 w-4 ml-2 text-red-400" />}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={paymentMethod === 'stripe' ? 'default' : 'outline'}
+                      onClick={() => setPaymentMethod('stripe')}
+                      className="flex-1"
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Card
+                    </Button>
+                  </div>
+                </div>
+
+                {paymentMethod === 'wallet' && !hasSufficientFunds && (
                   <div className="flex items-center mt-2 text-red-400 text-sm">
                     <AlertTriangle className="h-4 w-4 mr-1" />
                     Insufficient wallet balance
                   </div>
                 )}
+
+                {/* Ticket Validity Info */}
+                <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-700/50">
+                  <div className="flex items-center text-sm text-blue-300">
+                    <Clock className="h-4 w-4 mr-2" />
+                    Ticket valid for 12 hours from purchase
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -283,11 +369,20 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onOpenChan
             </DialogClose>
             <Button
               type="submit"
-              disabled={!selectedRouteId || !selectedBusId || !selectedStationId || isProcessing || !hasSufficientFunds}
+              disabled={!selectedRouteId || !selectedBusId || !selectedStationId || isProcessing || (paymentMethod === 'wallet' && !hasSufficientFunds)}
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
             >
-              <CreditCard className="mr-2 h-4 w-4" />
-              {isProcessing ? "Processing..." : `Buy Ticket (₹${finalPrice})`}
+              {paymentMethod === 'wallet' ? (
+                <>
+                  <Wallet className="mr-2 h-4 w-4" />
+                  {isProcessing ? "Processing..." : `Pay from Wallet (₹${finalPrice})`}
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  {isProcessing ? "Processing..." : `Pay with Card (₹${finalPrice})`}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>

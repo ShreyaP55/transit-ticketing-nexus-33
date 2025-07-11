@@ -6,7 +6,9 @@ interface DistanceResult {
   realWorldDistance: boolean;
 }
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+// DistanceMatrix.ai API configuration
+const DISTANCE_MATRIX_API_KEY = 'gTjz3x0YNfNW9hnEqh2Km4YjtMKPJuxkUTehdpvOYYUuwTqx0z0CQetvQgwhXymS';
+const DISTANCE_MATRIX_BASE_URL = 'https://api.distancematrix.ai/maps/api/distancematrix/json';
 
 // Haversine formula fallback
 const calculateHaversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -28,37 +30,48 @@ export const calculateRealDistance = async (
   endLat: number, 
   endLng: number
 ): Promise<DistanceResult> => {
-  // Try Google Maps Distance Matrix API first
-  if (GOOGLE_MAPS_API_KEY) {
-    try {
-      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${startLat},${startLng}&destinations=${endLat},${endLng}&units=metric&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.status === 'OK' && data.rows[0]?.elements[0]?.status === 'OK') {
-          const element = data.rows[0].elements[0];
-          return {
-            distance: element.distance.value / 1000, // Convert meters to km
-            duration: element.duration.value / 60, // Convert seconds to minutes
-            status: 'OK',
-            realWorldDistance: true
-          };
-        }
+  // Try DistanceMatrix.ai API first
+  try {
+    console.log('🚀 Using DistanceMatrix.ai API for accurate distance calculation');
+    const url = `${DISTANCE_MATRIX_BASE_URL}?origins=${startLat},${startLng}&destinations=${endLat},${endLng}&key=${DISTANCE_MATRIX_API_KEY}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       }
-    } catch (error) {
-      console.warn('Google Maps API failed, falling back to Haversine:', error);
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ DistanceMatrix.ai API response:', data);
+      
+      if (data.status === 'OK' && data.rows?.[0]?.elements?.[0]?.status === 'OK') {
+        const element = data.rows[0].elements[0];
+        const distanceInKm = element.distance.value / 1000; // Convert meters to km
+        const durationInMinutes = element.duration.value / 60; // Convert seconds to minutes
+        
+        console.log(`📏 Real distance: ${distanceInKm.toFixed(2)}km, Duration: ${durationInMinutes.toFixed(0)}min`);
+        
+        return {
+          distance: Math.round(distanceInKm * 100) / 100, // Round to 2 decimal places
+          duration: Math.round(durationInMinutes),
+          status: 'OK',
+          realWorldDistance: true
+        };
+      } else {
+        console.warn('⚠️ DistanceMatrix.ai API returned non-OK status:', data.status);
+      }
+    } else {
+      console.warn('⚠️ DistanceMatrix.ai API request failed:', response.status, response.statusText);
     }
+  } catch (error) {
+    console.warn('⚠️ DistanceMatrix.ai API failed, falling back to Haversine:', error);
   }
 
   // Fallback to Haversine formula
+  console.log('🔄 Using Haversine formula as fallback');
   const distance = calculateHaversineDistance(startLat, startLng, endLat, endLng);
   const estimatedDuration = (distance / 40) * 60; // Assume 40 km/h average speed
   

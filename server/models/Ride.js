@@ -1,86 +1,102 @@
 
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-const LocationSchema = new mongoose.Schema({
+const locationSchema = new mongoose.Schema({
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
   timestamp: { type: Date, default: Date.now }
-});
+}, { _id: false });
 
-const RideSchema = new mongoose.Schema({
-  userId: { type: String, required: true },  // Clerk User ID
-  userName: { type: String, required: true }, // User display name
-  busId: { type: String, required: true },   // Bus identifier
-  busName: { type: String, required: true }, // Bus display name
-  startLocation: { type: LocationSchema, required: true },
-  endLocation: { type: LocationSchema },
-  active: { type: Boolean, default: true },
-  distance: { type: Number },  // in kilometers
-  fare: { type: Number },      // calculated fare
-  duration: { type: Number },  // in minutes
+const rideSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  routeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Route' },
+  busId: { type: mongoose.Schema.Types.ObjectId, ref: 'Bus' },
+  startLocation: { type: locationSchema, required: true },
+  endLocation: { type: locationSchema },
+  startStation: { type: String },
+  endStation: { type: String },
+  status: { 
+    type: String, 
+    enum: ['active', 'completed', 'cancelled'], 
+    default: 'active' 
+  },
+  distance: { type: Number }, // in km
+  realWorldDistance: { type: Boolean, default: false },
+  calculationMethod: { type: String, enum: ['distancematrix_ai', 'haversine'], default: 'haversine' },
+  duration: { type: Number }, // in minutes
+  fare: { type: Number },
+  originalFare: { type: Number },
+  discountAmount: { type: Number },
+  discountPercentage: { type: Number },
+  concessionType: { type: String, default: 'general' },
+  paymentStatus: { 
+    type: String, 
+    enum: ['pending', 'paid', 'failed'], 
+    default: 'pending' 
+  },
+  paymentMethod: { 
+    type: String, 
+    enum: ['wallet', 'pass', 'cash'], 
+    default: 'wallet' 
+  }
 }, { timestamps: true });
 
-// Calculate distance between two points using Haversine formula
-RideSchema.methods.calculateDistance = function() {
-  if (!this.startLocation || !this.endLocation) {
-    return 0;
-  }
+// Calculate distance using Haversine formula (fallback)
+rideSchema.methods.calculateHaversineDistance = function() {
+  if (!this.endLocation) return 0;
   
-  const toRadians = (degree) => degree * (Math.PI / 180);
+  const R = 6371; // Earth's radius in km
+  const dLat = (this.endLocation.latitude - this.startLocation.latitude) * Math.PI / 180;
+  const dLng = (this.endLocation.longitude - this.startLocation.longitude) * Math.PI / 180;
   
-  const lat1 = this.startLocation.latitude;
-  const lon1 = this.startLocation.longitude;
-  const lat2 = this.endLocation.latitude;
-  const lon2 = this.endLocation.longitude;
-  
-  const R = 6371; // Earth's radius in kilometers
-  
-  const dLat = toRadians(lat2 - lat1);
-  const dLon = toRadians(lon2 - lon1);
-  
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(this.startLocation.latitude * Math.PI / 180) * 
+    Math.cos(this.endLocation.latitude * Math.PI / 180) *
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+    
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  const distance = R * c; // Distance in kilometers
-  
-  return parseFloat(distance.toFixed(2));
+  return Math.round(R * c * 100) / 100; // Round to 2 decimal places
 };
 
-// Calculate fare based on distance
-RideSchema.methods.calculateFare = function() {
-  const distance = this.calculateDistance();
-  this.distance = distance;
+// Enhanced fare calculation with concession support
+rideSchema.methods.calculateFareWithConcession = function(userConcessionType = 'general') {
+  if (!this.distance) return;
+  
+  this.concessionType = userConcessionType;
   
   // Base fare + per km charge
   const baseFare = 20;
   const perKmCharge = 8;
+  const originalFare = baseFare + (this.distance * perKmCharge);
   
-  const fare = baseFare + (distance * perKmCharge);
-  this.fare = Math.round(fare);
+  // Concession discounts
+  const discounts = {
+    general: 0,
+    student: 30,
+    child: 50,
+    women: 20,
+    elderly: 40,
+    disabled: 50
+  };
+  
+  const discountPercentage = discounts[userConcessionType] || 0;
+  const discountAmount = (originalFare * discountPercentage) / 100;
+  const finalFare = originalFare - discountAmount;
+  
+  this.originalFare = Math.round(originalFare);
+  this.discountAmount = Math.round(discountAmount);
+  this.discountPercentage = discountPercentage;
+  this.fare = Math.round(finalFare);
   
   return this.fare;
 };
 
-// Calculate trip duration
-RideSchema.methods.calculateDuration = function() {
-  if (!this.startLocation || !this.endLocation) {
-    return 0;
-  }
-  
-  const startTime = new Date(this.startLocation.timestamp);
-  const endTime = new Date(this.endLocation.timestamp);
-  
-  const durationMs = endTime - startTime;
-  const durationMinutes = Math.round(durationMs / 60000);
-  
-  this.duration = durationMinutes;
-  return durationMinutes;
+// Calculate duration in minutes
+rideSchema.methods.calculateDuration = function() {
+  if (!this.endLocation) return;
+  const start = new Date(this.startLocation.timestamp);
+  const end = new Date(this.endLocation.timestamp);
+  this.duration = Math.round((end - start) / (1000 * 60)); // Convert to minutes
 };
 
-// Check if the model exists before creating a new one
-const Ride = mongoose.models.Ride || mongoose.model("Ride", RideSchema);
-
-export default Ride;
+export default mongoose.models.Ride || mongoose.model('Ride', rideSchema);

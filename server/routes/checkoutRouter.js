@@ -7,7 +7,7 @@ import Payment from '../models/Payment.js';
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Create checkout session
+// Create checkout session with payment intent tracking
 router.post('/', async (req, res) => {
   try {
     console.log('=== CHECKOUT REQUEST ===');
@@ -45,6 +45,22 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required field for pass: routeId' });
     }
 
+    // Check for existing pending payment to prevent duplicates
+    const existingPayment = await Payment.findOne({
+      userId,
+      type,
+      status: 'pending',
+      createdAt: { $gte: new Date(Date.now() - 10 * 60 * 1000) } // Within last 10 minutes
+    });
+
+    if (existingPayment) {
+      console.log('Found existing pending payment, returning existing session');
+      return res.status(200).json({ 
+        url: `https://checkout.stripe.com/pay/${existingPayment.stripeSessionId}`,
+        message: 'Using existing payment session'
+      });
+    }
+
     // Determine product name based on type
     let productName = 'Payment';
     switch (type) {
@@ -59,7 +75,9 @@ router.post('/', async (req, res) => {
         break;
     }
 
-    // Create Stripe checkout session
+    // Create Stripe checkout session with idempotency
+    const idempotencyKey = `${userId}_${type}_${amount}_${Date.now()}`;
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -85,9 +103,11 @@ router.post('/', async (req, res) => {
         stationId: stationId || '',
         busId: busId || '',
       },
+    }, {
+      idempotencyKey
     });
 
-    // Create payment record
+    // Create payment record ONLY after successful Stripe session creation
     const payment = new Payment({
       userId,
       type,
@@ -103,12 +123,68 @@ router.post('/', async (req, res) => {
     console.log('Stripe session created:', session.id);
     console.log('Payment record created:', payment._id);
     
-    res.status(200).json({ url: session.url });
+    res.status(200).json({ 
+      url: session.url,
+      sessionId: session.id,
+      paymentId: payment._id
+    });
   } catch (error) {
     console.error('=== CHECKOUT ERROR ===');
     console.error('Checkout error:', error);
+    
+    // Handle Stripe duplicate session errors
+    if (error.type === 'StripeIdempotencyError') {
+      return res.status(409).json({ 
+        error: 'Duplicate payment request detected',
+        details: 'Please wait a moment before trying again'
+      });
+    }
+    
     res.status(500).json({ 
       error: 'Failed to create checkout session',
+      details: error.message 
+    });
+  }
+});
+
+// Verify payment status
+router.get('/verify/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    await connect();
+    
+    // Retrieve session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    // Find payment record
+    const payment = await Payment.findOne({ stripeSessionId: sessionId });
+    
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment record not found' });
+    }
+    
+    res.json({
+      sessionId: session.id,
+      paymentStatus: session.payment_status,
+      paymentIntentStatus: session.payment_intent ? 'created' : 'pending',
+      amount: session.amount_total / 100, // Convert from paise to rupees
+      currency: session.currency,
+      paymentRecord: {
+        id: payment._id,
+        status: payment.status,
+        type: payment.type,
+        fare: payment.fare
+      }
+    });
+  } catch (error) {
+    console.error('Error verifying payment:', error);
+    res.status(500).json({ 
+      error: 'Failed to verify payment',
       details: error.message 
     });
   }
